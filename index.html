@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>도깨비 폰 앱 전시관 | 용인 이동초등학교</title>
+<meta name="description" content="『도깨비 폰을 개통하시겠습니까』를 읽고 이동초 어린이들이 직접 프롬프트를 써서 만든 앱을 모두 체험해 보세요.">
+<meta property="og:title" content="도깨비 폰 앱 전시관">
+<meta property="og:description" content="우리가 지우라면 어떤 앱을 만들까? 이동초 어린이들이 AI와 함께 만든 앱 전시관">
+<meta property="og:image" content="https://daeyn92-ctrl.github.io/bookfesta/qr/_site.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#1b1340; --night-2:#2a1f5c; --ink:#1f1a33; --muted:#6b6485;
+  --paper:#fff9ef; --card:#ffffff; --line:#ece3d3;
+  --gold:#ffc53d; --pink:#ff6fa3; --mint:#3fd0b0; --sky:#6aa8ff;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:'Noto Sans KR',system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.6}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px}
+.jua{font-family:'Jua','Noto Sans KR',sans-serif;font-weight:400}
+
+/* hero */
+.hero{position:relative;overflow:hidden;color:#fff;background:
+  radial-gradient(1200px 400px at 80% -10%,#5b3fd1 0%,transparent 60%),
+  radial-gradient(800px 300px at 0% 110%,#b0306f 0%,transparent 60%),
+  linear-gradient(160deg,var(--night) 0%,var(--night-2) 100%);}
+.hero .stars{position:absolute;inset:0;background-image:
+  radial-gradient(2px 2px at 20% 30%,#fff9 50%,transparent 51%),
+  radial-gradient(1.5px 1.5px at 70% 20%,#fff8 50%,transparent 51%),
+  radial-gradient(2px 2px at 85% 60%,#fff7 50%,transparent 51%),
+  radial-gradient(1.5px 1.5px at 40% 75%,#fff6 50%,transparent 51%),
+  radial-gradient(1px 1px at 55% 45%,#fff9 50%,transparent 51%),
+  radial-gradient(1.5px 1.5px at 10% 80%,#fff7 50%,transparent 51%);pointer-events:none}
+.hero-inner{position:relative;display:grid;grid-template-columns:1.4fr 1fr;gap:40px;align-items:center;padding-block:56px 64px}
+.badge{display:inline-flex;gap:8px;align-items:center;background:#ffffff1f;border:1px solid #ffffff33;padding:6px 14px;border-radius:999px;font-size:14px;font-weight:500}
+.hero h1{font-size:clamp(34px,5.4vw,60px);line-height:1.15;margin:18px 0 14px;letter-spacing:-.5px}
+.hero h1 em{font-style:normal;color:var(--gold)}
+.hero p.lead{font-size:clamp(16px,1.8vw,19px);opacity:.92;margin:0 0 26px;max-width:560px}
+.cta{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;text-decoration:none;font:inherit;font-weight:700;border-radius:14px;padding:12px 20px;transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn-gold{background:var(--gold);color:var(--night);box-shadow:0 6px 0 #c9921a}
+.btn-ghost{background:#ffffff1a;color:#fff;border:1px solid #ffffff40}
+.phone{justify-self:center;width:230px;aspect-ratio:9/18;border-radius:36px;background:#0d0922;border:8px solid #3a2d7a;box-shadow:0 30px 60px #0008,inset 0 0 0 2px #ffffff22;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;transform:rotate(6deg)}
+.phone::before{content:"";position:absolute;top:10px;width:70px;height:18px;border-radius:10px;background:#3a2d7a}
+.phone .horn{font-size:74px;filter:drop-shadow(0 0 18px #ff6fa3aa);animation:bob 3s ease-in-out infinite}
+.phone .q{font-family:'Jua';font-size:20px;text-align:center;line-height:1.35}
+.phone .ok{display:flex;gap:8px}
+.phone .ok span{font-family:'Jua';padding:6px 14px;border-radius:10px;background:var(--pink);font-size:15px}
+.phone .ok span+span{background:#ffffff26}
+@keyframes bob{50%{transform:translateY(-8px) rotate(-4deg)}}
+
+/* story */
+.story{padding-block:56px 20px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px}
+.step .n{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-family:'Jua';font-size:20px;color:#fff;margin-bottom:12px}
+.step h3{margin:0 0 6px;font-size:18px}
+.step p{margin:0;color:var(--muted);font-size:15px}
+.sec-title{font-size:clamp(26px,3.4vw,36px);margin:0 0 8px}
+.sec-sub{color:var(--muted);margin:0 0 26px}
+.prompt{margin-top:18px;background:var(--night);color:#fff;border-radius:20px;padding:22px 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.prompt div{background:#ffffff12;border-radius:14px;padding:14px 16px}
+.prompt b{font-family:'Jua';font-weight:400;font-size:18px;display:block;margin-bottom:2px}
+.prompt span{font-size:14px;opacity:.85}
+
+/* gallery */
+.gallery{padding-block:48px 70px}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:22px;position:sticky;top:0;z-index:5;background:var(--paper);padding:12px 0;border-bottom:1px solid var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--card);padding:7px 14px;border-radius:999px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--ink)}
+.chip[aria-pressed=true]{background:var(--night);color:#fff;border-color:var(--night)}
+.search{flex:1;min-width:200px;max-width:320px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 14px;font:inherit;color:var(--ink)}
+.count{color:var(--muted);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;transition:transform .18s,box-shadow .18s}
+.card:hover{transform:translateY(-4px);box-shadow:0 14px 30px #1b134022}
+.thumb{display:block;aspect-ratio:16/10;background:linear-gradient(135deg,#3a2d7a,#b0306f);position:relative;overflow:hidden}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:1}
+.thumb .ph{position:absolute;inset:0;display:grid;place-items:center;font-size:54px}
+.card .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.card h3{margin:0;font-size:17px;line-height:1.35;word-break:keep-all}
+.who{font-size:14px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.cls{background:#f1ecff;color:#4b36b5;font-weight:700;border-radius:8px;padding:1px 8px;font-size:13px}
+.actions{display:flex;gap:8px;margin-top:auto;padding-top:8px}
+.actions .btn{padding:9px 14px;font-size:14px;border-radius:12px}
+.btn-play{background:var(--night);color:#fff;flex:1;justify-content:center}
+.btn-qr{background:#f4efe6;color:var(--ink)}
+.empty{text-align:center;color:var(--muted);padding:40px 0}
+
+/* modal */
+dialog{border:0;border-radius:24px;padding:0;max-width:min(420px,92vw);width:100%;box-shadow:0 30px 80px #0006}
+dialog::backdrop{background:#1b1340b3}
+.qbox{padding:26px;text-align:center}
+.qbox img{width:100%;max-width:300px;image-rendering:pixelated}
+.qbox h3{margin:10px 0 2px;font-size:20px}
+.qbox .url{font-size:12px;color:var(--muted);word-break:break-all;margin:8px 0 16px}
+.qbox .row{display:flex;gap:8px;justify-content:center}
+
+footer{background:var(--night);color:#fff;padding-block:36px;font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:center}
+footer img{width:96px;border-radius:10px;background:#fff;padding:6px}
+footer p{margin:0;opacity:.85}
+
+@media (max-width:860px){
+  .hero-inner{grid-template-columns:1fr;padding-block:40px 48px}
+  .phone{display:none}
+  .steps{grid-template-columns:1fr 1fr}
+  .prompt{grid-template-columns:1fr}
+  .wrap{padding-inline:16px}
+  .story{padding-top:40px}
+}
+@media (max-width:480px){.steps{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr;gap:12px}.card h3{font-size:15px}.actions{flex-direction:column}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="stars"></div>
+  <div class="wrap hero-inner">
+    <div>
+      <span class="badge">📚 용인 북 페스티벌 · 용인 이동초등학교</span>
+      <h1 class="jua">우리가 <em>지우</em>라면?<br>도깨비 폰 앱 전시관</h1>
+      <p class="lead">『도깨비 폰을 개통하시겠습니까』를 읽은 이동초 어린이들이 직접 쓴 프롬프트로 AI와 함께 만든 앱 <b id="total"></b>개를 모두 체험해 보세요.</p>
+      <div class="cta">
+        <a class="btn btn-gold" href="#gallery">🎮 앱 구경하러 가기</a>
+        <a class="btn btn-ghost" href="#story">어떻게 만들었나요?</a>
+      </div>
+    </div>
+    <div class="phone" aria-hidden="true">
+      <div class="horn">👹</div>
+      <div class="q">도깨비 폰을<br>개통하시겠습니까?</div>
+      <div class="ok"><span>예</span><span>아니요</span></div>
+    </div>
+  </div>
+</header>
+
+<section class="story wrap" id="story">
+  <h2 class="sec-title jua">책을 읽고, 앱을 만들었어요</h2>
+  <p class="sec-sub">쉴 틈 없던 지우에게 생긴 도깨비 폰. 원하는 건 무엇이든 이뤄 주지만, 대가는 지우의 ‘기운’이었어요. 지우는 거꾸로 기운을 지키는 앱을 만들어 위기를 벗어납니다.</p>
+  <div class="steps">
+    <div class="step"><div class="n" style="background:var(--pink)">1</div><h3>책 읽기</h3><p>『도깨비 폰을 개통하시겠습니까』를 함께 읽고 이야기 나누기</p></div>
+    <div class="step"><div class="n" style="background:var(--sky)">2</div><h3>상상하기</h3><p>“내가 지우라면 어떤 앱을 만들까?” 나만의 앱 아이디어 떠올리기</p></div>
+    <div class="step"><div class="n" style="background:var(--mint)">3</div><h3>프롬프트 쓰기</h3><p>역할·할 일·조건 세 가지로 AI에게 보낼 요청문을 직접 작성하기</p></div>
+    <div class="step"><div class="n" style="background:var(--gold);color:var(--night)">4</div><h3>앱 완성!</h3><p>제미나이 캔버스로 앱을 만들고 고치며 나만의 앱 완성하기</p></div>
+  </div>
+  <div class="prompt">
+    <div><b>🎭 역할</b><span>“너는 어린이를 위한 게임 개발자야.”처럼 AI가 맡을 역할</span></div>
+    <div><b>📝 할 일</b><span>“도깨비를 물리치는 게임을 만들어 줘.”처럼 만들고 싶은 것</span></div>
+    <div><b>✅ 조건</b><span>“휴대폰에서도 버튼으로 조작할 수 있게.”처럼 꼭 지켜야 할 규칙</span></div>
+  </div>
+</section>
+
+<section class="gallery wrap" id="gallery">
+  <h2 class="sec-title jua">앱 전시관</h2>
+  <p class="sec-sub">카드를 누르면 앱이 열려요. QR 버튼을 누르면 휴대폰으로도 바로 해 볼 수 있어요.</p>
+  <div class="bar">
+    <div class="chips" id="chips" role="group" aria-label="반 선택"></div>
+    <input class="search" id="q" type="search" placeholder="앱 이름이나 이름으로 찾기" aria-label="검색">
+  </div>
+  <p class="count" id="count"></p>
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" hidden>찾는 앱이 없어요.</p>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <p class="jua" style="font-size:20px;opacity:1">용인 이동초등학교 × 용인 북 페스티벌</p>
+      <p>모든 앱은 어린이들이 직접 쓴 프롬프트로 AI(제미나이 캔버스)와 함께 만들었어요.</p>
+    </div>
+    <img src="qr/_site.png" alt="전시관 주소 QR코드">
+  </div>
+</footer>
+
+<dialog id="dlg">
+  <div class="qbox">
+    <img id="dlg-qr" alt="">
+    <h3 id="dlg-title"></h3>
+    <div class="who" style="justify-content:center" id="dlg-who"></div>
+    <div class="url" id="dlg-url"></div>
+    <div class="row">
+      <a class="btn btn-play" id="dlg-open" target="_blank" rel="noopener">▶ 앱 열기</a>
+      <button class="btn btn-qr" id="dlg-close">닫기</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const DATA = {"base": "https://daeyn92-ctrl.github.io/bookfesta/", "works": [{"id": "4-1-b01235", "cls": "4-1", "name": "김○온", "title": "도깨비 퇴치: 사자의 수호", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-b01235.html", "hash": "606b49bdd38cfdd62b842493274dc8774012c2ef"}, {"id": "4-1-6e6b38", "cls": "4-1", "name": "윤○우", "title": "스타 마린: 무한 어드벤처", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-6e6b38.html", "hash": "44b996337ece8dc9457ffee990a8dbcc423480f0"}, {"id": "4-1-e17441", "cls": "4-1", "name": "황○현", "title": "신비한 알 키우기: 밤의 연금술사 NPC", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-e17441.html", "hash": "c08f625774ad69ea7be658100c7af9a25b2caa72"}]};
+const works = DATA.works;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const emojis = ['👹','📱','⚡','🔮','🌙','🦁','🥚','🚀','✨','🎮'];
+$('#total').textContent = works.length;
+
+const classes = [...new Set(works.map(w => w.cls))];
+let cls = 'all';
+try { cls = new URLSearchParams(location.search).get('반') || 'all'; } catch(e){}
+function chips(){
+  $('#chips').innerHTML = ['all', ...classes].map(c =>
+    `<button class="chip" data-c="${c}" aria-pressed="${c===cls}">${c==='all'?'전체':c.replace('-', '학년 ')+'반'}</button>`).join('');
+}
+$('#chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if(!b) return; cls = b.dataset.c; chips(); render(); });
+
+function render(){
+  const q = $('#q').value.trim().toLowerCase();
+  const list = works.filter(w => (cls==='all' || w.cls===cls) && (!q || (w.title+' '+w.name+' '+w.cls).toLowerCase().includes(q)));
+  $('#grid').innerHTML = list.map((w,i) => `
+    <article class="card">
+      <a class="thumb" href="w/${w.id}.html" target="_blank" rel="noopener" aria-label="${esc(w.title)} 열기">
+        <span class="ph">${emojis[i % emojis.length]}</span>
+        <img src="thumbs/${w.id}.jpg" alt="" loading="lazy" onerror="this.remove()">
+      </a>
+      <div class="body">
+        <h3>${esc(w.title)}</h3>
+        <div class="who"><span class="cls">${esc(w.cls)}</span>${esc(w.name)}</div>
+        <div class="actions">
+          <a class="btn btn-play" href="w/${w.id}.html" target="_blank" rel="noopener">▶ 열기</a>
+          <button class="btn btn-qr" data-id="${w.id}">QR</button>
+        </div>
+      </div>
+    </article>`).join('');
+  $('#count').textContent = `${list.length}개의 앱`;
+  $('#empty').hidden = list.length > 0;
+}
+$('#q').addEventListener('input', render);
+
+const dlg = $('#dlg');
+$('#grid').addEventListener('click', e => {
+  const b = e.target.closest('.btn-qr'); if(!b) return;
+  const w = works.find(x => x.id === b.dataset.id);
+  $('#dlg-qr').src = `qr/${w.id}.svg`; $('#dlg-qr').alt = `${w.title} QR코드`;
+  $('#dlg-title').textContent = w.title;
+  $('#dlg-who').innerHTML = `<span class="cls">${esc(w.cls)}</span>${esc(w.name)}`;
+  $('#dlg-url').textContent = w.url; $('#dlg-open').href = `w/${w.id}.html`;
+  dlg.showModal();
+});
+$('#dlg-close').onclick = () => dlg.close();
+dlg.addEventListener('click', e => { if(e.target === dlg) dlg.close(); });
+chips(); render();
+</script>
+</body>
+</html>

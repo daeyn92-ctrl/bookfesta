@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>스타 마린: 무한 어드벤처</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow: hidden;
+        }
+        .font-jua {
+            font-family: 'Jua', sans-serif;
+        }
+        
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        /* Mobile Touch Control Button Styles */
+        .btn-touch {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid rgba(148, 163, 184, 0.4);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: transform 0.05s ease, background-color 0.1s ease;
+        }
+        .btn-touch:active, .btn-touch.active {
+            transform: scale(0.92);
+            background: rgba(51, 65, 85, 0.9);
+            border-color: #38bdf8;
+        }
+        .btn-jump {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            border: 2px solid #38bdf8;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+        .btn-jump:active {
+            background: linear-gradient(135deg, #0369a1, #075985);
+        }
+
+        /* Pulsing items visual glow */
+        @keyframes item-glow {
+            0%, 100% { filter: drop-shadow(0 0 4px #eab308); }
+            50% { filter: drop-shadow(0 0 12px #facc15); }
+        }
+        .glow-yellow {
+            animation: item-glow 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between items-center relative overflow-hidden bg-slate-950">
+
+    <!-- TOP HUD OVERLAY -->
+    <header class="absolute top-0 left-0 right-0 z-30 p-3 md:p-4 flex justify-between items-center max-w-5xl mx-auto w-full pointer-events-none">
+        <!-- Player Lives & Score -->
+        <div class="flex items-center gap-3">
+            <div class="glass-panel px-3.5 py-1.5 rounded-2xl flex items-center gap-2 shadow-lg">
+                <span class="text-xs md:text-sm text-slate-300 font-bold">목숨:</span>
+                <div id="livesContainer" class="flex gap-1 text-red-500 text-lg md:text-xl">
+                    <i class="fa-solid fa-heart animate-pulse"></i>
+                    <i class="fa-solid fa-heart animate-pulse"></i>
+                    <i class="fa-solid fa-heart animate-pulse"></i>
+                </div>
+            </div>
+
+            <div class="glass-panel px-3.5 py-1.5 rounded-2xl flex items-center gap-2 shadow-lg">
+                <i class="fa-solid fa-star text-amber-400 text-sm md:text-base"></i>
+                <span id="scoreText" class="font-jua text-lg md:text-xl text-amber-300">0</span>
+            </div>
+        </div>
+
+        <!-- Distance & Active Powerup Status -->
+        <div class="flex items-center gap-3">
+            <div id="powerupBadge" class="hidden glass-panel px-3 py-1 rounded-2xl border-amber-400/50 text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <span id="powerupIcon">⚡</span>
+                <span id="powerupName">스피드업</span>
+            </div>
+
+            <div class="glass-panel px-3.5 py-1.5 rounded-2xl flex items-center gap-2 shadow-lg">
+                <i class="fa-solid fa-person-running text-sky-400 text-sm md:text-base"></i>
+                <span id="distanceText" class="font-mono font-bold text-sm md:text-base text-sky-300">0m</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- GAME CANVAS CONTAINER -->
+    <main class="relative w-full h-full flex items-center justify-center overflow-hidden">
+        <canvas id="gameCanvas" class="w-full h-full block bg-slate-900 cursor-crosshair"></canvas>
+
+        <!-- START / PAUSE / GAME OVER OVERLAY SCREEN -->
+        <div id="gameOverlay" class="absolute inset-0 z-40 flex items-center justify-center p-4 glass-panel bg-slate-950/80 transition-opacity duration-300">
+            <div class="bg-slate-900 border-2 border-sky-500/40 rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl"></div>
+                <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
+
+                <!-- Game Title Icon -->
+                <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-tr from-sky-600 to-indigo-500 rounded-3xl flex items-center justify-center border-2 border-sky-300 shadow-lg text-4xl">
+                    🚀
+                </div>
+
+                <h1 id="overlayTitle" class="font-jua text-3xl md:text-4xl text-white tracking-wide mb-2">스타 마린 어드벤처</h1>
+                <p id="overlaySub" class="text-xs md:text-sm text-slate-300 mb-6 leading-relaxed">
+                    점프하여 갈색 블록을 건너뛰고, 노란 블록을 쳐서 랜덤 아이템을 얻으세요!<br>
+                    적은 **점프해서 밟으면** 물리칠 수 있습니다!
+                </p>
+
+                <!-- High score / Stats summary -->
+                <div id="scoreSummary" class="hidden bg-slate-800/80 rounded-2xl p-4 mb-6 border border-white/10 text-xs md:text-sm space-y-2">
+                    <div class="flex justify-between text-slate-300">
+                        <span>도달 거리:</span>
+                        <span id="finalDistance" class="font-mono font-bold text-sky-300">0m</span>
+                    </div>
+                    <div class="flex justify-between text-slate-300">
+                        <span>획득 점수:</span>
+                        <span id="finalScore" class="font-mono font-bold text-amber-300">0</span>
+                    </div>
+                    <div class="flex justify-between text-slate-300 border-t border-white/10 pt-2">
+                        <span>최고 기록:</span>
+                        <span id="highScoreText" class="font-mono font-bold text-emerald-400">0</span>
+                    </div>
+                </div>
+
+                <!-- Controls Guide -->
+                <div class="hidden md:grid grid-cols-2 gap-2 text-xs text-slate-400 mb-6 bg-slate-950/50 p-3 rounded-xl border border-white/5">
+                    <div><span class="text-sky-300 font-bold">A / D</span> or <span class="text-sky-300 font-bold">← / →</span> : 이동</div>
+                    <div><span class="text-sky-300 font-bold">Space / W</span> : 점프</div>
+                    <div><span class="text-sky-300 font-bold">J / X</span> : 플라즈마 총 발사</div>
+                    <div><span class="text-sky-300 font-bold">노란 블록</span> : 아이템 획득</div>
+                </div>
+
+                <!-- Start Button -->
+                <button id="btnStartGame" onclick="startGame()" class="w-full bg-gradient-to-r from-sky-500 via-sky-400 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-slate-950 font-jua text-xl py-3.5 rounded-2xl shadow-xl transition active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i> 게임 시작하기
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ON-SCREEN MOBILE TOUCH CONTROLS -->
+    <div class="fixed bottom-3 left-0 right-0 z-30 px-4 md:hidden flex justify-between items-end pointer-events-none">
+        <!-- Directional Touch Pad (Left / Right) -->
+        <div class="flex gap-2 pointer-events-auto">
+            <button id="btnLeft" class="btn-touch w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl active:bg-sky-600">
+                <i class="fa-solid fa-caret-left"></i>
+            </button>
+            <button id="btnRight" class="btn-touch w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl active:bg-sky-600">
+                <i class="fa-solid fa-caret-right"></i>
+            </button>
+        </div>
+
+        <!-- Action Touch Buttons (Jump & Fire) -->
+        <div class="flex gap-3 pointer-events-auto items-center">
+            <button id="btnShoot" class="btn-touch w-14 h-14 rounded-full bg-rose-600/80 border-rose-400 text-white text-lg flex items-center justify-center hidden active:bg-rose-500">
+                <i class="fa-solid fa-crosshairs"></i>
+            </button>
+            <button id="btnJump" class="btn-touch btn-jump w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                <i class="fa-solid fa-arrow-up"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* ===================================================================
+         * SOUND ENGINE (Web Audio API Synthesizer)
+         * =================================================================== */
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'jump') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.exponentialRampToValueAtTime(480, now + 0.15);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'block') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.setValueAtTime(600, now + 0.08);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                    osc.start(now);
+                    osc.stop(now + 0.18);
+                } else if (type === 'item') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.08);
+                    osc.frequency.setValueAtTime(659.25, now + 0.16);
+                    osc.frequency.setValueAtTime(880, now + 0.24);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'stomp') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(250, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'hurt') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.linearRampToValueAtTime(60, now + 0.25);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'shoot') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(150, now + 0.1);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                }
+            } catch (e) {
+                // Audio safely muted
+            }
+        }
+
+        /* ===================================================================
+         * GAME CONSTANTS & ENGINE VARIABLES
+         * =================================================================== */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const TILE_SIZE = 40;
+        const GRAVITY = 0.55;
+
+        // Game State
+        let isRunning = false;
+        let score = 0;
+        let lives = 3;
+        let distance = 0;
+        let highScore = parseInt(localStorage.getItem('star_marine_highscore') || '0');
+
+        // Camera Offset
+        let cameraX = 0;
+
+        // Inputs
+        const keys = { left: false, right: false, jump: false, shoot: false };
+
+        // Player Marine Object
+        let player = {
+            x: 100,
+            y: 300,
+            w: 32,
+            h: 46,
+            vx: 0,
+            vy: 0,
+            speed: 4.8,
+            jumpPower: -12.5,
+            grounded: false,
+            facing: 'right',
+            invincibleTimer: 0,
+            powerup: null, // 'SPEED', 'GUN', 'SHIELD'
+            powerupTimer: 0,
+            animFrame: 0
+        };
+
+        // Entities Arrays
+        let platforms = []; // { x, y, w, h, type: 'BROWN' | 'YELLOW' | 'GROUND', hasItem, hit }
+        let enemies = [];   // { x, y, w, h, vx, type: 'ZERG', alive }
+        let items = [];     // { x, y, w, h, vy, type, collected }
+        let bullets = [];   // { x, y, vx, vy, alive }
+        let particles = []; // Visual particle effects
+
+        // Procedural Chunk Generator Tracking
+        let generatedX = 0;
+
+        /* ===================================================================
+         * PROCEDURAL TERRAIN & MAP GENERATION
+         * =================================================================== */
+        function initMap() {
+            platforms = [];
+            enemies = [];
+            items = [];
+            bullets = [];
+            particles = [];
+            generatedX = 0;
+
+            // Safe starting ground area
+            const startGroundWidth = 800;
+            platforms.push({
+                x: -200,
+                y: canvas.height - 80,
+                w: startGroundWidth + 200,
+                h: 120,
+                type: 'GROUND'
+            });
+            generatedX = startGroundWidth;
+
+            // Generate initial chunks ahead
+            generateNextChunks(2000);
+        }
+
+        function generateNextChunks(untilX) {
+            while (generatedX < untilX) {
+                const chunkType = Math.floor(Math.random() * 5);
+                const gapWidth = Math.floor(Math.random() * 3) === 0 ? Math.floor(Math.random() * 70) + 60 : 0;
+                
+                generatedX += gapWidth; // Potential jump gap
+
+                const platformWidth = Math.floor(Math.random() * 300) + 200;
+                const groundY = canvas.height - 80;
+
+                // Ground Segment
+                platforms.push({
+                    x: generatedX,
+                    y: groundY,
+                    w: platformWidth,
+                    h: 120,
+                    type: 'GROUND'
+                });
+
+                // Spawn Enemies on ground
+                if (Math.random() < 0.65) {
+                    enemies.push({
+                        x: generatedX + platformWidth / 2,
+                        y: groundY - 32,
+                        w: 32,
+                        h: 32,
+                        vx: Math.random() > 0.5 ? 1.5 : -1.5,
+                        minX: generatedX + 20,
+                        maxX: generatedX + platformWidth - 20,
+                        alive: true
+                    });
+                }
+
+                // Air Floating Brown & Yellow Blocks Patterns
+                const numAirBlocks = Math.floor(Math.random() * 4) + 2;
+                const startBlockX = generatedX + 40;
+                const airY = groundY - (Math.floor(Math.random() * 3) * 45 + 110);
+
+                for (let b = 0; b < numAirBlocks; b++) {
+                    const bx = startBlockX + b * TILE_SIZE;
+                    // Random chance for Yellow Item Block vs Brown Floating Block
+                    const isYellow = Math.random() < 0.35; // 35% chance of Yellow Question block
+
+                    platforms.push({
+                        x: bx,
+                        y: airY,
+                        w: TILE_SIZE,
+                        h: TILE_SIZE,
+                        type: isYellow ? 'YELLOW' : 'BROWN',
+                        hasItem: isYellow,
+                        hit: false
+                    });
+                }
+
+                // Higher tier floating platforms
+                if (Math.random() < 0.4) {
+                    const highY = airY - 90;
+                    const highWidth = 3 * TILE_SIZE;
+                    for (let hb = 0; hb < 3; hb++) {
+                        platforms.push({
+                            x: startBlockX + hb * TILE_SIZE + 40,
+                            y: highY,
+                            w: TILE_SIZE,
+                            h: TILE_SIZE,
+                            type: hb === 1 && Math.random() < 0.5 ? 'YELLOW' : 'BROWN',
+                            hasItem: hb === 1,
+                            hit: false
+                        });
+                    }
+                }
+
+                generatedX += platformWidth;
+            }
+        }
+
+        /* ===================================================================
+         * GAME RESTART & LIFECYCLE
+         * =================================================================== */
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function startGame() {
+            initAudio();
+            resizeCanvas();
+
+            // Reset Game Stats
+            score = 0;
+            lives = 3;
+            distance = 0;
+            cameraX = 0;
+
+            // Reset Player
+            player.x = 100;
+            player.y = canvas.height - 200;
+            player.vx = 0;
+            player.vy = 0;
+            player.powerup = null;
+            player.powerupTimer = 0;
+            player.invincibleTimer = 0;
+
+            initMap();
+            updateHUD();
+
+            document.getElementById('gameOverlay').classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                document.getElementById('gameOverlay').classList.add('hidden');
+            }, 300);
+
+            isRunning = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            isRunning = false;
+            playSound('hurt');
+
+            // Save Highscore
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('star_marine_highscore', highScore.toString());
+            }
+
+            document.getElementById('finalDistance').innerText = `${Math.floor(distance)}m`;
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('highScoreText').innerText = highScore;
+
+            document.getElementById('overlayTitle').innerText = "게임 오버!";
+            document.getElementById('overlaySub').innerText = "마린이 전사했습니다. 다시 도전해 보세요!";
+            document.getElementById('scoreSummary').classList.remove('hidden');
+            document.getElementById('btnStartGame').innerHTML = `<i class="fa-solid fa-rotate-right"></i> 다시 도전하기`;
+
+            const overlay = document.getElementById('gameOverlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+            }, 50);
+        }
+
+        function updateHUD() {
+            // Lives Hearts Display
+            const livesDiv = document.getElementById('livesContainer');
+            livesDiv.innerHTML = '';
+            for (let i = 0; i < lives; i++) {
+                livesDiv.innerHTML += `<i class="fa-solid fa-heart animate-pulse"></i>`;
+            }
+
+            document.getElementById('scoreText').innerText = score;
+            document.getElementById('distanceText').innerText = `${Math.floor(distance)}m`;
+
+            // Active Powerup Indicator
+            const pBadge = document.getElementById('powerupBadge');
+            const pShootBtn = document.getElementById('btnShoot');
+
+            if (player.powerup) {
+                pBadge.classList.remove('hidden');
+                if (player.powerup === 'SPEED') {
+                    document.getElementById('powerupIcon').innerText = '⚡';
+                    document.getElementById('powerupName').innerText = '스피드업';
+                } else if (player.powerup === 'GUN') {
+                    document.getElementById('powerupIcon').innerText = '🔫';
+                    document.getElementById('powerupName').innerText = '플라즈마 건';
+                    pShootBtn.classList.remove('hidden');
+                } else if (player.powerup === 'SHIELD') {
+                    document.getElementById('powerupIcon').innerText = '⭐';
+                    document.getElementById('powerupName').innerText = '무적 보호막';
+                }
+            } else {
+                pBadge.classList.add('hidden');
+                pShootBtn.classList.add('hidden');
+            }
+        }
+
+        /* ===================================================================
+         * CONTROLS & EVENT LISTENERS
+         * =================================================================== */
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+            if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp') {
+                if (!keys.jump && player.grounded) {
+                    player.vy = player.jumpPower;
+                    player.grounded = false;
+                    playSound('jump');
+                }
+                keys.jump = true;
+            }
+            if (e.code === 'KeyJ' || e.code === 'KeyX') {
+                shootBullet();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+            if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp') keys.jump = false;
+        });
+
+        // Touch buttons setup
+        const bindTouchBtn = (btnId, keyName, isJump = false) => {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+
+            const start = (e) => {
+                e.preventDefault();
+                btn.classList.add('active');
+                if (isJump && !keys.jump && player.grounded) {
+                    player.vy = player.jumpPower;
+                    player.grounded = false;
+                    playSound('jump');
+                }
+                if (keyName === 'shoot') shootBullet();
+                keys[keyName] = true;
+            };
+
+            const end = (e) => {
+                e.preventDefault();
+                btn.classList.remove('active');
+                keys[keyName] = false;
+            };
+
+            btn.addEventListener('touchstart', start);
+            btn.addEventListener('touchend', end);
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('mouseup', end);
+        };
+
+        bindTouchBtn('btnLeft', 'left');
+        bindTouchBtn('btnRight', 'right');
+        bindTouchBtn('btnJump', 'jump', true);
+        bindTouchBtn('btnShoot', 'shoot');
+
+        function shootBullet() {
+            if (player.powerup === 'GUN' && isRunning) {
+                const dir = player.facing === 'right' ? 1 : -1;
+                bullets.push({
+                    x: player.x + (dir === 1 ? player.w + 4 : -8),
+                    y: player.y + 18,
+                    vx: dir * 12,
+                    vy: 0,
+                    alive: true
+                });
+                playSound('shoot');
+            }
+        }
+
+        /* ===================================================================
+         * PHYSICS & GAME LOGIC UPDATE LOOP
+         * =================================================================== */
+        function update() {
+            if (!isRunning) return;
+
+            // Player Horizontal Movement
+            const currentSpeed = player.powerup === 'SPEED' ? player.speed * 1.5 : player.speed;
+            if (keys.left) {
+                player.vx = -currentSpeed;
+                player.facing = 'left';
+            } else if (keys.right) {
+                player.vx = currentSpeed;
+                player.facing = 'right';
+            } else {
+                player.vx *= 0.75;
+            }
+
+            // Apply Gravity
+            player.vy += GRAVITY;
+
+            // Update Position
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Distance Traveled
+            if (player.x > distance) {
+                distance = player.x;
+            }
+
+            // Keep track of procedural generation
+            if (player.x + canvas.width > generatedX) {
+                generateNextChunks(player.x + canvas.width + 1000);
+            }
+
+            // Powerup Timers
+            if (player.powerupTimer > 0) {
+                player.powerupTimer--;
+                if (player.powerupTimer <= 0) {
+                    player.powerup = null;
+                    updateHUD();
+                }
+            }
+
+            // Invincibility Timer
+            if (player.invincibleTimer > 0) {
+                player.invincibleTimer--;
+            }
+
+            // Platform Collisions (Ground, Brown Blocks, Yellow Blocks)
+            player.grounded = false;
+
+            for (let plat of platforms) {
+                // Check AABB Collision
+                if (
+                    player.x < plat.x + plat.w &&
+                    player.x + player.w > plat.x &&
+                    player.y < plat.y + plat.h &&
+                    player.y + player.h > plat.y
+                ) {
+                    // Landing on top of platform/block
+                    if (player.vy > 0 && player.y + player.h - player.vy <= plat.y + 12) {
+                        player.y = plat.y - player.h;
+                        player.vy = 0;
+                        player.grounded = true;
+                    }
+                    // Hitting head from below (Yellow / Brown Blocks)
+                    else if (player.vy < 0 && player.y - player.vy >= plat.y + plat.h - 12) {
+                        player.y = plat.y + plat.h;
+                        player.vy = 0;
+
+                        // Trigger Yellow Block Bump Event
+                        if (plat.type === 'YELLOW' && !plat.hit) {
+                            plat.hit = true;
+                            playSound('block');
+
+                            // Spawn Random Item from yellow block!
+                            spawnRandomItem(plat.x + plat.w / 2 - 12, plat.y - 28);
+                        }
+                    }
+                    // Side Collisions
+                    else if (player.vx > 0) {
+                        player.x = plat.x - player.w;
+                    } else if (player.vx < 0) {
+                        player.x = plat.x + plat.w;
+                    }
+                }
+            }
+
+            // Pit Fall Check
+            if (player.y > canvas.height + 100) {
+                takeDamage(true);
+            }
+
+            // Enemies Update & Collisions
+            for (let enemy of enemies) {
+                if (!enemy.alive) continue;
+
+                // Enemy Movement
+                enemy.x += enemy.vx;
+                if (enemy.x <= enemy.minX || enemy.x >= enemy.maxX) {
+                    enemy.vx *= -1;
+                }
+
+                // Player <-> Enemy Collision
+                if (
+                    player.x < enemy.x + enemy.w &&
+                    player.x + player.w > enemy.x &&
+                    player.y < enemy.y + enemy.h &&
+                    player.y + player.h > enemy.y
+                ) {
+                    // STOMP MECHANIC: Player falling onto enemy from above
+                    if (player.vy > 0 && player.y + player.h - player.vy <= enemy.y + 12) {
+                        enemy.alive = false;
+                        player.vy = -9; // Bounce up!
+                        score += 100;
+                        playSound('stomp');
+                        createParticles(enemy.x + 16, enemy.y + 16, '#a855f7', 8);
+                        updateHUD();
+                    }
+                    // SHIELD INVINCIBILITY CONTACT
+                    else if (player.powerup === 'SHIELD') {
+                        enemy.alive = false;
+                        score += 100;
+                        playSound('stomp');
+                        createParticles(enemy.x + 16, enemy.y + 16, '#facc15', 8);
+                        updateHUD();
+                    }
+                    // SIDE CONTACT -> TAKE DAMAGE
+                    else {
+                        takeDamage(false);
+                    }
+                }
+            }
+
+            // Items Update & Pickup Collisions
+            for (let item of items) {
+                if (item.collected) continue;
+
+                // Item physics: Float up slightly then stay
+                if (item.vy < 0) {
+                    item.y += item.vy;
+                    item.vy += 0.2;
+                }
+
+                // Check Player Pickup
+                if (
+                    player.x < item.x + item.w &&
+                    player.x + player.w > item.x &&
+                    player.y < item.y + item.h &&
+                    player.y + player.h > item.y
+                ) {
+                    item.collected = true;
+                    playSound('item');
+                    applyItemEffect(item.type);
+                    createParticles(item.x + 12, item.y + 12, '#facc15', 12);
+                }
+            }
+
+            // Bullets Physics & Collisions
+            for (let bullet of bullets) {
+                if (!bullet.alive) continue;
+                bullet.x += bullet.vx;
+
+                // Bullet <-> Enemy Collision
+                for (let enemy of enemies) {
+                    if (enemy.alive &&
+                        bullet.x < enemy.x + enemy.w &&
+                        bullet.x + 8 > enemy.x &&
+                        bullet.y < enemy.y + enemy.h &&
+                        bullet.y + 8 > enemy.y) {
+                        bullet.alive = false;
+                        enemy.alive = false;
+                        score += 100;
+                        playSound('stomp');
+                        createParticles(enemy.x + 16, enemy.y + 16, '#06b6d4', 10);
+                        updateHUD();
+                    }
+                }
+
+                // Remove bullet if far off screen
+                if (Math.abs(bullet.x - player.x) > canvas.width) {
+                    bullet.alive = false;
+                }
+            }
+
+            // Particles Update
+            for (let p of particles) {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.03;
+            }
+            particles = particles.filter(p => p.alpha > 0);
+
+            // Smooth Camera Follow
+            cameraX += (player.x - canvas.width * 0.35 - cameraX) * 0.1;
+            if (cameraX < 0) cameraX = 0;
+        }
+
+        /* ===================================================================
+         * ITEMS & DAMAGE HANDLING
+         * =================================================================== */
+        function spawnRandomItem(x, y) {
+            const types = ['HEART', 'SPEED', 'GUN', 'SHIELD', 'COIN'];
+            const rand = Math.random();
+            let selectedType = 'COIN';
+
+            if (rand < 0.15) selectedType = 'HEART'; // 15% Heart
+            else if (rand < 0.35) selectedType = 'GUN'; // 20% Plasma Gun
+            else if (rand < 0.55) selectedType = 'SHIELD'; // 20% Shield
+            else if (rand < 0.75) selectedType = 'SPEED'; // 20% Speed Boost
+            else selectedType = 'COIN'; // 25% Coin
+
+            items.push({
+                x: x,
+                y: y,
+                w: 24,
+                h: 24,
+                vy: -3,
+                type: selectedType,
+                collected: false
+            });
+        }
+
+        function applyItemEffect(type) {
+            if (type === 'HEART') {
+                if (lives < 5) lives++;
+            } else if (type === 'COIN') {
+                score += 300;
+            } else {
+                player.powerup = type;
+                player.powerupTimer = 600; // 10 seconds active
+            }
+            updateHUD();
+        }
+
+        function takeDamage(isFall = false) {
+            if (player.invincibleTimer > 0 && !isFall) return;
+
+            lives--;
+            playSound('hurt');
+            updateHUD();
+
+            if (lives <= 0) {
+                gameOver();
+            } else {
+                player.invincibleTimer = 90; // 1.5 seconds invincibility frames
+                player.vy = -8; // Hurt recoil bounce
+
+                if (isFall) {
+                    // Respawn on nearest safe ground platform
+                    player.x = Math.max(100, player.x - 250);
+                    player.y = canvas.height - 250;
+                    player.vy = 0;
+                }
+            }
+        }
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    size: Math.random() * 5 + 2,
+                    color: color,
+                    alpha: 1.0
+                });
+            }
+        }
+
+        /* ===================================================================
+         * RENDERING ENGINE (CANVAS GRAPHICS)
+         * =================================================================== */
+        function render() {
+            // Background Sci-Fi Gradient & Stars
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGradient.addColorStop(0, '#020617');
+            bgGradient.addColorStop(0.6, '#0f172a');
+            bgGradient.addColorStop(1, '#1e1b4b');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Distant Mountains / Stars Parallax Effect
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            for (let i = 0; i < 30; i++) {
+                const starX = ((i * 120) - cameraX * 0.1) % canvas.width;
+                const finalStarX = starX < 0 ? starX + canvas.width : starX;
+                ctx.fillRect(finalStarX, (i * 37) % (canvas.height * 0.6), 2, 2);
+            }
+
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // Render Platforms & Blocks
+            for (let plat of platforms) {
+                if (plat.x + plat.w < cameraX - 100 || plat.x > cameraX + canvas.width + 100) continue;
+
+                if (plat.type === 'GROUND') {
+                    // Ground Brown / Metallic Tech Texture
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(plat.x, plat.y, plat.w, 8); // Top metal border
+                } 
+                else if (plat.type === 'BROWN') {
+                    // Air Brown Block (갈색 공중 블록)
+                    ctx.fillStyle = '#854d0e';
+                    ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+
+                    // Inner Texture & Border
+                    ctx.strokeStyle = '#a16207';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(plat.x + 2, plat.y + 2, plat.w - 4, plat.h - 4);
+
+                    ctx.fillStyle = '#713f12';
+                    ctx.fillRect(plat.x + 8, plat.y + 8, plat.w - 16, plat.h - 16);
+                } 
+                else if (plat.type === 'YELLOW') {
+                    // Air Yellow Question Block (노란 블록)
+                    if (plat.hit) {
+                        ctx.fillStyle = '#713f12'; // Hit empty block state
+                        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+                        ctx.strokeStyle = '#a16207';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(plat.x, plat.y, plat.w, plat.h);
+                    } else {
+                        // Glowing Vibrant Yellow Mystery Block
+                        ctx.fillStyle = '#eab308';
+                        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+
+                        ctx.strokeStyle = '#fef08a';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(plat.x + 2, plat.y + 2, plat.w - 4, plat.h - 4);
+
+                        // Mystery Question Mark (?)
+                        ctx.fillStyle = '#713f12';
+                        ctx.font = 'bold 22px "Jua", sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('?', plat.x + plat.w / 2, plat.y + plat.h / 2 + 1);
+                    }
+                }
+            }
+
+            // Render Items
+            for (let item of items) {
+                if (item.collected) continue;
+
+                ctx.save();
+                ctx.translate(item.x + 12, item.y + 12);
+
+                if (item.type === 'HEART') {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.font = '20px font-awesome';
+                    ctx.fillText('💖', -10, 8);
+                } else if (item.type === 'GUN') {
+                    ctx.fillStyle = '#06b6d4';
+                    ctx.font = '20px font-awesome';
+                    ctx.fillText('🔫', -10, 8);
+                } else if (item.type === 'SHIELD') {
+                    ctx.fillStyle = '#facc15';
+                    ctx.font = '20px font-awesome';
+                    ctx.fillText('⭐', -10, 8);
+                } else if (item.type === 'SPEED') {
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.font = '20px font-awesome';
+                    ctx.fillText('⚡', -10, 8);
+                } else {
+                    ctx.fillStyle = '#eab308';
+                    ctx.font = '20px font-awesome';
+                    ctx.fillText('🪙', -10, 8);
+                }
+                ctx.restore();
+            }
+
+            // Render Enemies (Zergling / Insect Aliens)
+            for (let enemy of enemies) {
+                if (!enemy.alive) continue;
+
+                ctx.save();
+                ctx.translate(enemy.x, enemy.y);
+
+                // Purple Alien Bug Body
+                ctx.fillStyle = '#a855f7';
+                ctx.beginPath();
+                ctx.arc(16, 18, 14, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Spikes / Claws
+                ctx.fillStyle = '#d8b4fe';
+                ctx.fillRect(enemy.vx > 0 ? 24 : 0, 10, 8, 4);
+
+                // Glowing Red Eyes
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(enemy.vx > 0 ? 20 : 6, 12, 5, 5);
+
+                ctx.restore();
+            }
+
+            // Render Bullets
+            ctx.fillStyle = '#06b6d4';
+            for (let b of bullets) {
+                if (b.alive) {
+                    ctx.fillRect(b.x, b.y, 10, 4);
+                }
+            }
+
+            // Render Particles
+            for (let p of particles) {
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Render Marine Character (마린 캐릭터)
+            if (player.invincibleTimer % 6 < 3) { // Flashing invulnerability effect
+                ctx.save();
+                ctx.translate(player.x, player.y);
+
+                // Shield Aura Visual
+                if (player.powerup === 'SHIELD') {
+                    ctx.strokeStyle = '#facc15';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(player.w / 2, player.h / 2, 28, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Direction Flip
+                if (player.facing === 'left') {
+                    ctx.translate(player.w, 0);
+                    ctx.scale(-1, 1);
+                }
+
+                // Marine Armor Suit Base (Blue Terran Marine)
+                ctx.fillStyle = '#0284c7'; // Blue Armor
+                ctx.fillRect(4, 14, 24, 22); // Torso
+
+                // Shoulder Pads
+                ctx.fillStyle = '#0369a1';
+                ctx.fillRect(0, 12, 8, 10);
+                ctx.fillRect(24, 12, 8, 10);
+
+                // Legs / Boots
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(6, 34, 8, 12);
+                ctx.fillRect(18, 34, 8, 12);
+
+                // Helmet & Cyan Visor
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(6, 0, 20, 16); // Helmet
+                ctx.fillStyle = '#22d3ee'; // Glowing Cyan Visor
+                ctx.fillRect(14, 4, 10, 6);
+
+                // Gauss Rifle Weapon
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(18, 20, 16, 6);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(28, 22, 6, 2);
+
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        /* ===================================================================
+         * MAIN GAME LOOP
+         * =================================================================== */
+        function gameLoop() {
+            update();
+            render();
+
+            if (isRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Initialize Canvas size on load
+        window.onload = function() {
+            resizeCanvas();
+        };
+    </script>
+</body>
+</html>

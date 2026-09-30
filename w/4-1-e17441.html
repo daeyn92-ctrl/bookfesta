@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>신비한 알 키우기: 밤의 연금술사 NPC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+        }
+        .font-jua {
+            font-family: 'Jua', sans-serif;
+        }
+        
+        /* Custom Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+        .animate-float {
+            animation: float 3.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(236, 72, 153, 0.4)); }
+            50% { filter: drop-shadow(0 0 18px rgba(236, 72, 153, 0.9)); }
+        }
+        .glow-egg {
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes night-aura {
+            0%, 100% { box-shadow: inset 0 0 30px rgba(139, 92, 246, 0.3), 0 0 20px rgba(168, 85, 247, 0.4); }
+            50% { box-shadow: inset 0 0 50px rgba(139, 92, 246, 0.6), 0 0 35px rgba(168, 85, 247, 0.8); }
+        }
+        .night-active-bg {
+            animation: night-aura 3s ease-in-out infinite;
+        }
+
+        /* Crack Animation for Hatching */
+        @keyframes shake-egg {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            20% { transform: translate(-2px, -2px) rotate(-3deg); }
+            40% { transform: translate(-1px, 2px) rotate(3deg); }
+            60% { transform: translate(3px, 1px) rotate(0deg); }
+            80% { transform: translate(1px, -1px) rotate(2deg); }
+            100% { transform: translate(-1px, 2px) rotate(-1deg); }
+        }
+        .shake {
+            animation: shake-egg 0.4s infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col transition-colors duration-1000">
+
+    <div id="gameContainer" class="relative min-h-screen flex flex-col justify-between bg-gradient-to-b from-sky-400 via-sky-200 to-emerald-300 transition-all duration-1000">
+        
+        <!-- Day/Night Sky Decor Elements -->
+        <div id="skyBg" class="absolute inset-0 overflow-hidden pointer-events-none transition-opacity duration-1000 z-0">
+            <!-- Day Clouds -->
+            <div id="dayDecor" class="absolute inset-0 opacity-100 transition-opacity duration-1000">
+                <i class="fa-solid fa-cloud text-white/70 text-6xl absolute top-10 left-10 animate-float" style="animation-delay: 0s;"></i>
+                <i class="fa-solid fa-cloud text-white/50 text-8xl absolute top-20 right-1/4 animate-float" style="animation-delay: 1.5s;"></i>
+                <i class="fa-solid fa-sun text-amber-300/80 text-9xl absolute top-6 right-10 blur-sm animate-pulse"></i>
+            </div>
+            <!-- Night Stars & Moon -->
+            <div id="nightDecor" class="absolute inset-0 opacity-0 transition-opacity duration-1000 bg-slate-950/80">
+                <i class="fa-solid fa-moon text-yellow-200 text-8xl absolute top-8 right-12 drop-shadow-[0_0_25px_rgba(254,240,138,0.8)]"></i>
+                <div id="starsContainer" class="absolute inset-0"></div>
+            </div>
+        </div>
+
+        <!-- HEADER & DAY/NIGHT STATUS BAR -->
+        <header class="relative z-10 p-4 md:px-8 bg-slate-900/60 backdrop-blur-md border-b border-white/10 shadow-lg flex flex-wrap justify-between items-center gap-4">
+            <!-- Game Title & Day Counter -->
+            <div class="flex items-center space-x-3">
+                <div class="p-3 bg-gradient-to-tr from-purple-600 to-indigo-500 rounded-2xl shadow-md border border-purple-300/30">
+                    <i class="fa-solid fa-egg text-yellow-300 text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-jua text-2xl text-white tracking-wide">신비한 알 연금술사</h1>
+                    <div class="flex items-center space-x-2 text-xs text-slate-300">
+                        <span id="dayCounterBadge" class="bg-indigo-600/80 px-2 py-0.5 rounded-full font-bold text-yellow-300 border border-yellow-400/30">Day 1</span>
+                        <span id="cycleStatusText">낮 시간 진행 중</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Central Day/Night Clock Gauge -->
+            <div class="flex-1 max-w-md mx-auto w-full px-2">
+                <div class="flex justify-between items-center text-xs font-bold mb-1">
+                    <span id="phaseIconText" class="text-amber-300 flex items-center gap-1">
+                        <i class="fa-solid fa-sun text-amber-400"></i> 낮 (4분 50초)
+                    </span>
+                    <span id="timerDisplay" class="font-mono text-sm text-yellow-300 bg-black/40 px-2.5 py-0.5 rounded-md border border-white/10">04:50</span>
+                    <span class="text-indigo-300 flex items-center gap-1">
+                        <i class="fa-solid fa-moon text-indigo-400"></i> 밤 (10초)
+                    </span>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-800/80 rounded-full h-3.5 p-0.5 border border-white/20 relative overflow-hidden shadow-inner">
+                    <div id="timeProgressBar" class="bg-gradient-to-r from-amber-400 via-yellow-300 to-purple-500 h-full rounded-full transition-all duration-300 w-full"></div>
+                </div>
+            </div>
+
+            <!-- Player Currency & Time Speedup Button -->
+            <div class="flex items-center space-x-3">
+                <!-- Gold -->
+                <div class="flex items-center space-x-2 bg-slate-800/80 px-3.5 py-1.5 rounded-xl border border-amber-500/30 shadow">
+                    <i class="fa-solid fa-coins text-amber-400 text-lg animate-bounce"></i>
+                    <span id="playerGold" class="font-jua text-lg text-amber-300">0</span>
+                </div>
+                <!-- Speed up button for easy testing -->
+                <button id="btnFastForward" onclick="toggleFastForward()" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-xs px-3 py-2 rounded-xl border border-indigo-400/40 shadow transition flex items-center gap-1.5" title="시간 진행을 10배로 가속하거나 정상 속도로 되돌립니다.">
+                    <i class="fa-solid fa-forward-fast"></i>
+                    <span id="ffText">배속 (1x)</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN GAME BODY -->
+        <main class="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+            
+            <!-- LEFT COLUMN: NPC & Dynamic 5 Eggs Display (Lg: 7 cols) -->
+            <section class="lg:col-span-7 flex flex-col space-y-4">
+                
+                <!-- NPC Stage Card -->
+                <div id="npcCard" class="relative bg-slate-900/70 backdrop-blur-md rounded-3xl p-5 md:p-6 border border-white/15 shadow-2xl flex flex-col justify-between min-h-[460px] transition-all duration-700">
+                    
+                    <!-- NPC Dialog Banner -->
+                    <div class="flex items-start space-x-4 bg-slate-800/90 p-4 rounded-2xl border border-purple-500/30 shadow-md">
+                        <div class="relative">
+                            <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center border-2 border-yellow-300 shadow-lg text-2xl">
+                                🧙‍♂️
+                            </div>
+                            <span class="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-white">NPC</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center mb-1">
+                                <h3 class="font-jua text-lg text-purple-300">알 연금술사 '루나'</h3>
+                                <span id="npcStatusTag" class="text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">낮: 영업 중</span>
+                            </div>
+                            <p id="npcDialogText" class="text-sm text-slate-200 leading-relaxed font-medium">
+                                "어서오게! 낮에는 알을 보살피고, 밤 10초 동안은 달빛 마법으로 알을 강화한다네! 밤이 지나면 알이 5개 모두 신비롭게 변화하지!"
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Night Transformation Notice Overlay Banner -->
+                    <div id="nightEventBanner" class="hidden my-2 bg-gradient-to-r from-purple-900/90 via-indigo-900/90 to-purple-900/90 border-2 border-purple-400 p-3 rounded-2xl text-center shadow-lg animate-pulse">
+                        <h4 class="font-jua text-yellow-300 text-lg flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-pink-400"></i>
+                            10초의 달빛 마법 발동 중! 알들이 변이되고 있습니다!
+                            <i class="fa-solid fa-wand-magic-sparkles text-pink-400"></i>
+                        </h4>
+                        <p class="text-xs text-purple-200">밤이 끝나면 훨씬 더 높은 등급과 등급별 고유 능력을 가진 알 5개가 완성됩니다.</p>
+                    </div>
+
+                    <!-- NPC's 5 Egg Showcase Slots -->
+                    <div class="my-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-jua text-lg text-amber-200 flex items-center gap-2">
+                                <i class="fa-solid fa-store text-amber-400"></i> NPC 보유 알 (5개 고정)
+                            </h4>
+                            <span class="text-xs text-slate-400">※ 밤이 지나면 5개의 알이 전면 재구성/강화됩니다</span>
+                        </div>
+
+                        <!-- 5 Eggs Grid -->
+                        <div id="npcEggGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                            <!-- JS Dynamically injects 5 egg cards here -->
+                        </div>
+                    </div>
+
+                    <!-- Quick Interactive Action Button -->
+                    <div class="pt-2 border-t border-white/10 flex justify-between items-center text-xs text-slate-400">
+                        <span><i class="fa-solid fa-circle-info text-sky-400 mr-1"></i> 알을 클릭하여 구매 상세 정보 확인</span>
+                        <span id="nextMutationCountdown" class="text-amber-300 font-bold">다음 밤 변이까지: --:--</span>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- RIGHT COLUMN: Player Incubator, Pet Collection & Upgrades (Lg: 5 cols) -->
+            <section class="lg:col-span-5 flex flex-col space-y-4">
+                
+                <!-- Tab Navigation Buttons -->
+                <div class="flex bg-slate-900/80 p-1.5 rounded-2xl border border-white/10 shadow-lg gap-1">
+                    <button onclick="switchTab('incubatorTab')" id="btnTabIncubator" class="tab-btn flex-1 py-2.5 rounded-xl font-jua text-sm transition-all duration-200 flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow">
+                        <i class="fa-solid fa-egg"></i> 인큐베이터
+                    </button>
+                    <button onclick="switchTab('petsTab')" id="btnTabPets" class="tab-btn flex-1 py-2.5 rounded-xl font-jua text-sm transition-all duration-200 flex items-center justify-center gap-1.5 text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-paw"></i> 내 펫 (<span id="petCountText">0</span>)
+                    </button>
+                    <button onclick="switchTab('upgradeTab')" id="btnTabUpgrade" class="tab-btn flex-1 py-2.5 rounded-xl font-jua text-sm transition-all duration-200 flex items-center justify-center gap-1.5 text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-arrow-up-right-dots"></i> 강화
+                    </button>
+                </div>
+
+                <!-- TAB CONTENT 1: INCUBATOR (Hatching) -->
+                <div id="incubatorTab" class="tab-content bg-slate-900/70 backdrop-blur-md rounded-3xl p-5 border border-white/15 shadow-xl flex-1 flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-jua text-lg text-indigo-300 flex items-center gap-2">
+                            <i class="fa-solid fa-temperature-arrow-up"></i> 부화기 (알 가공 중)
+                        </h3>
+                        <span class="text-xs text-slate-400">터치하면 부화 시간이 단축됩니다!</span>
+                    </div>
+
+                    <!-- Incubator Slots Container -->
+                    <div id="incubatorGrid" class="grid grid-cols-2 gap-3 my-auto py-2">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+
+                <!-- TAB CONTENT 2: PET SANCTUARY (Passive Income) -->
+                <div id="petsTab" class="tab-content hidden bg-slate-900/70 backdrop-blur-md rounded-3xl p-5 border border-white/15 shadow-xl flex-1 flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-jua text-lg text-emerald-300 flex items-center gap-2">
+                            <i class="fa-solid fa-shield-cat"></i> 보유한 소환 펫
+                        </h3>
+                        <div class="text-xs bg-emerald-950 text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-500/30">
+                            초당 골드: <span id="totalGpsText" class="font-bold text-amber-300">0</span> G/s
+                        </div>
+                    </div>
+
+                    <div id="petsContainer" class="flex-1 overflow-y-auto max-h-[380px] space-y-2.5 pr-1">
+                        <!-- JS Dynamic Pet List -->
+                    </div>
+                </div>
+
+                <!-- TAB CONTENT 3: UPGRADES -->
+                <div id="upgradeTab" class="tab-content hidden bg-slate-900/70 backdrop-blur-md rounded-3xl p-5 border border-white/15 shadow-xl flex-1 flex flex-col space-y-3">
+                    <h3 class="font-jua text-lg text-yellow-300 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i> 알 연금술 업그레이드
+                    </h3>
+                    <div class="space-y-3 flex-1 overflow-y-auto pr-1">
+                        
+                        <!-- Upgrade Item 1: Incubator Slot -->
+                        <div class="bg-slate-800/80 p-3.5 rounded-2xl border border-white/10 flex justify-between items-center">
+                            <div>
+                                <div class="font-jua text-slate-200 text-sm">부화 슬롯 확장</div>
+                                <div class="text-xs text-slate-400">동시에 부화할 수 있는 알 수 증가</div>
+                                <div class="text-xs text-indigo-400 mt-1 font-semibold" id="incubatorLevelText">현재 슬롯: 2개</div>
+                            </div>
+                            <button id="btnUpgradeIncubator" onclick="upgradeIncubator()" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow transition">
+                                <span id="incubatorCostText">500 Gold</span>
+                            </button>
+                        </div>
+
+                        <!-- Upgrade Item 2: Hatching Speed -->
+                        <div class="bg-slate-800/80 p-3.5 rounded-2xl border border-white/10 flex justify-between items-center">
+                            <div>
+                                <div class="font-jua text-slate-200 text-sm">달빛 따스함 (부화 속도)</div>
+                                <div class="text-xs text-slate-400">모든 알의 부화 대기 시간 단축</div>
+                                <div class="text-xs text-indigo-400 mt-1 font-semibold" id="hatchSpeedLevelText">속도: +0%</div>
+                            </div>
+                            <button id="btnUpgradeSpeed" onclick="upgradeHatchSpeed()" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow transition">
+                                <span id="speedCostText">300 Gold</span>
+                            </button>
+                        </div>
+
+                        <!-- Upgrade Item 3: Moonlight Luck (Better NPC Eggs) -->
+                        <div class="bg-slate-800/80 p-3.5 rounded-2xl border border-white/10 flex justify-between items-center">
+                            <div>
+                                <div class="font-jua text-slate-200 text-sm">달빛 축복 (알 행운)</div>
+                                <div class="text-xs text-slate-400">밤마다 NPC가 내놓는 알의 등급 품질 향상</div>
+                                <div class="text-xs text-indigo-400 mt-1 font-semibold" id="luckLevelText">행운 Level 1</div>
+                            </div>
+                            <button id="btnUpgradeLuck" onclick="upgradeLuck()" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow transition">
+                                <span id="luckCostText">1000 Gold</span>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="relative z-10 py-3 text-center text-xs text-slate-400/80 bg-slate-950/60 backdrop-blur-sm border-t border-white/5">
+            4분 50초 낮 / 10초 밤 주기 NPC 알 변이 방치형 게임 | 신비한 알 연금술사 v1.0
+        </footer>
+
+        <!-- EGG INSPECTION / PURCHASE MODAL -->
+        <div id="eggModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-opacity">
+            <div class="bg-slate-900 border border-purple-500/40 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative text-center flex flex-col items-center animate-float" style="animation-duration: 6s;">
+                <button onclick="closeEggModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                
+                <!-- Egg Modal Visual Header -->
+                <div id="modalEggBadge" class="px-3 py-1 rounded-full text-xs font-bold mb-3 border">일반 등급</div>
+                <div id="modalEggSvgContainer" class="w-28 h-36 my-2 flex items-center justify-center filter drop-shadow-lg">
+                    <!-- SVG Egg Display -->
+                </div>
+                
+                <h3 id="modalEggName" class="font-jua text-2xl text-white mt-2">태양의 번뜩이는 알</h3>
+                <p id="modalEggDesc" class="text-xs text-slate-300 my-2 px-2">
+                    낮의 온기를 듬뿍 머금은 알입니다. 부화 시 준수한 펫이 탄생합니다.
+                </p>
+
+                <!-- Stats summary -->
+                <div class="w-full bg-slate-800/80 rounded-2xl p-3 my-3 text-left space-y-1.5 text-xs">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">속성:</span>
+                        <span id="modalEggElement" class="font-bold text-amber-300">🔥 불꽃</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">기본 부화 시간:</span>
+                        <span id="modalEggHatchTime" class="font-bold text-sky-300">15초</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">예상 초당 골드:</span>
+                        <span id="modalEggGps" class="font-bold text-emerald-300">10~25 G/s</span>
+                    </div>
+                </div>
+
+                <!-- Purchase Buttons -->
+                <button id="btnBuyEggModal" onclick="confirmBuyEgg()" class="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-jua text-lg py-3 rounded-2xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-coins"></i> <span id="modalEggPriceText">100 Gold에 구매하기</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT GAME ENGINE -->
+    <script>
+        /* ===================================================================
+         * GAME STATE CONFIGURATION & CONSTANTS
+         * =================================================================== */
+        const DAY_DURATION_SEC = 290; // 4 minutes 50 seconds = 290 seconds
+        const NIGHT_DURATION_SEC = 10; // 10 seconds night
+        const TOTAL_CYCLE_SEC = DAY_DURATION_SEC + NIGHT_DURATION_SEC; // 300s = 5 minutes total
+
+        // Sound Engine Context
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'buy') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.15); // C6
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'tap') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'hatch') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.1);
+                    osc.frequency.setValueAtTime(659.25, now + 0.2);
+                    osc.frequency.setValueAtTime(880, now + 0.3);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                } else if (type === 'night') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(110, now + 0.6);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                    osc.start(now);
+                    osc.stop(now + 0.6);
+                } else if (type === 'day') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(330, now);
+                    osc.frequency.exponentialRampToValueAtTime(660, now + 0.5);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                }
+            } catch (e) {
+                // Audio context muted or uninitialized
+            }
+        }
+
+        // Egg Rarities Definition
+        const RARITIES = {
+            COMMON: { name: "일반", color: "text-slate-300", bg: "bg-slate-700/80", border: "border-slate-500", chance: 50, priceMult: 1, baseTime: 12, gpsMult: 1 },
+            RARE: { name: "희귀", color: "text-sky-300", bg: "bg-sky-900/80", border: "border-sky-400", chance: 30, priceMult: 2.5, baseTime: 20, gpsMult: 3 },
+            EPIC: { name: "영웅", color: "text-purple-300", bg: "bg-purple-900/80", border: "border-purple-400", chance: 14, priceMult: 6, baseTime: 35, gpsMult: 8 },
+            LEGENDARY: { name: "전설", color: "text-amber-300", bg: "bg-amber-900/80", border: "border-amber-400", chance: 5, priceMult: 18, baseTime: 60, gpsMult: 25 },
+            MYTHIC: { name: "신화", color: "text-pink-300", bg: "bg-pink-900/80", border: "border-pink-400", chance: 0.9, priceMult: 50, baseTime: 100, gpsMult: 80 },
+            COSMIC: { name: "우주", color: "text-cyan-300 font-extrabold animate-pulse", bg: "bg-gradient-to-r from-indigo-900 to-purple-900", border: "border-cyan-300", chance: 0.1, priceMult: 150, baseTime: 180, gpsMult: 300 }
+        };
+
+        const ELEMENTS = [
+            { name: "불꽃", icon: "🔥", color: "#ef4444" },
+            { name: "바다", icon: "💧", color: "#3b82f6" },
+            { name: "대지", icon: "🌿", color: "#22c55e" },
+            { name: "빛", icon: "✨", color: "#eab308" },
+            { name: "어둠", icon: "🌙", color: "#a855f7" },
+            { name: "우주", icon: "🌌", color: "#06b6d4" }
+        ];
+
+        const MONSTER_NAMES = ["파이리온", "아쿠아링", "플로라키드", "루미너스", "섀도우냥", "코스모볼", "드래고니", "그리폰", "골렘이", "스타버스트"];
+
+        // State Object
+        let state = {
+            gold: 150,
+            dayCount: 1,
+            cycleTimer: 0, // seconds elapsed in current cycle (0..300)
+            isNight: false,
+            speedMultiplier: 1,
+            
+            // Upgrades
+            incubatorSlots: 2,
+            hatchSpeedLevel: 0,
+            luckLevel: 1,
+
+            // NPC 5 Eggs Store
+            npcEggs: [],
+
+            // Player Incubating Eggs
+            incubators: [], // array of { id, eggData, progress, maxTime }
+
+            // Hatched Pets
+            pets: [],
+
+            selectedNpcIndex: null
+        };
+
+        /* ===================================================================
+         * SVG GENERATORS FOR EGGS & PETS
+         * =================================================================== */
+        function generateEggSvg(rarityKey, element, patternId = 1) {
+            const el = element || ELEMENTS[0];
+            let baseColor1 = "#64748b";
+            let baseColor2 = "#334155";
+            let accentColor = el.color;
+
+            if (rarityKey === 'COMMON') { baseColor1 = '#94a3b8'; baseColor2 = '#475569'; }
+            else if (rarityKey === 'RARE') { baseColor1 = '#38bdf8'; baseColor2 = '#1e3a8a'; }
+            else if (rarityKey === 'EPIC') { baseColor1 = '#c084fc'; baseColor2 = '#581c87'; }
+            else if (rarityKey === 'LEGENDARY') { baseColor1 = '#fde047'; baseColor2 = '#854d0e'; }
+            else if (rarityKey === 'MYTHIC') { baseColor1 = '#f472b6'; baseColor2 = '#831843'; }
+            else if (rarityKey === 'COSMIC') { baseColor1 = '#22d3ee'; baseColor2 = '#312e81'; }
+
+            return `
+            <svg viewBox="0 0 100 130" class="w-full h-full drop-shadow-md">
+                <defs>
+                    <radialGradient id="eggGrad_${patternId}" cx="40%" cy="35%" r="65%">
+                        <stop offset="0%" stop-color="${baseColor1}" />
+                        <stop offset="100%" stop-color="${baseColor2}" />
+                    </radialGradient>
+                    <filter id="glow_${patternId}">
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+                <!-- Egg Body Base -->
+                <path d="M 50,10 C 20,10 10,55 10,85 C 10,115 30,125 50,125 C 70,125 90,115 90,85 C 90,55 80,10 50,10 Z" 
+                      fill="url(#eggGrad_${patternId})" stroke="${accentColor}" stroke-width="2.5" />
+                
+                <!-- Decorative Pattern Spots/Stripes -->
+                <circle cx="35" cy="50" r="8" fill="${accentColor}" opacity="0.6" />
+                <circle cx="65" cy="75" r="11" fill="${accentColor}" opacity="0.6" />
+                <circle cx="45" cy="95" r="7" fill="${accentColor}" opacity="0.5" />
+                <path d="M 30,35 Q 50,45 70,35" stroke="${accentColor}" stroke-width="3" fill="none" opacity="0.7" />
+
+                <!-- Highlight Reflection -->
+                <path d="M 30,25 C 20,40 20,60 25,75" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.5" />
+            </svg>
+            `;
+        }
+
+        function generatePetSvg(element, rarityKey) {
+            const color = element.color;
+            return `
+            <svg viewBox="0 0 100 100" class="w-full h-full">
+                <!-- Body -->
+                <circle cx="50" cy="55" r="32" fill="${color}" stroke="#ffffff" stroke-width="2" />
+                <!-- Ears/Horns -->
+                <path d="M 30,30 L 22,10 L 40,25 Z" fill="${color}" />
+                <path d="M 70,30 L 78,10 L 60,25 Z" fill="${color}" />
+                <!-- Eyes -->
+                <circle cx="38" cy="50" r="5" fill="#ffffff" />
+                <circle cx="38" cy="50" r="2.5" fill="#000000" />
+                <circle cx="62" cy="50" r="5" fill="#ffffff" />
+                <circle cx="62" cy="50" r="2.5" fill="#000000" />
+                <!-- Cute Blush -->
+                <circle cx="30" cy="58" r="4" fill="#ff7777" opacity="0.6" />
+                <circle cx="70" cy="58" r="4" fill="#ff7777" opacity="0.6" />
+                <!-- Smile Mouth -->
+                <path d="M 45,62 Q 50,68 55,62" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" />
+            </svg>
+            `;
+        }
+
+        /* ===================================================================
+         * NPC 5 EGGS GENERATION & EVOLUTION LOGIC
+         * =================================================================== */
+        function generateSingleEgg(forcedRarity = null) {
+            let rarityKey = 'COMMON';
+
+            if (forcedRarity) {
+                rarityKey = forcedRarity;
+            } else {
+                // Roll weighted rarity based on state.luckLevel
+                const rand = Math.random() * 100;
+                const luckBonus = (state.luckLevel - 1) * 3; // boosts higher tier chances
+
+                if (rand < 0.1 + luckBonus * 0.1) rarityKey = 'COSMIC';
+                else if (rand < 1 + luckBonus * 0.5) rarityKey = 'MYTHIC';
+                else if (rand < 6 + luckBonus * 1.5) rarityKey = 'LEGENDARY';
+                else if (rand < 20 + luckBonus * 2) rarityKey = 'EPIC';
+                else if (rand < 50 + luckBonus * 3) rarityKey = 'RARE';
+                else rarityKey = 'COMMON';
+            }
+
+            const rData = RARITIES[rarityKey];
+            const element = ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)];
+            const baseCost = Math.round(100 * rData.priceMult * (1 + (state.dayCount - 1) * 0.2));
+            const patternId = Math.floor(Math.random() * 10000);
+
+            return {
+                id: 'egg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                rarityKey: rarityKey,
+                element: element,
+                name: `${element.name}의 ${rData.name} 알`,
+                price: baseCost,
+                baseTime: Math.max(5, Math.round(rData.baseTime * (1 - state.hatchSpeedLevel * 0.08))),
+                gps: Math.round(10 * rData.gpsMult * (1 + (state.dayCount - 1) * 0.1)),
+                patternId: patternId
+            };
+        }
+
+        // Guarantees NPC ALWAYS holds exactly 5 eggs with specific tier distributions
+        function generateNpc5Eggs(isNightUpgraded = false) {
+            const eggs = [];
+            
+            if (!isNightUpgraded) {
+                // Normal day generation
+                for (let i = 0; i < 5; i++) {
+                    eggs.push(generateSingleEgg());
+                }
+            } else {
+                // NIGHT MUTATION: All 5 eggs mutate into upgraded tiers!
+                const nightRarities = ['RARE', 'EPIC', 'LEGENDARY', 'MYTHIC', 'COSMIC'];
+                for (let i = 0; i < 5; i++) {
+                    // Pick high tier or roll high
+                    const tier = nightRarities[i];
+                    eggs.push(generateSingleEgg(tier));
+                }
+            }
+            state.npcEggs = eggs;
+            renderNpcEggs();
+        }
+
+        // Night Event Hook: Triggered when 10-second Night ends
+        function processNightMutation() {
+            playSound('day');
+            state.dayCount++;
+            generateNpc5Eggs(true); // Mutate NPC eggs into top tier Moonlight eggs!
+            
+            // Show notification Toast
+            showNoticeBanner("🌙 밤이 지나고 morning 도착! NPC의 알 5개가 달빛 마법으로 모두 업그레이드되었습니다!");
+        }
+
+        /* ===================================================================
+         * RENDER FUNCTIONS & UI UPDATES
+         * =================================================================== */
+        function renderNpcEggs() {
+            const grid = document.getElementById('npcEggGrid');
+            grid.innerHTML = '';
+
+            state.npcEggs.forEach((egg, index) => {
+                const rData = RARITIES[egg.rarityKey];
+                const card = document.createElement('div');
+                card.className = `relative ${rData.bg} border-2 ${rData.border} rounded-2xl p-2.5 flex flex-col items-center justify-between shadow-lg hover:scale-105 active:scale-95 transition cursor-pointer group`;
+                card.onclick = () => openEggModal(index);
+
+                card.innerHTML = `
+                    <div class="absolute -top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${rData.color} bg-slate-900 border border-white/20">
+                        ${rData.name}
+                    </div>
+                    <div class="w-16 h-20 my-2 group-hover:rotate-3 transition">
+                        ${generateEggSvg(egg.rarityKey, egg.element, egg.patternId)}
+                    </div>
+                    <div class="text-center w-full">
+                        <div class="text-xs font-jua text-white truncate">${egg.name}</div>
+                        <div class="text-[11px] font-bold text-amber-300 mt-0.5">
+                            <i class="fa-solid fa-coins"></i> ${egg.price} G
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderIncubators() {
+            const grid = document.getElementById('incubatorGrid');
+            grid.innerHTML = '';
+
+            for (let i = 0; i < state.incubatorSlots; i++) {
+                const inc = state.incubators[i];
+                const card = document.createElement('div');
+                card.className = "bg-slate-800/80 rounded-2xl border border-white/10 p-3 flex flex-col items-center justify-between min-h-[140px] relative";
+
+                if (inc) {
+                    const rData = RARITIES[inc.eggData.rarityKey];
+                    const progressPercent = Math.min(100, Math.floor((inc.progress / inc.maxTime) * 100));
+                    const isReady = inc.progress >= inc.maxTime;
+
+                    card.innerHTML = `
+                        <div class="text-[11px] font-bold ${rData.color}">${inc.eggData.name}</div>
+                        <div class="w-12 h-14 my-1 ${isReady ? 'shake cursor-pointer' : 'animate-pulse cursor-pointer'}" onclick="tapIncubator(${i})">
+                            ${generateEggSvg(inc.eggData.rarityKey, inc.eggData.element, inc.eggData.patternId)}
+                        </div>
+                        ${isReady ? `
+                            <button onclick="hatchEgg(${i})" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-jua text-xs py-1.5 rounded-xl shadow font-bold animate-bounce">
+                                부화하기!
+                            </button>
+                        ` : `
+                            <div class="w-full">
+                                <div class="flex justify-between text-[10px] text-slate-300 mb-1">
+                                    <span>터치로 가속!</span>
+                                    <span>${Math.ceil(inc.maxTime - inc.progress)}s</span>
+                                </div>
+                                <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                                    <div class="bg-indigo-400 h-full transition-all duration-200" style="width: ${progressPercent}%"></div>
+                                </div>
+                            </div>
+                        `}
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div class="flex-1 flex flex-col items-center justify-center text-slate-500 my-4">
+                            <i class="fa-solid fa-plus-circle text-2xl mb-1 opacity-50"></i>
+                            <span class="text-xs font-jua">빈 슬롯</span>
+                        </div>
+                    `;
+                }
+                grid.appendChild(card);
+            }
+        }
+
+        function renderPets() {
+            const container = document.getElementById('petsContainer');
+            const countText = document.getElementById('petCountText');
+            const totalGpsText = document.getElementById('totalGpsText');
+
+            countText.innerText = state.pets.length;
+            let totalGps = 0;
+            container.innerHTML = '';
+
+            if (state.pets.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-400 py-10 font-jua text-sm">
+                        아직 부화된 펫이 없습니다.<br>NPC에게 알을 구매하여 부화시켜 보세요!
+                    </div>
+                `;
+                totalGpsText.innerText = "0";
+                return;
+            }
+
+            state.pets.forEach((pet) => {
+                totalGps += pet.gps;
+                const rData = RARITIES[pet.rarityKey];
+                const card = document.createElement('div');
+                card.className = `bg-slate-800/80 p-3 rounded-2xl border ${rData.border} flex items-center justify-between shadow`;
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl ${rData.bg} p-1 border border-white/20">
+                            ${generatePetSvg(pet.element, pet.rarityKey)}
+                        </div>
+                        <div>
+                            <div class="font-jua text-slate-100 text-sm flex items-center gap-1.5">
+                                ${pet.name}
+                                <span class="text-[10px] ${rData.color} bg-slate-950 px-1.5 py-0.2 rounded border border-white/10">${rData.name}</span>
+                            </div>
+                            <div class="text-xs text-emerald-400 font-semibold">초당 +${pet.gps} Gold</div>
+                        </div>
+                    </div>
+                    <div class="text-xl">${pet.element.icon}</div>
+                `;
+                container.appendChild(card);
+            });
+
+            totalGpsText.innerText = totalGps;
+        }
+
+        /* ===================================================================
+         * INTERACTIVE ACTIONS & GAMEPLAY LOOPS
+         * =================================================================== */
+        function openEggModal(index) {
+            playSound('tap');
+            state.selectedNpcIndex = index;
+            const egg = state.npcEggs[index];
+            const rData = RARITIES[egg.rarityKey];
+
+            document.getElementById('modalEggBadge').innerText = `${rData.name} 등급`;
+            document.getElementById('modalEggBadge').className = `px-3 py-1 rounded-full text-xs font-bold mb-3 border ${rData.color} ${rData.bg} ${rData.border}`;
+            document.getElementById('modalEggSvgContainer').innerHTML = generateEggSvg(egg.rarityKey, egg.element, egg.patternId);
+            document.getElementById('modalEggName').innerText = egg.name;
+            document.getElementById('modalEggElement').innerText = `${egg.element.icon} ${egg.element.name}`;
+            document.getElementById('modalEggHatchTime').innerText = `${egg.baseTime}초`;
+            document.getElementById('modalEggGps').innerText = `${egg.gps} G/s`;
+            document.getElementById('modalEggPriceText').innerText = `${egg.price} Gold에 구매하기`;
+
+            document.getElementById('eggModal').classList.remove('hidden');
+        }
+
+        function closeEggModal() {
+            document.getElementById('eggModal').classList.add('hidden');
+            state.selectedNpcIndex = null;
+        }
+
+        function confirmBuyEgg() {
+            if (state.selectedNpcIndex === null) return;
+            const egg = state.npcEggs[state.selectedNpcIndex];
+
+            if (state.gold < egg.price) {
+                alert("골드가 부족합니다!");
+                return;
+            }
+
+            // Check incubator capacity
+            if (state.incubators.length >= state.incubatorSlots) {
+                alert("인큐베이터 슬롯이 가득 찼습니다! 알을 먼저 부화시키거나 슬롯을 확장하세요.");
+                return;
+            }
+
+            playSound('buy');
+            state.gold -= egg.price;
+
+            // Put egg into incubator
+            state.incubators.push({
+                id: 'inc_' + Date.now(),
+                eggData: egg,
+                progress: 0,
+                maxTime: egg.baseTime
+            });
+
+            // Replace purchased egg in NPC list immediately with a new egg so NPC always has 5 eggs
+            state.npcEggs[state.selectedNpcIndex] = generateSingleEgg();
+
+            closeEggModal();
+            renderNpcEggs();
+            renderIncubators();
+            updateHeaderUI();
+        }
+
+        function tapIncubator(index) {
+            playSound('tap');
+            const inc = state.incubators[index];
+            if (inc && inc.progress < inc.maxTime) {
+                inc.progress += 1.5; // Accelerate hatching
+                renderIncubators();
+            }
+        }
+
+        function hatchEgg(index) {
+            const inc = state.incubators[index];
+            if (!inc) return;
+
+            playSound('hatch');
+            const egg = inc.eggData;
+            const monsterName = MONSTER_NAMES[Math.floor(Math.random() * MONSTER_NAMES.length)];
+
+            const newPet = {
+                id: 'pet_' + Date.now(),
+                name: `${egg.element.name} ${monsterName}`,
+                rarityKey: egg.rarityKey,
+                element: egg.element,
+                gps: egg.gps
+            };
+
+            state.pets.push(newPet);
+            state.incubators.splice(index, 1);
+
+            renderIncubators();
+            renderPets();
+            showNoticeBanner(`🎉 축하합니다! [${newPet.name}]이(가) 알에서 부화했습니다! (초당 +${newPet.gps} G)`);
+        }
+
+        function switchTab(tabId) {
+            playSound('tap');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white', 'shadow');
+                btn.classList.add('text-slate-400');
+            });
+
+            document.getElementById(tabId).classList.remove('hidden');
+
+            const activeBtn = document.getElementById(
+                tabId === 'incubatorTab' ? 'btnTabIncubator' :
+                tabId === 'petsTab' ? 'btnTabPets' : 'btnTabUpgrade'
+            );
+            activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow');
+            activeBtn.classList.remove('text-slate-400');
+        }
+
+        function toggleFastForward() {
+            playSound('tap');
+            if (state.speedMultiplier === 1) {
+                state.speedMultiplier = 10;
+                document.getElementById('ffText').innerText = "배속 (10x)";
+            } else {
+                state.speedMultiplier = 1;
+                document.getElementById('ffText').innerText = "배속 (1x)";
+            }
+        }
+
+        /* Upgrades Logic */
+        function upgradeIncubator() {
+            const cost = state.incubatorSlots * 400;
+            if (state.gold >= cost) {
+                playSound('buy');
+                state.gold -= cost;
+                state.incubatorSlots++;
+                updateUpgradeUI();
+                renderIncubators();
+                updateHeaderUI();
+            } else alert("골드가 부족합니다!");
+        }
+
+        function upgradeHatchSpeed() {
+            const cost = (state.hatchSpeedLevel + 1) * 300;
+            if (state.gold >= cost) {
+                playSound('buy');
+                state.gold -= cost;
+                state.hatchSpeedLevel++;
+                updateUpgradeUI();
+                updateHeaderUI();
+            } else alert("골드가 부족합니다!");
+        }
+
+        function upgradeLuck() {
+            const cost = state.luckLevel * 800;
+            if (state.gold >= cost) {
+                playSound('buy');
+                state.gold -= cost;
+                state.luckLevel++;
+                updateUpgradeUI();
+                updateHeaderUI();
+            } else alert("골드가 부족합니다!");
+        }
+
+        function updateUpgradeUI() {
+            document.getElementById('incubatorLevelText').innerText = `현재 슬롯: ${state.incubatorSlots}개`;
+            document.getElementById('incubatorCostText').innerText = `${state.incubatorSlots * 400} Gold`;
+
+            document.getElementById('hatchSpeedLevelText').innerText = `속도: +${state.hatchSpeedLevel * 8}%`;
+            document.getElementById('speedCostText').innerText = `${(state.hatchSpeedLevel + 1) * 300} Gold`;
+
+            document.getElementById('luckLevelText').innerText = `행운 Level ${state.luckLevel}`;
+            document.getElementById('luckCostText').innerText = `${state.luckLevel * 800} Gold`;
+        }
+
+        function showNoticeBanner(text) {
+            const npcText = document.getElementById('npcDialogText');
+            npcText.innerText = text;
+            setTimeout(() => {
+                if (state.isNight) {
+                    npcText.innerText = `"달빛 마법으로 알을 강화하는 중이라네! 10초의 밤이 지나면 특수 변이 알이 완성된다네!"`;
+                } else {
+                    npcText.innerText = `"낮에는 알을 보살피고, 밤 10초 동안은 달빛 마법으로 알을 강화한다네! 밤이 지나면 알 5개가 모두 신비롭게 변화하지!"`;
+                }
+            }, 6000);
+        }
+
+        /* ===================================================================
+         * MAIN TIMER LOOP (4 MIN 50 SEC DAY / 10 SEC NIGHT CYCLE)
+         * =================================================================== */
+        function gameTick() {
+            // Update Cycle Timer
+            state.cycleTimer += (1 * state.speedMultiplier);
+            if (state.cycleTimer >= TOTAL_CYCLE_SEC) {
+                state.cycleTimer = 0; // Reset full 5-minute loop
+            }
+
+            const isNightNow = state.cycleTimer >= DAY_DURATION_SEC;
+            
+            // State Shift Handling
+            if (isNightNow !== state.isNight) {
+                state.isNight = isNightNow;
+                if (state.isNight) {
+                    // Entered 10-second Night
+                    playSound('night');
+                    document.getElementById('nightDecor').style.opacity = '1';
+                    document.getElementById('dayDecor').style.opacity = '0';
+                    document.getElementById('nightEventBanner').classList.remove('hidden');
+                    document.getElementById('npcStatusTag').className = "text-[11px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded-full font-bold animate-pulse";
+                    document.getElementById('npcStatusTag').innerText = "밤: 달빛 연금술 진행 중";
+                    showNoticeBanner("🌙 밤이 찾아왔습니다! 10초 동안 NPC가 알을 고등급으로 변이시킵니다!");
+                } else {
+                    // End of Night -> Morning arrives
+                    document.getElementById('nightDecor').style.opacity = '0';
+                    document.getElementById('dayDecor').style.opacity = '1';
+                    document.getElementById('nightEventBanner').classList.add('hidden');
+                    document.getElementById('npcStatusTag').className = "text-[11px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold";
+                    document.getElementById('npcStatusTag').innerText = "낮: 영업 중";
+                    processNightMutation();
+                }
+            }
+
+            // Update Time Progress Bar & Display Text
+            let remainingSec = 0;
+            let displayString = "";
+
+            if (!state.isNight) {
+                // DAY: 290 seconds
+                remainingSec = DAY_DURATION_SEC - state.cycleTimer;
+                const m = Math.floor(remainingSec / 60).toString().padStart(2, '0');
+                const s = Math.floor(remainingSec % 60).toString().padStart(2, '0');
+                displayString = `${m}:${s}`;
+
+                document.getElementById('phaseIconText').innerHTML = `<i class="fa-solid fa-sun text-amber-400"></i> 낮 진행 중`;
+                document.getElementById('cycleStatusText').innerText = "낮 시간 진행 중";
+                document.getElementById('nextMutationCountdown').innerText = `다음 밤 변이까지: ${displayString}`;
+
+                const progress = (state.cycleTimer / DAY_DURATION_SEC) * 100;
+                document.getElementById('timeProgressBar').style.width = `${progress}%`;
+            } else {
+                // NIGHT: 10 seconds
+                remainingSec = TOTAL_CYCLE_SEC - state.cycleTimer;
+                const s = Math.ceil(remainingSec).toString().padStart(2, '0');
+                displayString = `00:${s}`;
+
+                document.getElementById('phaseIconText').innerHTML = `<i class="fa-solid fa-moon text-indigo-400 animate-bounce"></i> 밤 (달빛 변이 중!)`;
+                document.getElementById('cycleStatusText').innerText = "밤 10초 달빛 마법 진행 중!";
+                document.getElementById('nextMutationCountdown').innerText = `아침까지: ${s}초`;
+
+                const progress = ((state.cycleTimer - DAY_DURATION_SEC) / NIGHT_DURATION_SEC) * 100;
+                document.getElementById('timeProgressBar').style.width = `${progress}%`;
+            }
+
+            document.getElementById('timerDisplay').innerText = displayString;
+
+            // Passive Income Calculation (Gold per second from pets)
+            let totalGps = 0;
+            state.pets.forEach(p => totalGps += p.gps);
+            state.gold += (totalGps * state.speedMultiplier);
+
+            // Incubator Eggs Progress
+            let incubatorChanged = false;
+            state.incubators.forEach(inc => {
+                if (inc.progress < inc.maxTime) {
+                    inc.progress += (1 * state.speedMultiplier);
+                    incubatorChanged = true;
+                }
+            });
+
+            if (incubatorChanged) {
+                renderIncubators();
+            }
+
+            updateHeaderUI();
+        }
+
+        function updateHeaderUI() {
+            document.getElementById('playerGold').innerText = Math.floor(state.gold).toLocaleString();
+            document.getElementById('dayCounterBadge').innerText = `Day ${state.dayCount}`;
+        }
+
+        // Night Starscape Decor Generator
+        function generateStars() {
+            const container = document.getElementById('starsContainer');
+            for (let i = 0; i < 40; i++) {
+                const star = document.createElement('div');
+                star.className = "absolute bg-white rounded-full animate-pulse";
+                star.style.width = `${Math.random() * 3 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.animationDuration = `${Math.random() * 2 + 1}s`;
+                container.appendChild(star);
+            }
+        }
+
+        /* ===================================================================
+         * INITIALIZATION
+         * =================================================================== */
+        window.onload = function() {
+            generateStars();
+            generateNpc5Eggs(); // Initialize NPC with 5 starting eggs
+            renderIncubators();
+            renderPets();
+            updateUpgradeUI();
+            updateHeaderUI();
+
+            // Run Game Tick every 1 second
+            setInterval(gameTick, 1000);
+        };
+    </script>
+</body>
+</html>

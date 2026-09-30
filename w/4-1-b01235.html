@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도깨비 퇴치: 사자의 수호</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+            background-color: #0f172a;
+        }
+
+        .font-jua {
+            font-family: 'Jua', sans-serif;
+        }
+
+        /* Pulsing Glow Animation for Summon Button */
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(245, 158, 11, 0.7), 0 0 40px rgba(239, 68, 68, 0.4);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(245, 158, 11, 1), 0 0 60px rgba(239, 68, 68, 0.8);
+                transform: scale(1.03);
+            }
+        }
+
+        .btn-lion-active {
+            animation: pulse-glow 1.5s infinite ease-in-out;
+        }
+
+        /* Shake Effect on Hit or Boss Warning */
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-8px, 5px); }
+            40% { transform: translate(8px, -5px); }
+            60% { transform: translate(-5px, 3px); }
+            80% { transform: translate(5px, -3px); }
+        }
+
+        .shake-screen {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between items-center text-white relative">
+
+    <!-- Top HUD / Header -->
+    <header class="w-full max-w-4xl px-4 pt-3 pb-2 z-20 flex justify-between items-center glass-panel rounded-b-2xl shadow-2xl">
+        <!-- Player Info & Wave -->
+        <div class="flex items-center gap-3">
+            <div class="bg-amber-500/20 p-2.5 rounded-xl border border-amber-500/40 flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-amber-400 text-xl"></i>
+                <div>
+                    <div class="text-xs text-amber-300 font-semibold">졸라맨 체력</div>
+                    <div class="w-28 bg-slate-700 h-3 rounded-full overflow-hidden border border-slate-600">
+                        <div id="hp-bar" class="bg-gradient-to-r from-red-500 to-emerald-400 h-full w-full transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 block">현재 웨이브</span>
+                <span id="wave-text" class="text-xl font-jua text-yellow-300">WAVE 1</span>
+            </div>
+        </div>
+
+        <!-- Score & Gold -->
+        <div class="flex items-center gap-4">
+            <div class="text-right">
+                <div class="text-xs text-slate-400">처치한 도깨비</div>
+                <div id="score-text" class="text-lg font-bold text-cyan-400">0 마리</div>
+            </div>
+            <div class="bg-yellow-500/20 px-3 py-1.5 rounded-xl border border-yellow-500/40 flex items-center gap-2">
+                <i class="fa-solid fa-coins text-yellow-400 text-lg"></i>
+                <span id="gold-text" class="text-lg font-jua text-yellow-300">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Boss Warning Banner (Hidden by default) -->
+    <div id="boss-warning" class="hidden absolute top-16 z-30 bg-red-600/90 text-white font-jua text-2xl md:text-3xl px-8 py-3 rounded-full border-2 border-yellow-400 shadow-2xl animate-bounce flex items-center gap-3">
+        <i class="fa-solid fa-skull-crossbones text-yellow-300 text-3xl"></i>
+        <span>⚠️ 경고! 보스 도깨비가 나타났습니다! ⚠️</span>
+    </div>
+
+    <!-- Main Game Canvas Container -->
+    <main id="game-container" class="relative w-full h-full flex-1 flex justify-center items-center overflow-hidden">
+        <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-modal" class="hidden absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md flex flex-col justify-center items-center">
+            <div class="glass-panel p-8 rounded-3xl max-w-md w-11/12 text-center border border-red-500/30 shadow-2xl">
+                <i class="fa-solid fa-ghost text-6xl text-red-500 mb-4 animate-pulse"></i>
+                <h2 class="text-3xl font-jua text-red-400 mb-2">졸라맨이 쓰러졌습니다!</h2>
+                <p class="text-slate-300 text-sm mb-6">도깨비 무리의 공격을 더 이상 막아내지 못했습니다.</p>
+                
+                <div class="bg-slate-800/80 p-4 rounded-xl mb-6 space-y-2 text-left">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">최종 웨이브:</span>
+                        <span id="final-wave" class="font-bold text-yellow-400">WAVE 1</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">처치한 도깨비:</span>
+                        <span id="final-score" class="font-bold text-cyan-400">0 마리</span>
+                    </div>
+                </div>
+
+                <button id="restart-btn" class="w-full py-4 bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white font-jua text-xl rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> 다시 도전하기
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Controls & Action Bar -->
+    <footer class="w-full max-w-4xl px-4 pb-4 pt-2 z-20 flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <!-- Upgrades Quick Menu -->
+        <div class="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+            <!-- Lion Power Upgrade -->
+            <button id="upg-damage" class="flex-1 sm:flex-initial glass-panel hover:bg-slate-800/80 p-2.5 rounded-xl border border-amber-500/30 flex items-center gap-2 transition active:scale-95 min-w-[130px]">
+                <div class="bg-amber-500/20 p-2 rounded-lg text-amber-400">
+                    <i class="fa-solid fa-paw text-lg"></i>
+                </div>
+                <div class="text-left">
+                    <div class="text-[11px] text-slate-300 font-semibold">사자 공격력 Lv.<span id="lvl-damage">1</span></div>
+                    <div class="text-xs font-bold text-yellow-400"><i class="fa-solid fa-coins text-[10px]"></i> <span id="cost-damage">50</span></div>
+                </div>
+            </button>
+
+            <!-- Cooldown Upgrade -->
+            <button id="upg-cooldown" class="flex-1 sm:flex-initial glass-panel hover:bg-slate-800/80 p-2.5 rounded-xl border border-cyan-500/30 flex items-center gap-2 transition active:scale-95 min-w-[130px]">
+                <div class="bg-cyan-500/20 p-2 rounded-lg text-cyan-400">
+                    <i class="fa-solid fa-bolt text-lg"></i>
+                </div>
+                <div class="text-left">
+                    <div class="text-[11px] text-slate-300 font-semibold">소환 속도 Lv.<span id="lvl-cooldown">1</span></div>
+                    <div class="text-xs font-bold text-yellow-400"><i class="fa-solid fa-coins text-[10px]"></i> <span id="cost-cooldown">80</span></div>
+                </div>
+            </button>
+
+            <!-- Stickman Shield Upgrade -->
+            <button id="upg-hp" class="flex-1 sm:flex-initial glass-panel hover:bg-slate-800/80 p-2.5 rounded-xl border border-emerald-500/30 flex items-center gap-2 transition active:scale-95 min-w-[130px]">
+                <div class="bg-emerald-500/20 p-2 rounded-lg text-emerald-400">
+                    <i class="fa-solid fa-heart text-lg"></i>
+                </div>
+                <div class="text-left">
+                    <div class="text-[11px] text-slate-300 font-semibold">체력 회복</div>
+                    <div class="text-xs font-bold text-yellow-400"><i class="fa-solid fa-coins text-[10px]"></i> <span id="cost-hp">40</span></div>
+                </div>
+            </button>
+        </div>
+
+        <!-- MAIN SUMMON LION BUTTON -->
+        <button id="summon-lion-btn" class="w-full sm:w-64 py-4 px-6 bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white font-jua text-2xl rounded-2xl shadow-2xl transition transform active:scale-95 flex items-center justify-center gap-3 border-2 border-yellow-300 relative overflow-hidden btn-lion-active">
+            <i class="fa-solid fa-shield-cat text-3xl text-yellow-200 animate-pulse"></i>
+            <span class="tracking-wider">사자 소환!</span>
+            <!-- Cooldown Overlay -->
+            <div id="cooldown-overlay" class="absolute inset-0 bg-slate-950/75 flex items-center justify-center font-bold text-yellow-400 text-lg hidden">
+                <span id="cooldown-timer">0.0s</span>
+            </div>
+        </button>
+    </footer>
+
+    <script>
+        // Simple Web Audio API Synthesizer for retro sound effects without external assets
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playRoar() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    
+                    osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.5);
+
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.5);
+                } catch(e){}
+            }
+
+            playHit() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    
+                    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.15);
+
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.15);
+                } catch(e){}
+            }
+
+            playBossWarning() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    
+                    osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+                    osc.frequency.setValueAtTime(440, this.ctx.currentTime + 0.15);
+
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.4);
+                } catch(e){}
+            }
+
+            playCoin() {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    
+                    osc.frequency.setValueAtTime(987.77, this.ctx.currentTime); // B5
+                    osc.frequency.setValueAtTime(1318.51, this.ctx.currentTime + 0.08); // E6
+
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.25);
+                } catch(e){}
+            }
+        }
+
+        const sfx = new SoundFX();
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game Variables
+        let gameRunning = true;
+        let score = 0;
+        let gold = 0;
+        let wave = 1;
+        let spawnTimer = 0;
+        let bossSpawned = false;
+
+        // Stickman Player Stats
+        const player = {
+            x: 120,
+            y: 0,
+            radius: 20,
+            maxHp: 100,
+            hp: 100,
+            isAttacked: false,
+            attackTimer: 0
+        };
+
+        // Upgrade Levels & Costs
+        const upgrades = {
+            damageLvl: 1,
+            damageCost: 50,
+            lionDamage: 40,
+
+            cooldownLvl: 1,
+            cooldownCost: 80,
+            maxCooldown: 2.5, // seconds
+
+            hpCost: 40
+        };
+
+        // Cooldown State
+        let currentCooldown = 0;
+
+        // Entities Arrays
+        let goblins = [];
+        let lions = [];
+        let particles = [];
+        let floatingTexts = [];
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            player.y = canvas.height * 0.65; // Position stickman on ground level
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+
+        // Floating Text Effect for Damage / Gold
+        class FloatingText {
+            constructor(x, y, text, color = '#f59e0b', fontSize = 20) {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.fontSize = fontSize;
+                this.alpha = 1;
+                this.velocityY = -1.5;
+            }
+
+            update() {
+                this.y += this.velocityY;
+                this.alpha -= 0.02;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.font = `bold ${this.fontSize}px 'Jua', sans-serif`;
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(this.text, this.x, this.y);
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        // Particle Visual Effect
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.radius = Math.random() * 4 + 2;
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+                this.alpha = 1;
+                this.decay = Math.random() * 0.03 + 0.02;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.decay;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Lion Companion Attack Unit (사자)
+        class GuardianLion {
+            constructor(startX, startY, damage) {
+                this.x = startX;
+                this.y = startY;
+                this.targetX = canvas.width + 100;
+                this.speed = 12;
+                this.damage = damage;
+                this.size = 55;
+                this.frame = 0;
+                this.slashed = new Set(); // Keep track of damaged goblins per rush
+            }
+
+            update() {
+                this.x += this.speed;
+                this.frame += 0.2;
+
+                // Spawn golden aura particles behind lion
+                if (Math.random() < 0.6) {
+                    particles.push(new Particle(this.x - 20, this.y + (Math.random() * 20 - 10), '#f59e0b'));
+                    particles.push(new Particle(this.x - 10, this.y + (Math.random() * 20 - 10), '#ef4444'));
+                }
+
+                // Check collision with Goblins
+                goblins.forEach(goblin => {
+                    if (!this.slashed.has(goblin.id) && Math.abs(this.x - goblin.x) < 50) {
+                        this.slashed.add(goblin.id);
+                        goblin.takeDamage(this.damage);
+
+                        // Visual slash shockwave
+                        for (let i = 0; i < 8; i++) {
+                            particles.push(new Particle(goblin.x, goblin.y - 20, '#facc15'));
+                        }
+
+                        floatingTexts.push(new FloatingText(goblin.x, goblin.y - 40, `💥 ${this.damage}`, '#fef08a', 24));
+                        sfx.playHit();
+                    }
+                });
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Golden Glowing Lion Aura
+                ctx.shadowColor = '#f59e0b';
+                ctx.shadowBlur = 25;
+
+                // Fire/Golden Mane Back
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.arc(-10, -10, 32, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(-5, -5, 26, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Lion Body & Muscles
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.ellipse(5, 5, 30, 20, Math.PI / 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Lion Head
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(22, -8, 18, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Fierce Glowing Eyes
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(28, -12, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(29, -12, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Lion Snout & Sharp Teeth
+                ctx.fillStyle = '#b45309';
+                ctx.beginPath();
+                ctx.arc(34, -4, 7, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Sharp Claw Slash Slash Lines in front
+                ctx.strokeStyle = '#fef08a';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(35, -20); ctx.lineTo(55, -10);
+                ctx.moveTo(38, -5);  ctx.lineTo(58, 5);
+                ctx.moveTo(35, 10);  ctx.lineTo(55, 20);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        // Dokkaebi Enemy Class (도깨비 및 보스 도깨비)
+        let goblinIdCounter = 0;
+        class Dokkaebi {
+            constructor(isBoss = false) {
+                this.id = goblinIdCounter++;
+                this.isBoss = isBoss;
+                this.x = canvas.width + 60;
+                this.y = canvas.height * 0.65;
+                
+                if (isBoss) {
+                    this.maxHp = 350 + (wave * 150);
+                    this.hp = this.maxHp;
+                    this.speed = 1.2;
+                    this.size = 65;
+                    this.color = '#dc2626'; // Flame Red Boss
+                    this.goldValue = 100 + wave * 30;
+                    this.damage = 25;
+                } else {
+                    this.maxHp = 30 + (wave * 15);
+                    this.hp = this.maxHp;
+                    this.speed = 2.0 + Math.random() * 0.8;
+                    this.size = 32;
+                    this.color = Math.random() < 0.5 ? '#2563eb' : '#059669'; // Blue or Green Dokkaebi
+                    this.goldValue = 12 + wave * 2;
+                    this.damage = 8;
+                }
+
+                this.walkCycle = 0;
+                this.hitStun = 0;
+            }
+
+            takeDamage(amount) {
+                this.hp -= amount;
+                this.x += 15; // Knockback
+                this.hitStun = 5;
+            }
+
+            update() {
+                if (this.hitStun > 0) {
+                    this.hitStun--;
+                } else {
+                    this.x -= this.speed;
+                }
+                this.walkCycle += 0.15;
+
+                // Attack Player Stickman when reached
+                if (this.x <= player.x + 35) {
+                    player.hp -= this.damage;
+                    player.isAttacked = true;
+                    player.attackTimer = 10;
+                    this.x += 40; // Push back slightly after attack
+
+                    document.getElementById('game-container').classList.add('shake-screen');
+                    setTimeout(() => {
+                        document.getElementById('game-container').classList.remove('shake-screen');
+                    }, 300);
+
+                    floatingTexts.push(new FloatingText(player.x, player.y - 50, `-${this.damage} HP`, '#ef4444', 22));
+                    sfx.playHit();
+
+                    if (player.hp <= 0) {
+                        player.hp = 0;
+                        gameOver();
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                if (this.hitStun > 0) {
+                    ctx.fillStyle = '#ffffff'; // Flash white on hit
+                }
+
+                // Dokkaebi Body
+                ctx.fillStyle = this.hitStun > 0 ? '#ffffff' : this.color;
+                ctx.beginPath();
+                ctx.arc(0, -this.size * 0.6, this.size * 0.6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Dokkaebi Horn(s) (도깨비 뿔)
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                ctx.moveTo(-10, -this.size * 1.1);
+                ctx.lineTo(0, -this.size * 1.7);
+                ctx.lineTo(10, -this.size * 1.1);
+                ctx.closePath();
+                ctx.fill();
+
+                if (this.isBoss) {
+                    // Second Horn for Boss
+                    ctx.beginPath();
+                    ctx.moveTo(-22, -this.size * 0.9);
+                    ctx.lineTo(-15, -this.size * 1.5);
+                    ctx.lineTo(-5, -this.size * 0.9);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // Glowing Angry Eyes
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(-this.size * 0.25, -this.size * 0.7, this.size * 0.18, 0, Math.PI * 2);
+                ctx.arc(this.size * 0.25, -this.size * 0.7, this.size * 0.18, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(-this.size * 0.25, -this.size * 0.7, this.size * 0.08, 0, Math.PI * 2);
+                ctx.arc(this.size * 0.25, -this.size * 0.7, this.size * 0.08, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Spiky Club Weapon (방망이)
+                ctx.save();
+                ctx.rotate(Math.sin(this.walkCycle) * 0.3);
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(-this.size * 0.8, -this.size * 0.5, 12, this.size);
+                ctx.fillStyle = '#e2e8f0';
+                // Club Spikes
+                ctx.beginPath();
+                ctx.arc(-this.size * 0.8 - 3, -this.size * 0.3, 4, 0, Math.PI * 2);
+                ctx.arc(-this.size * 0.8 + 15, -this.size * 0.2, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // HP Bar above Head
+                const barWidth = this.size * 1.4;
+                const hpPercent = Math.max(0, this.hp / this.maxHp);
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+                ctx.fillRect(-barWidth / 2, -this.size * 1.9, barWidth, 6);
+                ctx.fillStyle = this.isBoss ? '#ef4444' : '#22c55e';
+                ctx.fillRect(-barWidth / 2, -this.size * 1.9, barWidth * hpPercent, 6);
+
+                ctx.restore();
+            }
+        }
+
+        function drawStickmanPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+
+            // Sacred Defense Magic Circle under Stickman
+            ctx.strokeStyle = player.isAttacked ? '#ef4444' : '#38bdf8';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = player.isAttacked ? '#ef4444' : '#38bdf8';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.ellipse(0, 15, 45, 15, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // White Stickman Body Styling
+            ctx.strokeStyle = '#ffffff';
+            ctx.fillStyle = '#ffffff';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+
+            // Head (머리)
+            ctx.beginPath();
+            ctx.arc(0, -50, 16, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fill();
+
+            // Scared / Determined Eyes
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(-4, -52, 2.5, 0, Math.PI * 2);
+            ctx.arc(6, -52, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Spine / Torso (몸통)
+            ctx.beginPath();
+            ctx.moveTo(0, -34);
+            ctx.lineTo(0, -5);
+            ctx.stroke();
+
+            // Arms (팔 - Guard Pose)
+            ctx.beginPath();
+            if (player.isAttacked) {
+                // Defensive Arms covering face
+                ctx.moveTo(0, -28); ctx.lineTo(-12, -45);
+                ctx.moveTo(0, -28); ctx.lineTo(12, -45);
+            } else {
+                // Confident / Summoning Stance
+                ctx.moveTo(0, -28); ctx.lineTo(-22, -18);
+                ctx.moveTo(0, -28); ctx.lineTo(22, -40); // Pointing forward
+            }
+            ctx.stroke();
+
+            // Legs (다리)
+            ctx.beginPath();
+            ctx.moveTo(0, -5); ctx.lineTo(-16, 15);
+            ctx.moveTo(0, -5); ctx.lineTo(16, 15);
+            ctx.stroke();
+
+            ctx.restore();
+
+            if (player.attackTimer > 0) player.attackTimer--;
+            else player.isAttacked = false;
+        }
+
+        function spawnEnemies() {
+            spawnTimer++;
+
+            // Normal Goblin Spawn Rate
+            const spawnInterval = Math.max(40, 120 - wave * 10);
+            if (spawnTimer % Math.floor(spawnInterval) === 0) {
+                goblins.push(new Dokkaebi(false));
+            }
+
+            // Boss Spawn Logic (Every 15 kills or wave threshold)
+            if (score > 0 && score % 12 === 0 && !bossSpawned) {
+                bossSpawned = true;
+                goblins.push(new Dokkaebi(true));
+
+                // Show Boss Warning Banner
+                const warningElem = document.getElementById('boss-warning');
+                warningElem.classList.remove('hidden');
+                sfx.playBossWarning();
+
+                setTimeout(() => {
+                    warningElem.classList.add('hidden');
+                }, 3500);
+            }
+        }
+
+        function updateGame() {
+            if (!gameRunning) return;
+
+            // Update Cooldown Timer
+            if (currentCooldown > 0) {
+                currentCooldown -= 1 / 60;
+                if (currentCooldown <= 0) currentCooldown = 0;
+            }
+            updateCooldownUI();
+
+            // Spawn Logic
+            spawnEnemies();
+
+            // Update Lions
+            for (let i = lions.length - 1; i >= 0; i--) {
+                lions[i].update();
+                if (lions[i].x > canvas.width + 120) {
+                    lions.splice(i, 1);
+                }
+            }
+
+            // Update Goblins
+            for (let i = goblins.length - 1; i >= 0; i--) {
+                const g = goblins[i];
+                g.update();
+
+                // Check Death
+                if (g.hp <= 0) {
+                    score++;
+                    gold += g.goldValue;
+                    
+                    if (g.isBoss) {
+                        bossSpawned = false;
+                        wave++;
+                        floatingTexts.push(new FloatingText(g.x, g.y - 30, `🏆 보스 처치! +${g.goldValue} Gold`, '#facc15', 26));
+                    } else {
+                        floatingTexts.push(new FloatingText(g.x, g.y - 20, `+${g.goldValue} G`, '#fde047', 18));
+                    }
+
+                    sfx.playCoin();
+
+                    // Death explosion particles
+                    for (let p = 0; p < 12; p++) {
+                        particles.push(new Particle(g.x, g.y - 20, g.color));
+                    }
+
+                    goblins.splice(i, 1);
+                    updateHUD();
+                }
+            }
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                if (particles[i].alpha <= 0) particles.splice(i, 1);
+            }
+
+            // Update Floating Text
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                floatingTexts[i].update();
+                if (floatingTexts[i].alpha <= 0) floatingTexts.splice(i, 1);
+            }
+        }
+
+        function render() {
+            // Clear & Draw Background
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Night Sky / Atmospheric Gradient
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGrad.addColorStop(0, '#0f172a');
+            bgGrad.addColorStop(0.65, '#1e1b4b');
+            bgGrad.addColorStop(1, '#020617');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ground Floor (전투 전장 바닥)
+            const groundY = canvas.height * 0.65 + 15;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.stroke();
+
+            // Draw Game Entities
+            drawStickmanPlayer();
+
+            goblins.forEach(g => g.draw());
+            lions.forEach(l => l.draw());
+            particles.forEach(p => p.draw());
+            floatingTexts.forEach(ft => ft.draw());
+
+            // Loop Frame
+            if (gameRunning) {
+                updateGame();
+                requestAnimationFrame(render);
+            }
+        }
+
+        function summonLion() {
+            if (!gameRunning || currentCooldown > 0) return;
+
+            sfx.init(); // Initialize audio context on first user interaction
+
+            // Spawn Guardian Lion from Player's position
+            lions.push(new GuardianLion(player.x + 20, player.y - 15, upgrades.lionDamage));
+            sfx.playRoar();
+
+            // Reset Cooldown
+            currentCooldown = upgrades.maxCooldown;
+
+            // Visual shockwave on stickman
+            for (let i = 0; i < 15; i++) {
+                particles.push(new Particle(player.x, player.y - 10, '#f59e0b'));
+            }
+        }
+
+        function updateCooldownUI() {
+            const overlay = document.getElementById('cooldown-overlay');
+            const timerText = document.getElementById('cooldown-timer');
+            const btn = document.getElementById('summon-lion-btn');
+
+            if (currentCooldown > 0) {
+                overlay.classList.remove('hidden');
+                timerText.innerText = `${currentCooldown.toFixed(1)}s`;
+                btn.classList.remove('btn-lion-active');
+            } else {
+                overlay.classList.add('hidden');
+                btn.classList.add('btn-lion-active');
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('score-text').innerText = `${score} 마리`;
+            document.getElementById('gold-text').innerText = `${gold}`;
+            document.getElementById('wave-text').innerText = `WAVE ${wave}`;
+
+            // HP Bar Ratio
+            const hpPercent = Math.max(0, (player.hp / player.maxHp) * 100);
+            document.getElementById('hp-bar').style.width = `${hpPercent}%`;
+        }
+
+        document.getElementById('upg-damage').addEventListener('click', () => {
+            if (gold >= upgrades.damageCost) {
+                gold -= upgrades.damageCost;
+                upgrades.damageLvl++;
+                upgrades.lionDamage += 25;
+                upgrades.damageCost = Math.floor(upgrades.damageCost * 1.6);
+
+                document.getElementById('lvl-damage').innerText = upgrades.damageLvl;
+                document.getElementById('cost-damage').innerText = upgrades.damageCost;
+                sfx.playCoin();
+                updateHUD();
+            }
+        });
+
+        document.getElementById('upg-cooldown').addEventListener('click', () => {
+            if (gold >= upgrades.cooldownCost && upgrades.maxCooldown > 0.6) {
+                gold -= upgrades.cooldownCost;
+                upgrades.cooldownLvl++;
+                upgrades.maxCooldown = Math.max(0.6, upgrades.maxCooldown - 0.3);
+                upgrades.cooldownCost = Math.floor(upgrades.cooldownCost * 1.8);
+
+                document.getElementById('lvl-cooldown').innerText = upgrades.cooldownLvl;
+                document.getElementById('cost-cooldown').innerText = upgrades.cooldownCost;
+                sfx.playCoin();
+                updateHUD();
+            }
+        });
+
+        document.getElementById('upg-hp').addEventListener('click', () => {
+            if (gold >= upgrades.hpCost && player.hp < player.maxHp) {
+                gold -= upgrades.hpCost;
+                player.hp = Math.min(player.maxHp, player.hp + 40);
+                upgrades.hpCost = Math.floor(upgrades.hpCost * 1.3);
+
+                document.getElementById('cost-hp').innerText = upgrades.hpCost;
+                sfx.playCoin();
+                updateHUD();
+            }
+        });
+
+        // Summon Button Click & Touch Events
+        const summonBtn = document.getElementById('summon-lion-btn');
+        summonBtn.addEventListener('click', summonLion);
+
+        // Keyboard Shortcut (Spacebar or Enter to summon lion)
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                summonLion();
+            }
+        });
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('final-wave').innerText = `WAVE ${wave}`;
+            document.getElementById('final-score').innerText = `${score} 마리`;
+            document.getElementById('game-over-modal').classList.remove('hidden');
+        }
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            // Reset state
+            gameRunning = true;
+            score = 0;
+            gold = 0;
+            wave = 1;
+            spawnTimer = 0;
+            bossSpawned = false;
+            player.hp = player.maxHp;
+            goblins = [];
+            lions = [];
+            particles = [];
+            floatingTexts = [];
+
+            document.getElementById('game-over-modal').classList.add('hidden');
+            updateHUD();
+            requestAnimationFrame(render);
+        });
+
+        // Start Game Engine on Window Load
+        window.onload = () => {
+            updateHUD();
+            requestAnimationFrame(render);
+        };
+    </script>
+</body>
+</html>

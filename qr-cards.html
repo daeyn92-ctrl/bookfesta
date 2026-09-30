@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>작품 QR 카드 (인쇄용)</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+@page{size:A4;margin:10mm}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Noto Sans KR',sans-serif;color:#1f1a33;background:#fff}
+.tip{padding:12px 16px;background:#fff4d6;font-size:14px}
+@media print{.tip{display:none}}
+.sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm;padding:6mm}
+.c{border:1.5px dashed #b9b0d6;border-radius:4mm;padding:4mm;text-align:center;break-inside:avoid;page-break-inside:avoid;height:88mm;display:flex;flex-direction:column;align-items:center}
+.c .t{font-family:'Jua',sans-serif;font-size:15px;line-height:1.25;height:2.5em;overflow:hidden;display:flex;align-items:center;justify-content:center;word-break:keep-all}
+.c .w{font-size:12px;color:#6b6485;margin:1mm 0 2mm}
+.c img.qr{width:44mm;height:44mm}
+.c .s{margin-top:auto;font-size:10px;color:#8a83a3}
+</style>
+</head>
+<body>
+<div class="tip">브라우저에서 인쇄(Ctrl+P)하면 A4 한 장에 9개씩 QR 카드가 나와요. 부스에 붙이거나 잘라서 나눠 줄 수 있어요.</div>
+<div class="sheet" id="s"></div>
+<script>
+const DATA = {"base": "https://daeyn92-ctrl.github.io/bookfesta/", "works": [{"id": "4-1-b01235", "cls": "4-1", "name": "김○온", "title": "도깨비 퇴치: 사자의 수호", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-b01235.html", "hash": "606b49bdd38cfdd62b842493274dc8774012c2ef"}, {"id": "4-1-6e6b38", "cls": "4-1", "name": "윤○우", "title": "스타 마린: 무한 어드벤처", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-6e6b38.html", "hash": "44b996337ece8dc9457ffee990a8dbcc423480f0"}, {"id": "4-1-e17441", "cls": "4-1", "name": "황○현", "title": "신비한 알 키우기: 밤의 연금술사 NPC", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-e17441.html", "hash": "c08f625774ad69ea7be658100c7af9a25b2caa72"}]};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+document.getElementById('s').innerHTML = DATA.works.map(w => `
+  <div class="c">
+    <div class="t">${esc(w.title)}</div>
+    <div class="w">${esc(w.cls)} ${esc(w.name)}</div>
+    <img class="qr" src="qr/${w.id}.svg" alt="">
+    <div class="s">📱 휴대폰 카메라로 찍어 보세요 · 용인 이동초</div>
+  </div>`).join('');
+</script>
+</body>
+</html>
