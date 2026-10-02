@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>마라탕이 계속 나오는 어플</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        jua: ['Jua', 'sans-serif'],
+                        sans: ['Noto Sans KR', 'sans-serif']
+                    },
+                    colors: {
+                        malaRed: '#dc2626',
+                        malaDark: '#450a0a',
+                        malaGold: '#fbbf24',
+                        malaSoup: '#991b1b'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #0c0a09;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .glass-card {
+            background: rgba(28, 25, 23, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+
+        .btn-mala {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+        }
+
+        .btn-mala:active {
+            transform: scale(0.95);
+        }
+
+        @keyframes steamFloat {
+            0% { transform: translateY(0) scale(1); opacity: 0.6; }
+            50% { transform: translateY(-30px) scale(1.2); opacity: 0.3; }
+            100% { transform: translateY(-70px) scale(1.5); opacity: 0; }
+        }
+
+        .steam-effect {
+            animation: steamFloat 2.5s infinite ease-out;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.8)); }
+            50% { filter: drop-shadow(0 0 25px rgba(251, 191, 36, 1)); }
+        }
+
+        .mala-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="m-0 p-0 flex justify-center items-center">
+
+    <div id="app-container" class="relative w-full max-w-md h-full sm:h-[94vh] sm:rounded-3xl overflow-hidden bg-stone-950 border-0 sm:border-4 border-red-800/60 shadow-2xl flex flex-col justify-between">
+
+        <!-- Top Status HUD Bar -->
+        <div class="absolute top-0 left-0 right-0 z-20 p-3 flex flex-col gap-2 pointer-events-none">
+            <div class="flex justify-between items-center pointer-events-auto">
+                <!-- App Title -->
+                <div class="flex items-center space-x-2 bg-stone-900/90 px-3 py-1.5 rounded-full border border-red-600/50 shadow-lg">
+                    <span class="text-xl animate-bounce">🍲</span>
+                    <div>
+                        <h1 class="text-xs font-black text-red-400 leading-none">무한 마라탕 생성기</h1>
+                        <p id="spice-level-tag" class="text-[10px] text-amber-300 font-sans font-bold">🌶️ 2단계: 맛있게 매운맛</p>
+                    </div>
+                </div>
+
+                <!-- Sound & Stats Toggle -->
+                <div class="flex items-center gap-2">
+                    <button id="btn-sound" onclick="toggleASMR()" class="w-9 h-9 rounded-full bg-stone-800/90 border border-red-500/40 text-amber-400 flex items-center justify-center text-sm shadow hover:bg-stone-700 active:scale-90 transition">
+                        <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <button onclick="openStatsModal()" class="w-9 h-9 rounded-full bg-stone-800/90 border border-amber-500/40 text-amber-300 flex items-center justify-center text-sm shadow hover:bg-stone-700 active:scale-90 transition">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Malatang Generation Counter HUD -->
+            <div class="glass-card px-4 py-2 rounded-2xl flex justify-between items-center pointer-events-auto">
+                <div class="flex flex-col">
+                    <span class="text-[10px] text-stone-400 font-sans">누적 생성 마라탕</span>
+                    <span id="malatang-count" class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-yellow-400">
+                        0 그릇
+                    </span>
+                </div>
+                <div class="text-right">
+                    <span class="text-[10px] text-stone-400 font-sans">총 용량</span>
+                    <span id="malatang-liters" class="text-sm font-bold text-amber-400 block">
+                        0.0 L
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Interactive Canvas -->
+        <div class="relative w-full h-full flex-grow overflow-hidden bg-stone-950">
+            <canvas id="malaCanvas" class="w-full h-full cursor-pointer"></canvas>
+
+            <!-- Touch Hint Overlay -->
+            <div id="touch-hint" class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-80 transition-opacity duration-500">
+                <div class="bg-black/60 px-4 py-2 rounded-full border border-red-500/30 text-amber-300 text-xs font-bold animate-pulse flex items-center gap-2">
+                    <span>👇 화면을 터치/드래그하여 마라탕 재료 투하!</span>
+                </div>
+            </div>
+
+            <!-- Floating Toast Alert -->
+            <div id="toast-msg" class="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-950/90 border-2 border-amber-400 text-amber-300 font-black px-4 py-2 rounded-2xl text-lg shadow-2xl opacity-0 transition-opacity duration-300 pointer-events-none z-30">
+                🔥 마라 폭풍 투하!
+            </div>
+        </div>
+
+        <!-- Bottom Action Control Panel -->
+        <div class="relative z-20 p-3 bg-stone-950/95 border-t border-red-800/40 flex flex-col gap-2">
+
+            <!-- Auto Spawner Speed & Spiciness Bar -->
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <!-- Spiciness Selector -->
+                <div class="glass-card p-2 rounded-xl flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[11px] text-amber-300 font-bold">🌶️ 맵기 선택</span>
+                        <span id="spice-lvl-num" class="text-[10px] text-red-400 font-black">2단계</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-1">
+                        <button onclick="setSpiciness(0)" class="spice-btn p-1 bg-stone-800 rounded text-[10px] text-stone-300 font-bold hover:bg-stone-700">백탕</button>
+                        <button onclick="setSpiciness(1)" class="spice-btn p-1 bg-stone-800 rounded text-[10px] text-stone-300 font-bold hover:bg-stone-700">1단계</button>
+                        <button onclick="setSpiciness(2)" class="spice-btn p-1 bg-red-900 border border-amber-400 rounded text-[10px] text-amber-300 font-bold">2단계</button>
+                        <button onclick="setSpiciness(3)" class="spice-btn p-1 bg-stone-800 rounded text-[10px] text-stone-300 font-bold hover:bg-stone-700">3단계</button>
+                    </div>
+                </div>
+
+                <!-- Auto Spawn Speed Slider -->
+                <div class="glass-card p-2 rounded-xl flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[11px] text-amber-300 font-bold">⚡ 자동 투하 속도</span>
+                        <span id="spawn-speed-label" class="text-[10px] text-amber-400 font-bold">보통 (5/초)</span>
+                    </div>
+                    <input id="speed-slider" type="range" min="0" max="30" value="5" oninput="updateSpawnSpeed(this.value)"
+                           class="w-full h-2 bg-stone-700 rounded-lg appearance-none cursor-pointer accent-red-500">
+                </div>
+            </div>
+
+            <!-- Ingredient Filter Toggles -->
+            <div class="glass-card p-2 rounded-xl flex items-center justify-between text-[11px] gap-1 overflow-x-auto no-scrollbar">
+                <span class="text-stone-400 font-bold text-[10px] shrink-0">재료:</span>
+                <button id="ing-meat" onclick="toggleIngredient('meat')" class="ing-toggle-btn px-2 py-1 bg-red-900/80 border border-red-500 rounded-lg text-white font-bold shrink-0">
+                    🥩 고기
+                </button>
+                <button id="ing-veg" onclick="toggleIngredient('veg')" class="ing-toggle-btn px-2 py-1 bg-red-900/80 border border-red-500 rounded-lg text-white font-bold shrink-0">
+                    🥬 야채
+                </button>
+                <button id="ing-noodle" onclick="toggleIngredient('noodle')" class="ing-toggle-btn px-2 py-1 bg-red-900/80 border border-red-500 rounded-lg text-white font-bold shrink-0">
+                    🥢 분모자/당면
+                </button>
+                <button id="ing-tofu" onclick="toggleIngredient('tofu')" class="ing-toggle-btn px-2 py-1 bg-red-900/80 border border-red-500 rounded-lg text-white font-bold shrink-0">
+                    🥟 푸주/건두부
+                </button>
+                <button id="ing-ball" onclick="toggleIngredient('ball')" class="ing-toggle-btn px-2 py-1 bg-red-900/80 border border-red-500 rounded-lg text-white font-bold shrink-0">
+                    🍢 피쉬볼/소시지
+                </button>
+            </div>
+
+            <!-- Main Mala Special Action Buttons -->
+            <div class="flex items-center gap-2 mt-0.5">
+                <!-- Mala Tsunami Button -->
+                <button onclick="triggerMalaTsunami()" class="btn-mala flex-grow py-3 bg-gradient-to-r from-red-600 via-amber-500 to-red-600 hover:from-red-500 hover:to-red-700 text-stone-950 font-black text-base rounded-2xl flex items-center justify-center gap-2 border-b-4 border-red-900 mala-glow">
+                    <span>🔥 마라 폭풍 투하! (Tsunami)</span>
+                </button>
+
+                <!-- Clear Bowl Button -->
+                <button onclick="clearBowl()" class="btn-mala px-3 py-3 bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold text-xs rounded-2xl border-b-4 border-stone-950 flex flex-col items-center justify-center shrink-0">
+                    <span class="text-base">🥣</span>
+                    <span class="text-[9px]">완탕하기</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal: Statistics & Fun Malatang Facts -->
+        <div id="modal-stats" class="hidden absolute inset-0 bg-stone-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-5 text-center">
+            <div class="glass-card p-5 rounded-3xl w-full max-w-xs space-y-4 border-red-500/80 relative">
+                <button onclick="closeStatsModal()" class="absolute top-3 right-3 text-stone-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <div class="space-y-1">
+                    <div class="text-4xl animate-bounce">🍲📊</div>
+                    <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-yellow-400">
+                        나의 마라탕 기록
+                    </h2>
+                    <p class="text-xs text-stone-300 font-sans">
+                        지금까지 끓여낸 대단한 마라탕 역사!
+                    </p>
+                </div>
+
+                <!-- Detailed Stats Box -->
+                <div class="bg-stone-900/90 rounded-2xl p-3 border border-red-900/60 text-left space-y-2 text-xs font-sans">
+                    <div class="flex justify-between items-center text-stone-200">
+                        <span>🥣 총 생성한 마라탕:</span>
+                        <b id="stat-total-bowls" class="text-amber-400 font-black text-sm">0 그릇</b>
+                    </div>
+                    <div class="flex justify-between items-center text-stone-200">
+                        <span>🪣 총 마라 국물 양:</span>
+                        <b id="stat-total-liters" class="text-red-400 font-black text-sm">0 L</b>
+                    </div>
+                    <div class="flex justify-between items-center text-stone-200">
+                        <span>🥩 투하된 총 재료 수:</span>
+                        <b id="stat-total-items" class="text-yellow-400 font-black text-sm">0 개</b>
+                    </div>
+                    <div class="flex justify-between items-center text-stone-200">
+                        <span>🔥 최고의 맵기 단계:</span>
+                        <b id="stat-fav-spice" class="text-amber-300 font-black">2단계 (매운맛)</b>
+                    </div>
+                </div>
+
+                <div class="bg-red-950/40 p-2.5 rounded-xl border border-red-500/30 text-[11px] text-amber-200/90 font-sans">
+                    💡 <b>알아두면 유용한 마라 지식:</b><br>
+                    마라(麻辣)의 '마'는 혀가 얼얼하다는 뜻이고, '라'는 맵다는 뜻입니다!
+                </div>
+
+                <button onclick="closeStatsModal()" class="w-full py-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-stone-950 font-black text-sm rounded-xl">
+                    닫기
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* =========================================================================
+         * Web Audio Synthesizer Engine (Malatang ASMR & Boiling Sound)
+         * ========================================================================= */
+        class MalaAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.soundEnabled = true;
+                this.isBoiling = false;
+                this.boilTimer = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playSplashSound() {
+                if (!this.soundEnabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+
+                // Splash / Plop Sound Effect
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150 + Math.random() * 100, now);
+                osc.frequency.exponentialRampToValueAtTime(400 + Math.random() * 200, now + 0.05);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            }
+
+            playBoilPop() {
+                if (!this.soundEnabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+
+                // Bubble Pop Sound
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300 + Math.random() * 250, now);
+                osc.frequency.exponentialRampToValueAtTime(600 + Math.random() * 200, now + 0.04);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.04);
+            }
+
+            playTsunamiSound() {
+                if (!this.soundEnabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+
+                // Sizzling Tsunami Sound Sweep
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.linearRampToValueAtTime(600, now + 0.2);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
+
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+
+            playSlurpSound() {
+                if (!this.soundEnabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.linearRampToValueAtTime(200, now + 0.3);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+
+            startBoilingASMR() {
+                if (this.isBoiling) return;
+                this.isBoiling = true;
+                this.boilTimer = setInterval(() => {
+                    if (this.soundEnabled && Math.random() < 0.7) {
+                        this.playBoilPop();
+                    }
+                }, 180);
+            }
+
+            stopBoilingASMR() {
+                this.isBoiling = false;
+                if (this.boilTimer) clearInterval(this.boilTimer);
+            }
+        }
+
+        const malaAudio = new MalaAudioEngine();
+
+        /* =========================================================================
+         * STREAMING_CHUNK:Implementing Canvas Malatang Physics & Particle Engine...
+         * ========================================================================= */
+        const canvas = document.getElementById('malaCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let animationFrameId;
+
+        // Malatang Spiciness Broth Colors
+        const SPICE_COLORS = [
+            { name: "백탕 (사골)", soup: "#fef3c7", oil: "#fde68a", text: "0단계: 순한 백탕", density: 0.1 },
+            { name: "1단계 (신라면)", soup: "#f87171", oil: "#ef4444", text: "1단계: 순한 매운맛", density: 0.3 },
+            { name: "2단계 (맛있게 매운맛)", soup: "#b91c1c", oil: "#dc2626", text: "2단계: 맛있게 매운맛", density: 0.6 },
+            { name: "3단계 (지옥 마라)", soup: "#450a0a", oil: "#7f1d1d", text: "3단계: 얼얼한 지옥 마라", density: 0.9 }
+        ];
+
+        let currentSpiceLevel = 2;
+
+        // Ingredient Items Database with Emojis & Types
+        const INGREDIENTS_DB = {
+            meat: [
+                { name: "소고기", emoji: "🥩", radius: 24 },
+                { name: "양고기", emoji: "🥓", radius: 22 },
+                { name: "새우", emoji: "🦐", radius: 20 }
+            ],
+            veg: [
+                { name: "청경채", emoji: "🥬", radius: 25 },
+                { name: "배추", emoji: "🥬", radius: 26 },
+                { name: "팽이버섯", emoji: "🍄", radius: 20 },
+                { name: "목이버섯", emoji: "🖤", radius: 18 }
+            ],
+            noodle: [
+                { name: "분모자", emoji: "🥢", radius: 22 },
+                { name: "중국당면", emoji: "🍜", radius: 21 },
+                { name: "옥수수면", emoji: "🍝", radius: 19 }
+            ],
+            tofu: [
+                { name: "푸주", emoji: "🥟", radius: 20 },
+                { name: "건두부", emoji: "🧈", radius: 19 },
+                { name: "유부", emoji: "🟧", radius: 18 }
+            ],
+            ball: [
+                { name: "피쉬볼", emoji: "🍥", radius: 20 },
+                { name: "비엔나 소시지", emoji: "🍢", radius: 22 },
+                { name: "메추리알", emoji: "🥚", radius: 16 }
+            ]
+        };
+
+        // Active Ingredient Categories Toggle State
+        let activeCategories = {
+            meat: true,
+            veg: true,
+            noodle: true,
+            tofu: true,
+            ball: true
+        };
+
+        // Particles & Simulation Arrays
+        let ingredients = [];
+        let steamParticles = [];
+        let oilBubbles = [];
+        let waveOffset = 0;
+
+        // Stats Counters
+        let totalItemsSpawned = 0;
+        let totalBowls = 0;
+        let autoSpawnRate = 5; // Items per second
+        let autoSpawnTimer = null;
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            width = canvas.width = rect.width;
+            height = canvas.height = rect.height;
+            initBrothParticles();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function initBrothParticles() {
+            oilBubbles = [];
+            for (let i = 0; i < 35; i++) {
+                oilBubbles.push({
+                    x: Math.random() * width,
+                    y: height * 0.4 + Math.random() * (height * 0.55),
+                    radius: 3 + Math.random() * 12,
+                    speedY: -0.2 - Math.random() * 0.5,
+                    alpha: 0.3 + Math.random() * 0.5
+                });
+            }
+
+            steamParticles = [];
+            for (let i = 0; i < 20; i++) {
+                steamParticles.push({
+                    x: Math.random() * width,
+                    y: height * 0.3 + Math.random() * (height * 0.3),
+                    radius: 15 + Math.random() * 25,
+                    vy: -0.8 - Math.random() * 0.8,
+                    alpha: Math.random() * 0.4
+                });
+            }
+        }
+
+        /* =========================================================================
+         * STREAMING_CHUNK:Adding Spawner Logic & Touch Interactions...
+         * ========================================================================= */
+        function getRandomActiveIngredient() {
+            const validCategories = Object.keys(activeCategories).filter(cat => activeCategories[cat]);
+            if (validCategories.length === 0) return INGREDIENTS_DB.meat[0];
+
+            const randomCat = validCategories[Math.floor(Math.random() * validCategories.length)];
+            const items = INGREDIENTS_DB[randomCat];
+            return items[Math.floor(Math.random() * items.length)];
+        }
+
+        function spawnIngredient(x, y, isUserClick = false) {
+            const itemData = getRandomActiveIngredient();
+            const spawnX = x || (width * 0.15 + Math.random() * (width * 0.7));
+            const spawnY = y || -30;
+
+            ingredients.push({
+                emoji: itemData.emoji,
+                radius: itemData.radius,
+                x: spawnX,
+                y: spawnY,
+                vx: (Math.random() - 0.5) * 4,
+                vy: isUserClick ? -2 - Math.random() * 3 : 2 + Math.random() * 3,
+                rotation: Math.random() * Math.PI * 2,
+                vRot: (Math.random() - 0.5) * 0.1,
+                buoyancy: 0.85 + Math.random() * 0.3,
+                isFloating: false
+            });
+
+            totalItemsSpawned++;
+            updateStatsHUD();
+
+            if (isUserClick) {
+                malaAudio.playSplashSound();
+            }
+
+            // Hide touch hint on interaction
+            const hint = document.getElementById('touch-hint');
+            if (hint) hint.style.opacity = '0';
+        }
+
+        function updateStatsHUD() {
+            totalBowls = Math.floor(totalItemsSpawned / 12);
+            const totalLiters = (totalItemsSpawned * 0.15).toFixed(1);
+
+            document.getElementById('malatang-count').innerText = `${totalBowls.toLocaleString()} 그릇`;
+            document.getElementById('malatang-liters').innerText = `${totalLiters} L`;
+
+            // Modal sync
+            document.getElementById('stat-total-bowls').innerText = `${totalBowls.toLocaleString()} 그릇`;
+            document.getElementById('stat-total-liters').innerText = `${totalLiters} L`;
+            document.getElementById('stat-total-items').innerText = `${totalItemsSpawned.toLocaleString()} 개`;
+        }
+
+        // Auto Spawner Loop
+        function startAutoSpawner() {
+            if (autoSpawnTimer) clearInterval(autoSpawnTimer);
+            if (autoSpawnRate <= 0) return;
+
+            const intervalMs = Math.max(30, 1000 / autoSpawnRate);
+            autoSpawnTimer = setInterval(() => {
+                spawnIngredient();
+            }, intervalMs);
+        }
+
+        function updateSpawnSpeed(val) {
+            autoSpawnRate = parseInt(val);
+            const label = document.getElementById('spawn-speed-label');
+            if (autoSpawnRate === 0) {
+                label.innerText = "정지";
+            } else if (autoSpawnRate < 10) {
+                label.innerText = `보통 (${autoSpawnRate}/초)`;
+            } else if (autoSpawnRate < 25) {
+                label.innerText = `빠름 (${autoSpawnRate}/초)`;
+            } else {
+                label.innerText = `⚡ 폭풍 (${autoSpawnRate}/초)`;
+            }
+            startAutoSpawner();
+        }
+
+        /* =========================================================================
+         * STREAMING_CHUNK:Rendering Canvas Hotpot, Liquid Broth, and Physics...
+         * ========================================================================= */
+        function drawCanvas() {
+            // Background Dark Room
+            ctx.fillStyle = "#0c0a09";
+            ctx.fillRect(0, 0, width, height);
+
+            const potY = height * 0.35;
+            const potHeight = height * 0.65;
+            const spiceInfo = SPICE_COLORS[currentSpiceLevel];
+
+            // 1. Render Big Hotpot Rim
+            ctx.save();
+            ctx.fillStyle = "#1c1917";
+            ctx.strokeStyle = "#78350f";
+            ctx.lineWidth = 12;
+
+            ctx.beginPath();
+            ctx.ellipse(width / 2, potY, width * 0.48, 45, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Pot Body Outer Wall
+            ctx.fillStyle = "#1c1917";
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height - 10, width * 0.42, 35, 0, 0, Math.PI);
+            ctx.fill();
+            ctx.restore();
+
+            // 2. Render Spicy Broth Liquid
+            ctx.save();
+            ctx.beginPath();
+            ctx.ellipse(width / 2, potY + 8, width * 0.45, 38, 0, 0, Math.PI * 2);
+            ctx.fillStyle = spiceInfo.soup;
+            ctx.fill();
+
+            // Liquid Surface Wavy Effect
+            waveOffset += 0.05;
+            ctx.beginPath();
+            ctx.moveTo(width * 0.05, potY + 8);
+            for (let x = width * 0.05; x <= width * 0.95; x += 10) {
+                const y = potY + 8 + Math.sin(x * 0.02 + waveOffset) * 3;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(width * 0.95, height);
+            ctx.lineTo(width * 0.05, height);
+            ctx.closePath();
+            ctx.fillStyle = spiceInfo.soup;
+            ctx.fill();
+            ctx.restore();
+
+            // 3. Render Boiling Oil Bubbles
+            ctx.save();
+            for (let b of oilBubbles) {
+                ctx.fillStyle = spiceInfo.oil;
+                ctx.globalAlpha = b.alpha;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                b.y += b.speedY;
+                if (b.y < potY + 10) {
+                    b.y = height - 20;
+                    b.x = width * 0.1 + Math.random() * (width * 0.8);
+                }
+            }
+            ctx.restore();
+
+            // 4. Update and Render Ingredients Physics
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const liquidSurfaceY = potY + 20;
+
+            for (let i = ingredients.length - 1; i >= 0; i--) {
+                const item = ingredients[i];
+
+                // Physics update
+                if (item.y < liquidSurfaceY) {
+                    item.vy += 0.35; // Gravity in air
+                } else {
+                    // Buoyancy in soup
+                    item.vy *= 0.82; // Drag
+                    item.vy -= (item.y - liquidSurfaceY) * 0.015 * item.buoyancy;
+                    item.vx *= 0.92;
+                }
+
+                item.x += item.vx;
+                item.y += item.vy;
+                item.rotation += item.vRot;
+
+                // Boundary Constraints (Inside Pot Bowl)
+                if (item.x < width * 0.12) item.x = width * 0.12;
+                if (item.x > width * 0.88) item.x = width * 0.88;
+                if (item.y > height - 40) item.y = height - 40;
+
+                // Draw Ingredient Emoji
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                ctx.rotate(item.rotation);
+                ctx.font = `${item.radius * 2}px sans-serif`;
+                ctx.fillText(item.emoji, 0, 0);
+                ctx.restore();
+
+                // Clean up if stacked too much (keep max 180 for performance)
+                if (ingredients.length > 180 && i < ingredients.length - 180) {
+                    ingredients.splice(i, 1);
+                }
+            }
+            ctx.restore();
+
+            // 5. Render Steam Floating Particles
+            ctx.save();
+            for (let s of steamParticles) {
+                ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+                ctx.globalAlpha = s.alpha;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                s.y += s.vy;
+                s.alpha -= 0.003;
+
+                if (s.y < potY - 120 || s.alpha <= 0) {
+                    s.y = potY + Math.random() * 20;
+                    s.x = width * 0.2 + Math.random() * (width * 0.6);
+                    s.alpha = 0.35;
+                }
+            }
+            ctx.restore();
+
+            animationFrameId = requestAnimationFrame(drawCanvas);
+        }
+
+        /* =========================================================================
+         * STREAMING_CHUNK:Interactions, Modals & App Control Functions...
+         * ========================================================================= */
+        // Canvas Touch/Click Spawns Ingredients
+        function handlePointerDown(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            // Spawn 3-5 items on touch
+            for (let i = 0; i < 4; i++) {
+                spawnIngredient(x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 40, true);
+            }
+        }
+
+        canvas.addEventListener('pointerdown', handlePointerDown);
+        canvas.addEventListener('pointermove', (e) => {
+            if (e.buttons === 1 || e.touches) {
+                handlePointerDown(e);
+            }
+        });
+
+        // Set Spiciness Level
+        function setSpiciness(level) {
+            currentSpiceLevel = level;
+            const spiceInfo = SPICE_COLORS[level];
+
+            document.getElementById('spice-level-tag').innerText = `🌶️ ${spiceInfo.text}`;
+            document.getElementById('spice-lvl-num').innerText = `${level}단계`;
+            document.getElementById('stat-fav-spice').innerText = spiceInfo.text;
+
+            // Highlight Active Button
+            const buttons = document.querySelectorAll('.spice-btn');
+            buttons.forEach((btn, idx) => {
+                if (idx === level) {
+                    btn.className = "spice-btn p-1 bg-red-900 border border-amber-400 rounded text-[10px] text-amber-300 font-bold";
+                } else {
+                    btn.className = "spice-btn p-1 bg-stone-800 rounded text-[10px] text-stone-300 font-bold hover:bg-stone-700";
+                }
+            });
+
+            showToast(`🔥 ${spiceInfo.name} 변경!`);
+        }
+
+        // Toggle Ingredient Categories
+        function toggleIngredient(category) {
+            activeCategories[category] = !activeCategories[category];
+            const btn = document.getElementById(`ing-${category}`);
+
+            if (activeCategories[category]) {
+                btn.className = "ing-toggle-btn px-2 py-1 bg-red-900/80 border border-red-500 rounded-lg text-white font-bold shrink-0";
+            } else {
+                btn.className = "ing-toggle-btn px-2 py-1 bg-stone-800 border border-stone-700 opacity-50 rounded-lg text-stone-400 font-bold shrink-0";
+            }
+        }
+
+        // Trigger Mala Tsunami Explosion
+        function triggerMalaTsunami() {
+            malaAudio.playTsunamiSound();
+            showToast("🔥 마라 폭풍 100연타 투하!!");
+
+            for (let i = 0; i < 45; i++) {
+                setTimeout(() => {
+                    spawnIngredient(width * 0.1 + Math.random() * (width * 0.8), -20, true);
+                }, i * 35);
+            }
+        }
+
+        // Clear Bowl (Slurp All)
+        function clearBowl() {
+            if (ingredients.length === 0) return;
+            malaAudio.playSlurpSound();
+            showToast("🥣 완탕 완료! 마라탕을 다 먹었습니다!");
+            ingredients = [];
+        }
+
+        // Toggle Audio Sound
+        function toggleASMR() {
+            malaAudio.soundEnabled = !malaAudio.soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (malaAudio.soundEnabled) {
+                icon.className = "fa-solid fa-volume-high";
+                malaAudio.startBoilingASMR();
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-stone-500";
+                malaAudio.stopBoilingASMR();
+            }
+        }
+
+        // Toast Messages
+        function showToast(msg) {
+            const toast = document.getElementById('toast-msg');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 1200);
+        }
+
+        // Modals
+        function openStatsModal() {
+            document.getElementById('modal-stats').classList.remove('hidden');
+        }
+
+        function closeStatsModal() {
+            document.getElementById('modal-stats').classList.add('hidden');
+        }
+
+        // Initialize App on Load
+        window.onload = () => {
+            resizeCanvas();
+            startAutoSpawner();
+            malaAudio.startBoilingASMR();
+            drawCanvas();
+        };
+    </script>
+</body>
+</html>

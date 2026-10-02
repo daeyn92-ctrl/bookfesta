@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로블록스 오비 게임 웹 시뮬레이터 & Studio 스크립트 에디터</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js 3D Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .font-code {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* Canvas HUD Overlay Styling */
+        .hud-glass {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Pulsing Glow Animation */
+        .glow-pulse {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(59, 130, 246, 0.8); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <!-- Brand & Title -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-500 via-amber-500 to-blue-600 p-0.5 shadow-lg flex items-center justify-center">
+                    <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                        <i class="fa-solid fa-cube text-red-500 text-lg"></i>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                        <span>Roblox Obby Studio Manager</span>
+                        <span class="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full font-bold">Web 3D Live</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">로블록스 오비 스크립트 시뮬레이터 & 자동 스크립트 생성기</p>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center space-x-2">
+                <button id="btn-sound-toggle" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition flex items-center gap-1.5">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-amber-400"></i>
+                    <span id="sound-text" class="hidden sm:inline">효과음 켬</span>
+                </button>
+                <button id="btn-open-shop" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span>인게임 상점 (코인: <span id="hud-coins-btn">0</span>)</span>
+                </button>
+                <button id="btn-copy-lua" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-copy"></i>
+                    <span class="hidden sm:inline">Lua 스크립트 복사</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Section: 3D Game Play Viewport (Lg: 7 cols) -->
+        <div class="lg:col-span-7 flex flex-col space-y-4">
+            
+            <!-- 3D Canvas Container -->
+            <div class="relative w-full aspect-video bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col justify-between">
+                
+                <!-- Roblox Leaderstats Top-Right Overlay -->
+                <div class="absolute top-3 right-3 z-20 hud-glass px-4 py-2.5 rounded-xl border border-white/10 flex items-center space-x-4 shadow-xl">
+                    <div class="text-center">
+                        <span class="text-[10px] text-slate-400 font-mono block">STAGE</span>
+                        <span id="leaderstat-stage" class="text-sm font-black text-emerald-400">1</span>
+                    </div>
+                    <div class="w-px h-6 bg-slate-700"></div>
+                    <div class="text-center">
+                        <span class="text-[10px] text-slate-400 font-mono block">COINS</span>
+                        <span id="leaderstat-coins" class="text-sm font-black text-amber-400">0</span>
+                    </div>
+                    <div class="w-px h-6 bg-slate-700"></div>
+                    <div class="text-center">
+                        <span class="text-[10px] text-slate-400 font-mono block">WINS</span>
+                        <span id="leaderstat-wins" class="text-sm font-black text-purple-400">0</span>
+                    </div>
+                </div>
+
+                <!-- Stage Toast Notification -->
+                <div id="toast-notify" class="absolute top-4 left-1/2 -translate-x-1/2 z-20 hud-glass px-4 py-2 rounded-full border border-blue-500/50 text-xs font-bold text-blue-300 shadow-lg hidden transition-all duration-300">
+                    <i class="fa-solid fa-circle-info mr-1.5"></i>
+                    <span id="toast-text">체크포인트 저장됨!</span>
+                </div>
+
+                <!-- 3D WebGL Canvas Target -->
+                <div id="canvas-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+                <!-- Mobile & Touch Controls Overlay -->
+                <div class="absolute bottom-3 left-3 right-3 z-20 flex justify-between items-end pointer-events-none">
+                    <!-- Touch Joystick / Movement Hints -->
+                    <div class="pointer-events-auto flex gap-1.5 bg-slate-900/80 p-2 rounded-xl backdrop-blur border border-slate-800 text-[11px] text-slate-300 font-mono">
+                        <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700 font-bold text-amber-400">WASD</span>
+                        <span class="self-center">이동</span>
+                        <span class="px-2 py-1 bg-slate-800 rounded border border-slate-700 font-bold text-amber-400 ml-2">SPACE</span>
+                        <span class="self-center">점프</span>
+                    </div>
+
+                    <!-- Touch Mobile Jump Button -->
+                    <button id="btn-touch-jump" class="pointer-events-auto w-12 h-12 rounded-2xl bg-blue-600/80 active:bg-blue-500 text-white font-black text-lg flex items-center justify-center shadow-lg border border-blue-400/30 sm:hidden">
+                        <i class="fa-solid fa-arrow-up"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Game Control Toolbar -->
+            <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex flex-wrap justify-between items-center gap-3">
+                <div class="flex items-center space-x-2">
+                    <button id="btn-reset-player" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left text-red-400"></i>
+                        <span>캐릭터 리스폰 (사망)</span>
+                    </button>
+                    <button id="btn-save-datastore" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk text-emerald-400"></i>
+                        <span>DataStore 저장</span>
+                    </button>
+                </div>
+
+                <div class="text-xs text-slate-400 font-mono">
+                    <span>이동 속도: <strong id="stat-speed-display" class="text-blue-400">16</strong></span> |
+                    <span>점프력: <strong id="stat-jump-display" class="text-purple-400">50</strong></span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Section: Parameter Config & Lua Code Editor (Lg: 5 cols) -->
+        <div class="lg:col-span-5 flex flex-col space-y-4">
+            
+            <!-- Game Config Panel -->
+            <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+                <h3 class="text-sm font-extrabold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <i class="fa-solid fa-sliders text-blue-400"></i>
+                    <span>게임 설정 파라미터 (Game Configuration)</span>
+                </h3>
+
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <label class="block text-slate-400 font-bold mb-1">기본 WalkSpeed</label>
+                        <input type="number" id="input-speed" value="16" min="8" max="60" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-bold mb-1">기본 JumpPower</label>
+                        <input type="number" id="input-jump" value="50" min="20" max="120" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-bold mb-1">코인 리스폰 시간 (초)</label>
+                        <input type="number" id="input-respawn" value="5" min="1" max="30" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-bold mb-1">스피드 부스터 가격</label>
+                        <input type="number" id="input-cost" value="50" min="10" max="500" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold font-mono focus:border-blue-500 focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Roblox Lua Code Display -->
+            <div class="flex-1 bg-slate-950 rounded-2xl border border-slate-800 flex flex-col overflow-hidden min-h-[320px]">
+                <!-- Code Header -->
+                <div class="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                        <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                        <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        <span class="text-xs font-mono font-bold text-slate-400 ml-2">ServerScriptService / GameManager.lua</span>
+                    </div>
+                    <span class="text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800 px-2 py-0.5 rounded">Lua Script</span>
+                </div>
+
+                <!-- Code Pre Element -->
+                <div class="flex-1 p-4 overflow-y-auto font-code text-xs text-slate-300 leading-relaxed">
+                    <pre id="lua-code-block" class="whitespace-pre-wrap"></pre>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Shop Modal Dialog -->
+    <div id="shop-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+            <button id="btn-close-shop" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-black text-white">오비 게임 아이템 상점</h3>
+                    <p class="text-xs text-slate-400">모은 코인으로 능력을 업그레이드 하세요!</p>
+                </div>
+            </div>
+
+            <!-- Item List -->
+            <div class="space-y-3">
+                <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                    <div class="space-y-1">
+                        <div class="text-sm font-bold text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt text-amber-400"></i>
+                            <span>스피드 부스터 (+8 Speed)</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">이동 속도가 영구적으로 +8 증가합니다.</p>
+                    </div>
+                    <button id="btn-buy-speed" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-xl shadow-lg transition">
+                        <span id="shop-cost-text">50</span> 코인
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-center text-xs text-slate-500 font-mono">
+                내 보유 코인: <strong id="modal-coin-count" class="text-amber-400 font-bold">0</strong> Coins
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Game & Logic Engine -->
+    <script>
+        // Game Configuration & State
+        let config = {
+            walkSpeed: 16,
+            jumpPower: 50,
+            coinRespawnTime: 5,
+            shopCost: 50
+        };
+
+        let playerStats = {
+            stage: 1,
+            coins: 0,
+            wins: 0
+        };
+
+        let soundEnabled = true;
+
+        // Three.js Core Variables
+        let scene, camera, renderer;
+        let playerMesh, playerBody;
+        let checkpoints = [];
+        let hazardParts = [];
+        let coinParts = [];
+        let finishWinPart;
+
+        // Physics & Controls State
+        let playerVelocity = new THREE.Vector3();
+        let isGrounded = false;
+        let keys = { w: false, a: false, s: false, d: false, space: false };
+        let activeCheckpointPos = new THREE.Vector3(0, 3, 0);
+
+        // Web Audio Synthesizer Engine
+        class GameAudioSynthesizer {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.1) {
+                if (!soundEnabled) return;
+                this.init();
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration + 0.05);
+                } catch(e) {}
+            }
+
+            playJump() {
+                this.playTone(350, 'square', 0.15, 0.08);
+            }
+
+            playCoin() {
+                this.playTone(987.77, 'sine', 0.1, 0.15); // B5
+                setTimeout(() => this.playTone(1318.51, 'sine', 0.2, 0.15), 60); // E6
+            }
+
+            playDeath() {
+                this.playTone(180, 'sawtooth', 0.3, 0.2);
+            }
+
+            playCheckpoint() {
+                this.playTone(523.25, 'triangle', 0.12, 0.15);
+                setTimeout(() => this.playTone(659.25, 'triangle', 0.12, 0.15), 80);
+                setTimeout(() => this.playTone(783.99, 'triangle', 0.2, 0.15), 160);
+            }
+        }
+
+        const audio = new GameAudioSynthesizer();
+
+        function init3DWorld() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0b1120);
+            scene.fog = new THREE.FogExp2(0x0b1120, 0.015);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(20, 40, 20);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            scene.add(dirLight);
+
+            // Build Obby Stages & Platforms
+            buildObbyCourse();
+
+            // Build Player Avatar
+            buildPlayerCharacter();
+
+            // Window Resize Handling
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function buildObbyCourse() {
+            // Material Palettes
+            const matStage1 = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.3 }); // Emerald
+            const matStage2 = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 }); // Blue
+            const matStage3 = new THREE.MeshStandardMaterial({ color: 0x8b5cf6, roughness: 0.3 }); // Purple
+            const matLava = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0x991b1b, roughness: 0.2 }); // Red Lava
+            const matCoin = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.2 }); // Gold
+
+            // --- STAGE 1 : Start Platform ---
+            const startPlatform = createPlatform(0, 0, 0, 10, 1, 10, matStage1);
+            addCheckpoint(startPlatform, 1, new THREE.Vector3(0, 1.5, 0));
+
+            // Stage 1 Jumping Blocks
+            createPlatform(0, 0, -12, 4, 1, 4, matStage1);
+            createPlatform(0, 1, -22, 4, 1, 4, matStage1);
+            createCoin(0, 3, -22);
+
+            createPlatform(0, 2, -32, 4, 1, 4, matStage1);
+
+            // --- STAGE 2 Checkpoint ---
+            const stage2Platform = createPlatform(0, 3, -45, 10, 1, 10, matStage2);
+            addCheckpoint(stage2Platform, 2, new THREE.Vector3(0, 4.5, -45));
+
+            // Stage 2 Hazards (Lava Blocks)
+            const lavaBridge = createPlatform(0, 3, -60, 6, 0.5, 16, matStage2);
+            const lava1 = createPlatform(0, 3.4, -58, 5.8, 0.4, 3, matLava);
+            const lava2 = createPlatform(0, 3.4, -62, 5.8, 0.4, 3, matLava);
+            hazardParts.push(lava1, lava2);
+            createCoin(0, 5, -60);
+
+            // --- STAGE 3 Checkpoint ---
+            const stage3Platform = createPlatform(0, 5, -78, 10, 1, 10, matStage3);
+            addCheckpoint(stage3Platform, 3, new THREE.Vector3(0, 6.5, -78));
+
+            // Disappearing / Narrow Jump Blocks
+            createPlatform(-5, 6.5, -90, 3, 1, 3, matStage3);
+            createCoin(-5, 8.5, -90);
+            createPlatform(5, 8.0, -100, 3, 1, 3, matStage3);
+            createPlatform(0, 9.5, -112, 3, 1, 3, matStage3);
+
+            // Finish Trophy Platform
+            const finishPlatform = createPlatform(0, 11, -128, 12, 1, 12, new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.2 }));
+            
+            // Finish Win Pad
+            const winPad = new THREE.Mesh(
+                new THREE.CylinderGeometry(3, 3, 0.5, 32),
+                new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0x854d0e })
+            );
+            winPad.position.set(0, 11.5, -128);
+            scene.add(winPad);
+            finishWinPart = winPad;
+        }
+
+        function createPlatform(x, y, z, w, h, d, material) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+            mesh.position.set(x, y, z);
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+            scene.add(mesh);
+            return mesh;
+        }
+
+        function addCheckpoint(platformMesh, stageNum, spawnVec) {
+            checkpoints.push({
+                stage: stageNum,
+                mesh: platformMesh,
+                spawnPos: spawnVec
+            });
+        }
+
+        function createCoin(x, y, z) {
+            const coinGroup = new THREE.Group();
+            const geom = new THREE.CylinderGeometry(0.8, 0.8, 0.2, 16);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.2 });
+            const coinMesh = new THREE.Mesh(geom, mat);
+            coinMesh.rotation.x = Math.PI / 2;
+            coinMesh.castShadow = true;
+            coinGroup.add(coinMesh);
+            coinGroup.position.set(x, y, z);
+
+            scene.add(coinGroup);
+            coinParts.push({
+                group: coinGroup,
+                isCollected: false,
+                spawnPos: new THREE.Vector3(x, y, z)
+            });
+        }
+
+        function buildPlayerCharacter() {
+            playerBody = new THREE.Group();
+
+            // Roblox Blocky Character Avatar
+            const matHead = new THREE.MeshStandardMaterial({ color: 0xfde047 }); // Yellow head
+            const matTorso = new THREE.MeshStandardMaterial({ color: 0x2563eb }); // Blue torso
+            const matLimbs = new THREE.MeshStandardMaterial({ color: 0x16a34a }); // Green legs
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), matHead);
+            head.position.y = 1.4;
+            head.castShadow = true;
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(1, 1.2, 0.6), matTorso);
+            torso.position.y = 0.5;
+            torso.castShadow = true;
+
+            const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1, 0.5), matLimbs);
+            leftLeg.position.set(-0.25, -0.5, 0);
+            leftLeg.castShadow = true;
+
+            const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1, 0.5), matLimbs);
+            rightLeg.position.set(0.25, -0.5, 0);
+            rightLeg.castShadow = true;
+
+            playerBody.add(head, torso, leftLeg, rightLeg);
+            playerBody.position.copy(activeCheckpointPos);
+            scene.add(playerBody);
+        }
+
+        function updatePlayerPhysics(delta) {
+            if (!playerBody) return;
+
+            // Gravity & Vertical Velocity
+            const gravity = -35;
+            playerVelocity.y += gravity * delta;
+
+            // Movement Input Handling
+            let moveSpeed = config.walkSpeed * 0.4;
+            let moveVec = new THREE.Vector3();
+
+            if (keys.w) moveVec.z -= 1;
+            if (keys.s) moveVec.z += 1;
+            if (keys.a) moveVec.x -= 1;
+            if (keys.d) moveVec.x += 1;
+
+            moveVec.normalize();
+            playerBody.position.x += moveVec.x * moveSpeed * delta;
+            playerBody.position.z += moveVec.z * moveSpeed * delta;
+
+            // Character Rotation
+            if (moveVec.lengthSq() > 0) {
+                const angle = Math.atan2(moveVec.x, moveVec.z);
+                playerBody.rotation.y = angle;
+            }
+
+            // Jump Handling
+            if (keys.space && isGrounded) {
+                playerVelocity.y = config.jumpPower * 0.22;
+                isGrounded = false;
+                audio.playJump();
+            }
+
+            // Apply Vertical Position
+            playerBody.position.y += playerVelocity.y * delta;
+
+            // Platform Raycast Ground Collision
+            const raycaster = new THREE.Raycaster(
+                playerBody.position,
+                new THREE.Vector3(0, -1, 0),
+                0,
+                1.2
+            );
+            
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            let groundedThisFrame = false;
+
+            for (let hit of intersects) {
+                // Ignore coin meshes or player body
+                if (hit.object.parent === playerBody || hit.object.geometry.type === 'CylinderGeometry') continue;
+
+                if (playerVelocity.y <= 0) {
+                    playerBody.position.y = hit.point.y + 1.0;
+                    playerVelocity.y = 0;
+                    groundedThisFrame = true;
+                    break;
+                }
+            }
+            isGrounded = groundedThisFrame;
+
+            // Checkpoint Touch Detection
+            checkpoints.forEach(cp => {
+                const dist = playerBody.position.distanceTo(cp.mesh.position);
+                if (dist < 3.5 && playerStats.stage < cp.stage) {
+                    playerStats.stage = cp.stage;
+                    activeCheckpointPos.copy(cp.spawnPos);
+                    updateStatsDisplay();
+                    showToast(`스테이지 ${cp.stage} 도달! (체크포인트 저장)`);
+                    audio.playCheckpoint();
+                }
+            });
+
+            // Lava Hazard Collision (Death)
+            hazardParts.forEach(hazard => {
+                const pBox = new THREE.Box3().setFromObject(playerBody);
+                const hBox = new THREE.Box3().setFromObject(hazard);
+
+                if (pBox.intersectsBox(hBox) || playerBody.position.y < -15) {
+                    respawnPlayer();
+                }
+            });
+
+            // Coin Collect Touch Detection
+            coinParts.forEach(coinObj => {
+                if (!coinObj.isCollected) {
+                    coinObj.group.rotation.y += 2 * delta;
+                    const dist = playerBody.position.distanceTo(coinObj.group.position);
+                    if (dist < 1.8) {
+                        coinObj.isCollected = true;
+                        coinObj.group.visible = false;
+                        playerStats.coins += 10;
+                        updateStatsDisplay();
+                        audio.playCoin();
+
+                        // Respawn coin after delay
+                        setTimeout(() => {
+                            coinObj.isCollected = false;
+                            coinObj.group.visible = true;
+                        }, config.coinRespawnTime * 1000);
+                    }
+                }
+            });
+
+            // Finish Win Pad Touch Detection
+            if (finishWinPart) {
+                const dist = playerBody.position.distanceTo(finishWinPart.position);
+                if (dist < 2.5) {
+                    playerStats.wins += 1;
+                    playerStats.coins += 50;
+                    updateStatsDisplay();
+                    showToast("🎉 축하합니다! 오비 코스를 완주했습니다! (+1 Win)");
+                    audio.playCheckpoint();
+                    respawnPlayer(true); // Reset to Stage 1
+                }
+            }
+
+            // Camera Third-Person Smooth Tracking
+            const camTargetPos = new THREE.Vector3(
+                playerBody.position.x,
+                playerBody.position.y + 6,
+                playerBody.position.z + 12
+            );
+            camera.position.lerp(camTargetPos, 0.1);
+            camera.lookAt(playerBody.position.x, playerBody.position.y + 1, playerBody.position.z);
+        }
+
+        function respawnPlayer(resetToStart = false) {
+            if (resetToStart) {
+                playerStats.stage = 1;
+                activeCheckpointPos.set(0, 3, 0);
+                updateStatsDisplay();
+            }
+
+            playerBody.position.copy(activeCheckpointPos);
+            playerVelocity.set(0, 0, 0);
+            audio.playDeath();
+            showToast("캐릭터 리스폰!");
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            if (!container || !renderer) return;
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('leaderstat-stage').innerText = playerStats.stage;
+            document.getElementById('leaderstat-coins').innerText = playerStats.coins;
+            document.getElementById('leaderstat-wins').innerText = playerStats.wins;
+            document.getElementById('hud-coins-btn').innerText = playerStats.coins;
+            document.getElementById('modal-coin-count').innerText = playerStats.coins;
+            document.getElementById('stat-speed-display').innerText = config.walkSpeed;
+            document.getElementById('stat-jump-display').innerText = config.jumpPower;
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-notify');
+            document.getElementById('toast-text').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+
+        // Generate Dynamic Roblox Lua Code
+        function generateLuaScript() {
+            return `-- ================================================================================
+-- ROBLOX GAME MANAGER SCRIPT (Obby & Coin Adventure Framework)
+-- 위치: Roblox Studio -> ServerScriptService -> GameManager (Script)
+-- ================================================================================
+
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- 데이터스토어 정의 (플레이어 데이터 세이빙)
+local PlayerDataStore = DataStoreService:GetDataStore("RobloxObbySaveSystem_v1")
+
+-- 기본 설정값 (Configuration)
+local DEFAULT_WALKSPEED = ${config.walkSpeed}
+local DEFAULT_JUMPPOWER = ${config.jumpPower}
+local COIN_RESPAWN_TIME = ${config.coinRespawnTime}
+local SPEED_BOOST_COST = ${config.shopCost}
+
+-- ReplicatedStorage 내 RemoteEvent 자동 생성 (상점 통신용)
+local RemoteFolder = ReplicatedStorage:FindFirstChild("GameRemotes") or Instance.new("Folder", ReplicatedStorage)
+RemoteFolder.Name = "GameRemotes"
+
+local BuySpeedEvent = RemoteFolder:FindFirstChild("BuySpeedBoost") or Instance.new("RemoteEvent", RemoteFolder)
+BuySpeedEvent.Name = "BuySpeedBoost"
+
+-- 플레이어 접속 시 리더스탯(Leaderstats) 생성 및 데이터 불러오기
+local function onPlayerAdded(player)
+    local leaderstats = Instance.new("Folder")
+    leaderstats.Name = "leaderstats"
+    leaderstats.Parent = player
+
+    local stage = Instance.new("IntValue")
+    stage.Name = "Stage"
+    stage.Value = 1
+    stage.Parent = leaderstats
+
+    local coins = Instance.new("IntValue")
+    coins.Name = "Coins"
+    coins.Value = 0
+    coins.Parent = leaderstats
+
+    local wins = Instance.new("IntValue")
+    wins.Name = "Wins"
+    wins.Value = 0
+    wins.Parent = leaderstats
+
+    -- DataStore에서 이전 기록 불러오기
+    local dataKey = "Player_" .. player.UserId
+    local success, savedData = pcall(function()
+        return PlayerDataStore:GetAsync(dataKey)
+    end)
+
+    if success and savedData then
+        stage.Value = savedData.Stage or 1
+        coins.Value = savedData.Coins or 0
+        wins.Value = savedData.Wins or 0
+    end
+
+    -- 캐릭터 스폰 시 체크포인트 위치로 이동
+    player.CharacterAdded:Connect(function(character)
+        local humanoid = character:WaitForChild("Humanoid")
+        humanoid.WalkSpeed = DEFAULT_WALKSPEED
+        humanoid.JumpPower = DEFAULT_JUMPPOWER
+
+        local checkpointsFolder = Workspace:FindFirstChild("Checkpoints")
+        if checkpointsFolder then
+            local targetStagePart = checkpointsFolder:FindFirstChild("Stage_" .. tostring(stage.Value))
+            if targetStagePart then
+                task.wait(0.1)
+                character:PivotTo(targetStagePart.CFrame + Vector3.new(0, 3, 0))
+            end
+        end
+    end)
+end
+
+-- 상점 아이템 구매 로직 (스피드 부스트)
+BuySpeedEvent.OnServerEvent:Connect(function(player)
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if leaderstats and leaderstats.Coins.Value >= SPEED_BOOST_COST then
+        leaderstats.Coins.Value = leaderstats.Coins.Value - SPEED_BOOST_COST
+        local character = player.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.WalkSpeed = character.Humanoid.WalkSpeed + 8
+        end
+    end
+end)
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+print("[Roblox Game Manager] 게임 스크립트가 실행되었습니다!")`;
+        }
+
+        function refreshCodeDisplay() {
+            document.getElementById('lua-code-block').innerText = generateLuaScript();
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            // Keyboard Key Down / Up
+            window.addEventListener('keydown', (e) => {
+                const k = e.key.toLowerCase();
+                if (k === 'w' || k === 'arrowup') keys.w = true;
+                if (k === 's' || k === 'arrowdown') keys.s = true;
+                if (k === 'a' || k === 'arrowleft') keys.a = true;
+                if (k === 'd' || k === 'arrowright') keys.d = true;
+                if (e.code === 'Space') keys.space = true;
+            });
+
+            window.addEventListener('keyup', (e) => {
+                const k = e.key.toLowerCase();
+                if (k === 'w' || k === 'arrowup') keys.w = false;
+                if (k === 's' || k === 'arrowdown') keys.s = false;
+                if (k === 'a' || k === 'arrowleft') keys.a = false;
+                if (k === 'd' || k === 'arrowright') keys.d = false;
+                if (e.code === 'Space') keys.space = false;
+            });
+
+            // Touch Jump Button for Mobile
+            const touchJumpBtn = document.getElementById('btn-touch-jump');
+            touchJumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.space = true; });
+            touchJumpBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys.space = false; });
+
+            // Inputs Change Listeners
+            document.getElementById('input-speed').addEventListener('input', (e) => {
+                config.walkSpeed = parseInt(e.target.value) || 16;
+                updateStatsDisplay();
+                refreshCodeDisplay();
+            });
+
+            document.getElementById('input-jump').addEventListener('input', (e) => {
+                config.jumpPower = parseInt(e.target.value) || 50;
+                updateStatsDisplay();
+                refreshCodeDisplay();
+            });
+
+            document.getElementById('input-respawn').addEventListener('input', (e) => {
+                config.coinRespawnTime = parseInt(e.target.value) || 5;
+                refreshCodeDisplay();
+            });
+
+            document.getElementById('input-cost').addEventListener('input', (e) => {
+                config.shopCost = parseInt(e.target.value) || 50;
+                document.getElementById('shop-cost-text').innerText = config.shopCost;
+                refreshCodeDisplay();
+            });
+
+            // Action Buttons
+            document.getElementById('btn-reset-player').addEventListener('click', () => respawnPlayer());
+
+            document.getElementById('btn-save-datastore').addEventListener('click', () => {
+                localStorage.setItem('roblox_obby_save', JSON.stringify(playerStats));
+                showToast("DataStore에 데이터가 성공적으로 저장되었습니다!");
+            });
+
+            // Shop Modal Toggles
+            const shopModal = document.getElementById('shop-modal');
+            document.getElementById('btn-open-shop').addEventListener('click', () => shopModal.classList.remove('hidden'));
+            document.getElementById('btn-close-shop').addEventListener('click', () => shopModal.classList.add('hidden'));
+
+            // Shop Item Purchase
+            document.getElementById('btn-buy-speed').addEventListener('click', () => {
+                if (playerStats.coins >= config.shopCost) {
+                    playerStats.coins -= config.shopCost;
+                    config.walkSpeed += 8;
+                    document.getElementById('input-speed').value = config.walkSpeed;
+                    updateStatsDisplay();
+                    refreshCodeDisplay();
+                    showToast("스피드 부스터 구매 완료! (+8 Speed)");
+                    audio.playCheckpoint();
+                } else {
+                    showToast("코인이 부족합니다!");
+                }
+            });
+
+            // Copy Lua Code (Fallback execCommand)
+            document.getElementById('btn-copy-lua').addEventListener('click', () => {
+                const codeText = generateLuaScript();
+                const tempTextArea = document.createElement('textarea');
+                tempTextArea.value = codeText;
+                document.body.appendChild(tempTextArea);
+                tempTextArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempTextArea);
+                showToast("Lua 코드가 클립보드에 복사되었습니다!");
+            });
+
+            // Sound Toggle
+            document.getElementById('btn-sound-toggle').addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                document.getElementById('sound-icon').className = soundEnabled ? 'fa-solid fa-volume-high text-amber-400' : 'fa-solid fa-volume-xmark text-slate-500';
+                document.getElementById('sound-text').innerText = soundEnabled ? '효과음 켬' : '음소거';
+            });
+        }
+
+        // Animation Render Loop
+        let clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1);
+            updatePlayerPhysics(delta);
+            renderer.render(scene, camera);
+        }
+
+        // Window Load Entry Point
+        window.onload = () => {
+            // Load Saved DataStore if exists
+            const savedData = localStorage.getItem('roblox_obby_save');
+            if (savedData) {
+                try {
+                    playerStats = JSON.parse(savedData);
+                } catch(e) {}
+            }
+
+            init3DWorld();
+            setupEventListeners();
+            updateStatsDisplay();
+            refreshCodeDisplay();
+
+            // Start 3D Loop
+            animate();
+        };
+    </script>
+</body>
+</html>

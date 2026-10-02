@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>태권도 겨루기 대회</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .font-title {
+            font-family: 'Black Han Sans', sans-serif;
+        }
+        .tekken-bar-bg {
+            background: linear-gradient(180deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.95) 100%);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.2);
+        }
+        .btn-tekken {
+            transition: all 0.12s ease-out;
+            box-shadow: 0 4px 0 border-color, 0 6px 15px rgba(0, 0, 0, 0.4);
+        }
+        .btn-tekken:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 border-color, 0 2px 5px rgba(0, 0, 0, 0.4);
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        @keyframes pulse-strike {
+            0% { transform: scale(0.8); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.9; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+        .strike-effect {
+            animation: pulse-strike 0.35s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="w-full h-screen bg-slate-950 text-white overflow-hidden flex flex-col justify-between select-none">
+
+    <!-- TEKKEN STYLE HEADER SCOREBOARD -->
+    <header class="w-full p-2 sm:p-4 z-20 max-w-6xl mx-auto flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-2">
+            
+            <!-- BLUE PLAYER (청 - USER) BAR -->
+            <div class="flex-1 flex flex-col items-start">
+                <div class="flex items-center space-x-2 mb-1">
+                    <span class="bg-blue-600 text-white font-title text-xs sm:text-sm px-2.5 py-0.5 rounded shadow border border-blue-400">청 (Cheong)</span>
+                    <span class="font-bold text-sm sm:text-lg text-blue-300">나 (플레이어)</span>
+                </div>
+                <!-- Stamina/Sensor Bar -->
+                <div class="w-full h-4 sm:h-6 tekken-bar-bg rounded-lg border-2 border-blue-500 overflow-hidden relative">
+                    <div id="blueHpBar" class="h-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-150 rounded-r" style="width: 100%;"></div>
+                    <div id="bluePointText" class="absolute inset-0 flex items-center justify-end pr-3 font-title text-xs sm:text-sm text-white drop-shadow">0 PTS</div>
+                </div>
+                <div class="flex items-center space-x-1 mt-1 text-[11px] text-slate-400">
+                    <span>감점(Gam-jeom):</span>
+                    <div id="blueWarnings" class="flex space-x-1">
+                        <div class="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-600"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-600"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CENTER MATCH INFO & ROUND TIMER -->
+            <div class="flex flex-col items-center justify-center px-2 sm:px-6">
+                <div class="text-[10px] sm:text-xs font-title text-amber-400 tracking-wider">태권도 겨루기 대회</div>
+                <div id="roundDisplay" class="font-title text-xs sm:text-sm text-slate-300">ROUND 1</div>
+                <!-- Main Timer Box -->
+                <div class="bg-slate-900 border-2 border-amber-500/80 px-4 py-1 rounded-xl shadow-lg my-0.5">
+                    <span id="timerDisplay" class="font-title text-2xl sm:text-4xl text-amber-400 tracking-wider">01:00</span>
+                </div>
+                <div id="refereeStatus" class="text-xs font-bold text-emerald-400">시작!</div>
+            </div>
+
+            <!-- RED PLAYER (홍 - AI) BAR -->
+            <div class="flex-1 flex flex-col items-end">
+                <div class="flex items-center space-x-2 mb-1">
+                    <span class="font-bold text-sm sm:text-lg text-red-300">상대 (선수)</span>
+                    <span class="bg-red-600 text-white font-title text-xs sm:text-sm px-2.5 py-0.5 rounded shadow border border-red-400">홍 (Hong)</span>
+                </div>
+                <!-- Stamina/Sensor Bar -->
+                <div class="w-full h-4 sm:h-6 tekken-bar-bg rounded-lg border-2 border-red-500 overflow-hidden relative dir-rtl">
+                    <div id="redHpBar" class="h-full bg-gradient-to-l from-rose-500 to-red-600 transition-all duration-150 rounded-l ml-auto" style="width: 100%;"></div>
+                    <div id="redPointText" class="absolute inset-0 flex items-center justify-start pl-3 font-title text-xs sm:text-sm text-white drop-shadow">0 PTS</div>
+                </div>
+                <div class="flex items-center space-x-1 mt-1 text-[11px] text-slate-400">
+                    <div id="redWarnings" class="flex space-x-1">
+                        <div class="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-600"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-600"></div>
+                    </div>
+                    <span>:감점(Gam-jeom)</span>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- MAIN GAME CANVAS & OVERLAYS -->
+    <main class="relative w-full flex-1 overflow-hidden bg-slate-950 flex items-center justify-center">
+        <canvas id="tkdCanvas" class="w-full h-full"></canvas>
+
+        <!-- Referee Call Announcement Overlay -->
+        <div id="refereeBanner" class="absolute pointer-events-none transition-all duration-200 transform scale-0 opacity-0 z-30 flex flex-col items-center">
+            <div id="refereeBannerText" class="px-8 py-3 rounded-2xl font-title text-3xl sm:text-5xl text-white shadow-2xl tracking-widest text-center border-4 border-amber-400 bg-slate-900/90 drop-shadow-2xl">
+                시작! (SI-JAK)
+            </div>
+        </div>
+
+        <!-- Electronic Point Impact Popup Floating Text Container -->
+        <div id="impactPopups" class="absolute inset-0 pointer-events-none z-30"></div>
+
+        <!-- Match Result Modal -->
+        <div id="resultModal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 text-center">
+            <h2 id="resultWinnerTitle" class="text-4xl sm:text-6xl font-title text-amber-400 mb-2 drop-shadow-lg">청(BLUE) 승리!</h2>
+            <p id="resultReason" class="text-lg text-slate-300 mb-6">최종 점수판 판정</p>
+            <div id="finalScoreDisplay" class="text-3xl sm:text-5xl font-title text-white bg-slate-900 border-2 border-slate-700 px-8 py-4 rounded-2xl mb-8 shadow-2xl">
+                <span class="text-blue-400">청 12</span> : <span class="text-red-400">7 홍</span>
+            </div>
+            <button onclick="restartMatch()" class="btn-tekken bg-gradient-to-r from-amber-500 to-yellow-600 border-amber-300 text-slate-950 font-title text-xl px-10 py-4 rounded-2xl shadow-xl hover:scale-105 active:scale-95">
+                <i class="fa-solid fa-rotate-right mr-2"></i>다음 경기 시작
+            </button>
+        </div>
+    </main>
+
+    <!-- FIGHTING CONTROLS FOOTER -->
+    <footer class="w-full p-2 sm:p-4 bg-slate-900/95 border-t border-slate-800 z-20 max-w-5xl mx-auto rounded-t-3xl shadow-2xl">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+            
+            <!-- Movement & Step Controls -->
+            <div class="flex items-center space-x-2 w-full sm:w-auto justify-center">
+                <button onmousedown="handleInput('LEFT_START')" onmouseup="handleInput('LEFT_END')" ontouchstart="handleInput('LEFT_START')" ontouchend="handleInput('LEFT_END')" class="btn-tekken bg-slate-800 border-slate-600 text-slate-200 font-bold px-5 py-3.5 rounded-2xl text-base flex items-center space-x-1 border-2 active:bg-slate-700">
+                    <i class="fa-solid fa-arrow-left text-lg"></i>
+                    <span>후퇴</span>
+                </button>
+                
+                <button onmousedown="handleInput('GUARD_ON')" onmouseup="handleInput('GUARD_OFF')" ontouchstart="handleInput('GUARD_ON')" ontouchend="handleInput('GUARD_OFF')" class="btn-tekken bg-amber-600 border-amber-400 text-white font-title px-6 py-3.5 rounded-2xl text-base border-2 active:bg-amber-500">
+                    <i class="fa-solid fa-shield-halved mr-1"></i>
+                    <span>막기 (GUARD)</span>
+                </button>
+
+                <button onmousedown="handleInput('RIGHT_START')" onmouseup="handleInput('RIGHT_END')" ontouchstart="handleInput('RIGHT_START')" ontouchend="handleInput('RIGHT_END')" class="btn-tekken bg-slate-800 border-slate-600 text-slate-200 font-bold px-5 py-3.5 rounded-2xl text-base flex items-center space-x-1 border-2 active:bg-slate-700">
+                    <span>전진</span>
+                    <i class="fa-solid fa-arrow-right text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Taekwondo Attack Skill Buttons -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full sm:w-auto">
+                <!-- Skill 1: Roundhouse Kick (Body 2pts) -->
+                <button onclick="executeSkill('DOLLYO')" class="btn-tekken bg-blue-700 border-blue-400 text-white font-bold p-2.5 sm:px-4 sm:py-3 rounded-xl border-2 flex flex-col items-center justify-center hover:bg-blue-600">
+                    <span class="font-title text-sm sm:text-base">돌려차기</span>
+                    <span class="text-[10px] text-blue-200">몸통 (2점)</span>
+                </button>
+
+                <!-- Skill 2: Head Kick (3pts) -->
+                <button onclick="executeSkill('HEAD_KICK')" class="btn-tekken bg-indigo-700 border-indigo-400 text-white font-bold p-2.5 sm:px-4 sm:py-3 rounded-xl border-2 flex flex-col items-center justify-center hover:bg-indigo-600">
+                    <span class="font-title text-sm sm:text-base">얼굴 차기</span>
+                    <span class="text-[10px] text-indigo-200">머리 (3점)</span>
+                </button>
+
+                <!-- Skill 3: Back Kick (Body Spin 3pts / Head 5pts) -->
+                <button onclick="executeSkill('DWI_CHAGI')" class="btn-tekken bg-purple-700 border-purple-400 text-white font-bold p-2.5 sm:px-4 sm:py-3 rounded-xl border-2 flex flex-col items-center justify-center hover:bg-purple-600">
+                    <span class="font-title text-sm sm:text-base">뒤차기</span>
+                    <span class="text-[10px] text-purple-200">회전 (3/5점)</span>
+                </button>
+
+                <!-- Skill 4: Axe Kick (Head 3pts) -->
+                <button onclick="executeSkill('NAERYEO')" class="btn-tekken bg-rose-700 border-rose-400 text-white font-bold p-2.5 sm:px-4 sm:py-3 rounded-xl border-2 flex flex-col items-center justify-center hover:bg-rose-600">
+                    <span class="font-title text-sm sm:text-base">내려차기</span>
+                    <span class="text-[10px] text-rose-200">머리 찍기 (3점)</span>
+                </button>
+            </div>
+
+        </div>
+    </footer>
+
+    <script>
+        // =================================================================
+        // WEB AUDIO SFX GENERATOR (TAEKWONDO SOUND ENGINE)
+        // =================================================================
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Heavy Hit / Electronic Hogu Impact Sound
+        function playImpactSFX(isHead = false) {
+            initAudio();
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                // Base noise kick impact
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = isHead ? 'sawtooth' : 'triangle';
+                osc.frequency.setValueAtTime(isHead ? 600 : 350, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+
+                // High Beep for Electronic Hogu Sensor Scoring
+                const beep = audioCtx.createOscillator();
+                const beepGain = audioCtx.createGain();
+                beep.type = 'sine';
+                beep.frequency.setValueAtTime(isHead ? 1200 : 880, now + 0.05);
+                beepGain.gain.setValueAtTime(0.3, now + 0.05);
+                beepGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                beep.connect(beepGain);
+                beepGain.connect(audioCtx.destination);
+                beep.start(now + 0.05);
+                beep.stop(now + 0.25);
+            } catch (e) {}
+        }
+
+        // Block / Guard Sound
+        function playGuardSFX() {
+            initAudio();
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } catch (e) {}
+        }
+
+        // Whistle SFX for Referee
+        function playWhistleSFX() {
+            initAudio();
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(2400, now);
+                osc.frequency.setValueAtTime(2600, now + 0.08);
+                osc.frequency.setValueAtTime(2400, now + 0.15);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } catch(e) {}
+        }
+
+        // =================================================================
+        // GAME STATE & FIGHTER DATA
+        // =================================================================
+        const canvas = document.getElementById('tkdCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        let matchState = {
+            round: 1,
+            timeRemaining: 60,
+            isTimerRunning: false,
+            isRefereeBreak: false,
+            winner: null
+        };
+
+        // Fighter Class (Blue = User, Red = AI)
+        class Fighter {
+            constructor(isBlue, x) {
+                this.isBlue = isBlue; // true = Blue (청), false = Red (홍)
+                this.x = x;
+                this.y = 0; // calculated dynamically
+                this.width = 70;
+                this.height = 140;
+
+                this.score = 0;
+                this.stamina = 100; // HP Sensor gauge
+                this.warnings = 0; // Gam-jeom count
+
+                this.isMovingLeft = false;
+                this.isMovingRight = false;
+                this.isGuarding = false;
+
+                this.attackState = 'IDLE'; // 'IDLE', 'DOLLYO', 'HEAD_KICK', 'DWI_CHAGI', 'NAERYEO'
+                this.attackFrame = 0;
+                this.maxAttackFrames = 20;
+
+                this.hitStun = 0;
+                this.facing = isBlue ? 1 : -1; // 1 = facing right, -1 = facing left
+            }
+
+            getCenterPos() {
+                return { x: this.x + (this.isBlue ? 30 : -30), y: canvas.height * 0.72 - 70 };
+            }
+        }
+
+        let playerBlue = new Fighter(true, 0);
+        let playerRed = new Fighter(false, 0);
+
+        // Referee Object
+        let referee = {
+            x: 0,
+            y: 0,
+            state: 'CENTER' // 'CENTER', 'SEPARATE', 'RAISE_HAND'
+        };
+
+        // =================================================================
+        // CANVAS RENDERING ENGINE
+        // =================================================================
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // 1. Arena Background & Crowd Lighting
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.55);
+            skyGrad.addColorStop(0, '#020617');
+            skyGrad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, h * 0.55);
+
+            // Stadium Lights
+            ctx.fillStyle = '#fef08a';
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(w * 0.25, h * 0.1, 14, 0, Math.PI * 2);
+            ctx.arc(w * 0.75, h * 0.1, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // WT Official Octagon Mat (옥타곤 경기장)
+            const groundY = h * 0.75;
+            const matGrad = ctx.createLinearGradient(0, h * 0.55, 0, h);
+            matGrad.addColorStop(0, '#1e3a8a'); // Blue Outer Safety Line
+            matGrad.addColorStop(0.3, '#0284c7'); // Inner Octagon Mat
+            matGrad.addColorStop(1, '#0369a1');
+            ctx.fillStyle = matGrad;
+
+            // Drawing Octagon Perspective Mat
+            ctx.beginPath();
+            ctx.moveTo(w * 0.1, h * 0.55);
+            ctx.lineTo(w * 0.9, h * 0.55);
+            ctx.lineTo(w * 0.98, groundY + 80);
+            ctx.lineTo(w * 0.02, groundY + 80);
+            ctx.closePath();
+            ctx.fill();
+
+            // Octagon Ring Red Boundary Line
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(w * 0.08, h * 0.58, w * 0.84, groundY - h * 0.54);
+
+            // 2. Draw Referee (주심)
+            drawReferee(w * 0.5, groundY - 50);
+
+            // 3. Draw Players (Taekwondo Competitors)
+            drawTaekwondoFighter(playerBlue, groundY);
+            drawTaekwondoFighter(playerRed, groundY);
+        }
+
+        // Draw Official Taekwondo Referee
+        function drawReferee(rx, ry) {
+            ctx.save();
+            ctx.translate(rx, ry);
+
+            // Referee Body (Black Suit / Polo & White Sneakers)
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-10, -45, 20, 30); // Torso
+
+            // Referee Shirt Collar
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-4, -45, 8, 8);
+
+            // Head & Hair
+            ctx.fillStyle = '#fbcfe8';
+            ctx.beginPath();
+            ctx.arc(0, -56, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(-9, -65, 18, 9); // Hair
+
+            // Referee Arms (Signaling "시작" / "갈려")
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            if (matchState.isRefereeBreak) {
+                // "갈려!" (Hands open separating fighters)
+                ctx.moveTo(-10, -35); ctx.lineTo(-26, -25);
+                ctx.moveTo(10, -35); ctx.lineTo(26, -25);
+            } else {
+                // Ready posture
+                ctx.moveTo(-10, -35); ctx.lineTo(-18, -15);
+                ctx.moveTo(10, -35); ctx.lineTo(18, -15);
+            }
+            ctx.stroke();
+
+            // Legs
+            ctx.fillRect(-8, -15, 6, 22);
+            ctx.fillRect(2, -15, 6, 22);
+
+            ctx.restore();
+        }
+
+        // Draw Taekwondo Fighter (Dobok, Hogu, Headgear, Guards)
+        function drawTaekwondoFighter(f, groundY) {
+            ctx.save();
+
+            const isBlue = f.isBlue;
+            const px = f.x;
+            const py = groundY - 10;
+            const dir = f.facing; // 1 = Facing Right, -1 = Facing Left
+
+            ctx.translate(px, py);
+
+            // Hit Stun Flicker Effect
+            if (f.hitStun > 0 && Math.floor(Date.now() / 50) % 2 === 0) {
+                ctx.globalAlpha = 0.5;
+            }
+
+            // Colors
+            const dobokColor = '#ffffff';
+            const gearColor = isBlue ? '#2563eb' : '#dc2626'; // Blue vs Red Hogu & Headgear
+            const gearBorder = isBlue ? '#60a5fa' : '#f87171';
+
+            // Base Pivot & Animation Interpolation
+            let legL_Angle = 0;
+            let legR_Angle = 0;
+            let bodyPivot = 0;
+            let headY = -115;
+            let kickLegX = 0, kickLegY = 0;
+
+            // Attack Animation Calculations
+            if (f.attackState !== 'IDLE') {
+                const progress = f.attackFrame / f.maxAttackFrames; // 0 to 1
+                const phase = Math.sin(progress * Math.PI);
+
+                if (f.attackState === 'DOLLYO') { // Roundhouse Kick
+                    legR_Angle = phase * dir * 1.6;
+                    bodyPivot = -phase * dir * 0.3;
+                } else if (f.attackState === 'HEAD_KICK') { // Head Kick
+                    legR_Angle = phase * dir * 2.2;
+                    bodyPivot = -phase * dir * 0.5;
+                } else if (f.attackState === 'DWI_CHAGI') { // Back Kick
+                    legR_Angle = -phase * dir * 1.8;
+                    bodyPivot = phase * dir * 0.6;
+                } else if (f.attackState === 'NAERYEO') { // Axe Kick
+                    legR_Angle = phase * dir * 2.5;
+                    bodyPivot = -phase * dir * 0.2;
+                }
+            } else if (f.isGuarding) {
+                bodyPivot = -dir * 0.2;
+            }
+
+            // Body Angle Rotate
+            ctx.rotate(bodyPivot);
+
+            // 1. Legs (Dobok Pants + Shin Guards & Foot Protectors)
+            ctx.strokeStyle = dobokColor;
+            ctx.lineWidth = 14;
+            ctx.lineCap = 'round';
+
+            // Left Leg (Back Leg)
+            ctx.beginPath();
+            ctx.moveTo(-10 * dir, -50);
+            ctx.lineTo((-20 + legL_Angle * 10) * dir, -25);
+            ctx.lineTo((-25 + legL_Angle * 15) * dir, 0);
+            ctx.stroke();
+
+            // Right Leg (Kicking Leg)
+            ctx.beginPath();
+            ctx.moveTo(10 * dir, -50);
+            if (f.attackState !== 'IDLE') {
+                const kickReachX = (20 + legR_Angle * 35) * dir;
+                const kickReachY = -25 - legR_Angle * 25;
+                ctx.lineTo(kickReachX * 0.5, kickReachY * 0.5);
+                ctx.lineTo(kickReachX, kickReachY);
+
+                // Foot Protector (발차기 보호대)
+                ctx.fillStyle = gearColor;
+                ctx.beginPath();
+                ctx.arc(kickReachX, kickReachY, 10, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.lineTo((15 + legR_Angle * 10) * dir, -25);
+                ctx.lineTo((10 + legR_Angle * 15) * dir, 0);
+            }
+            ctx.stroke();
+
+            // 2. Torso (White Dobok + Electronic Hogu / 전자호구)
+            ctx.fillStyle = dobokColor;
+            ctx.fillRect(-16, -95, 32, 50);
+
+            // ELECTRONIC HOGU (전자 호구 - Chest Protector)
+            ctx.fillStyle = gearColor;
+            ctx.strokeStyle = gearBorder;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.roundRect(-15, -92, 30, 42, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // Electronic Sensor Marking on Hogu
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(isBlue ? '청' : '홍', 0, -70);
+
+            // Black Belt (검은띠)
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-16, -52, 32, 6);
+            ctx.fillRect(dir * 5, -52, 6, 20); // Belt tail
+
+            // 3. Head & Headgear (머리 보호대)
+            ctx.fillStyle = '#fbcfe8'; // Skin tone
+            ctx.beginPath();
+            ctx.arc(0, -112, 14, 0, Math.PI * 2);
+            ctx.fill();
+
+            // HEADGEAR (머리 보호대)
+            ctx.fillStyle = gearColor;
+            ctx.beginPath();
+            ctx.arc(0, -115, 16, Math.PI * 0.8, Math.PI * 2.2);
+            ctx.fill();
+            ctx.fillRect(-14, -125, 28, 12);
+
+            // 4. Arms & Forearm Guards (팔 보호대 & 타격 자세)
+            ctx.strokeStyle = dobokColor;
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            if (f.isGuarding) {
+                // Guard Posture (Crossed Arms in front of chest)
+                ctx.moveTo(-10 * dir, -85);
+                ctx.lineTo(8 * dir, -95);
+                ctx.moveTo(10 * dir, -85);
+                ctx.lineTo(-8 * dir, -95);
+            } else {
+                // Fighting Guard Posture
+                ctx.moveTo(-12 * dir, -85);
+                ctx.lineTo(-22 * dir, -70);
+                ctx.moveTo(10 * dir, -85);
+                ctx.lineTo(20 * dir, -75);
+            }
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // =================================================================
+        // FIGHT MECHANICS & AI ENGINE
+        // =================================================================
+        function handleInput(action) {
+            initAudio();
+            if (matchState.isRefereeBreak || matchState.winner) return;
+
+            if (action === 'LEFT_START') playerBlue.isMovingLeft = true;
+            if (action === 'LEFT_END') playerBlue.isMovingLeft = false;
+            if (action === 'RIGHT_START') playerBlue.isMovingRight = true;
+            if (action === 'RIGHT_END') playerBlue.isMovingRight = false;
+
+            if (action === 'GUARD_ON') playerBlue.isGuarding = true;
+            if (action === 'GUARD_OFF') playerBlue.isGuarding = false;
+        }
+
+        function executeSkill(skillType) {
+            initAudio();
+            if (matchState.isRefereeBreak || matchState.winner) return;
+            if (playerBlue.attackState !== 'IDLE') return; // Cooldown
+
+            playerBlue.attackState = skillType;
+            playerBlue.attackFrame = 0;
+            playerBlue.isGuarding = false;
+        }
+
+        // Keyboard Controls Mapping
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') handleInput('LEFT_START');
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') handleInput('RIGHT_START');
+            if (e.code === 'KeyG' || e.code === 'Space') handleInput('GUARD_ON');
+
+            if (e.code === 'Digit1' || e.code === 'KeyZ') executeSkill('DOLLYO');
+            if (e.code === 'Digit2' || e.code === 'KeyX') executeSkill('HEAD_KICK');
+            if (e.code === 'Digit3' || e.code === 'KeyC') executeSkill('DWI_CHAGI');
+            if (e.code === 'Digit4' || e.code === 'KeyV') executeSkill('NAERYEO');
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') handleInput('LEFT_END');
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') handleInput('RIGHT_END');
+            if (e.code === 'KeyG' || e.code === 'Space') handleInput('GUARD_OFF');
+        });
+
+        // AI Logic for Red Competitor (홍)
+        function updateAI() {
+            if (matchState.isRefereeBreak || matchState.winner) return;
+            if (playerRed.attackState !== 'IDLE') return;
+
+            const dist = Math.abs(playerBlue.x - playerRed.x);
+
+            // AI Movement Strategy
+            if (dist > 160) {
+                playerRed.x -= 1.8; // Step forward
+            } else if (dist < 80) {
+                playerRed.x += 1.5; // Step back
+            }
+
+            // AI Attack Decision Logic
+            if (dist < 180 && Math.random() < 0.035) {
+                const randAttack = Math.random();
+                if (randAttack < 0.4) playerRed.attackState = 'DOLLYO';
+                else if (randAttack < 0.65) playerRed.attackState = 'HEAD_KICK';
+                else if (randAttack < 0.85) playerRed.attackState = 'DWI_CHAGI';
+                else playerRed.attackState = 'NAERYEO';
+
+                playerRed.attackFrame = 0;
+            } else if (playerBlue.attackState !== 'IDLE' && Math.random() < 0.05) {
+                // AI Guard Counter
+                playerRed.isGuarding = true;
+                setTimeout(() => { playerRed.isGuarding = false; }, 600);
+            }
+        }
+
+        // Main Physics & Hit Registration Update Loop
+        function updatePhysics() {
+            // Player Movement Limits (Arena Boundary Check)
+            const minX = canvas.width * 0.12;
+            const maxX = canvas.width * 0.88;
+
+            [playerBlue, playerRed].forEach(f => {
+                if (f.isMovingLeft) f.x -= 3.5;
+                if (f.isMovingRight) f.x += 3.5;
+
+                // Out of Bounds Gam-Jeom Check
+                if (f.x < minX) {
+                    f.x = minX;
+                    issueWarning(f, '선밖 이탈 (Out of Bounds)');
+                }
+                if (f.x > maxX) {
+                    f.x = maxX;
+                    issueWarning(f, '선밖 이탈 (Out of Bounds)');
+                }
+
+                // Attack Frame Progression
+                if (f.attackState !== 'IDLE') {
+                    f.attackFrame++;
+
+                    // Strike Impact Check Frame (Peak of Kick)
+                    if (f.attackFrame === 8) {
+                        checkHitImpact(f, f.isBlue ? playerRed : playerBlue);
+                    }
+
+                    if (f.attackFrame >= f.maxAttackFrames) {
+                        f.attackState = 'IDLE';
+                        f.attackFrame = 0;
+                    }
+                }
+
+                if (f.hitStun > 0) f.hitStun--;
+            });
+
+            // Prevent Player Models Overlapping
+            if (Math.abs(playerBlue.x - playerRed.x) < 55) {
+                playerBlue.x -= 2;
+                playerRed.x += 2;
+            }
+
+            updateAI();
+        }
+
+        // Hit Impact & Electronic Scoring Judge Mechanics
+        function checkHitImpact(attacker, defender) {
+            const dist = Math.abs(attacker.x - defender.x);
+
+            if (dist < 160) {
+                const attackType = attacker.attackState;
+                let isHead = attackType === 'HEAD_KICK' || attackType === 'NAERYEO';
+                let pts = 0;
+
+                // Scoring Calculation according to WT Taekwondo Rules
+                if (attackType === 'DOLLYO') pts = 2; // Body Kick = 2pts
+                else if (attackType === 'HEAD_KICK') pts = 3; // Head Kick = 3pts
+                else if (attackType === 'DWI_CHAGI') pts = isHead ? 5 : 3; // Turning Back Kick = 3 or 5pts
+                else if (attackType === 'NAERYEO') pts = 3; // Axe Head Kick = 3pts
+
+                if (defender.isGuarding) {
+                    // Blocked!
+                    playGuardSFX();
+                    showImpactPopup(defender.x, canvas.height * 0.5, '막기 (GUARD)', 'text-amber-400');
+                    defender.stamina = Math.max(0, defender.stamina - 2);
+                } else {
+                    // CLEAN ELECTRONIC SENSOR HIT!
+                    playImpactSFX(isHead);
+                    attacker.score += pts;
+                    defender.stamina = Math.max(0, defender.stamina - pts * 4);
+                    defender.hitStun = 12;
+
+                    // Electronic Point Popup FX
+                    const popText = isHead ? `+${pts} 머리 득점!` : `+${pts} 몸통 득점!`;
+                    showImpactPopup(defender.x, canvas.height * 0.45, popText, attacker.isBlue ? 'text-blue-400' : 'text-red-400');
+
+                    // Temporary Referee "득점!" Call
+                    triggerRefereeCall(`${attacker.isBlue ? '청' : '홍'} ${pts}점 득점!`, 'bg-indigo-600', 800);
+
+                    updateScoreboardUI();
+                }
+            }
+        }
+
+        // =================================================================
+        // UI & REFEREE CALL SYSTEM
+        // =================================================================
+        function triggerRefereeCall(text, bgClass = 'bg-slate-900', duration = 1200) {
+            const banner = document.getElementById('refereeBanner');
+            const txt = document.getElementById('refereeBannerText');
+
+            txt.innerText = text;
+            txt.className = `px-8 py-3 rounded-2xl font-title text-2xl sm:text-4xl text-white shadow-2xl tracking-widest text-center border-4 border-amber-400 ${bgClass}`;
+
+            banner.classList.remove('scale-0', 'opacity-0');
+            banner.classList.add('scale-100', 'opacity-100');
+
+            clearTimeout(window.refTimer);
+            window.refTimer = setTimeout(() => {
+                banner.classList.remove('scale-100', 'opacity-100');
+                banner.classList.add('scale-0', 'opacity-0');
+            }, duration);
+        }
+
+        function showImpactPopup(x, y, text, colorClass) {
+            const popups = document.getElementById('impactPopups');
+            const el = document.createElement('div');
+            el.className = `absolute font-title text-xl sm:text-3xl ${colorClass} drop-shadow-lg strike-effect`;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            el.innerText = text;
+
+            popups.appendChild(el);
+            setTimeout(() => el.remove(), 400);
+        }
+
+        function issueWarning(fighter, reason) {
+            fighter.warnings++;
+            playWhistleSFX();
+
+            const opp = fighter.isBlue ? playerRed : playerBlue;
+            opp.score += 1; // Opponent gains 1pt for Gam-jeom
+
+            triggerRefereeCall(`감점! (${fighter.isBlue ? '청' : '홍'})`, 'bg-rose-600', 1200);
+            updateScoreboardUI();
+
+            if (fighter.warnings >= 2) {
+                // Disqualification
+                endMatch(opp.isBlue ? 'BLUE_WIN' : 'RED_WIN', '경고 누적 감점패');
+            }
+        }
+
+        function updateScoreboardUI() {
+            document.getElementById('bluePointText').innerText = `${playerBlue.score} PTS`;
+            document.getElementById('redPointText').innerText = `${playerRed.score} PTS`;
+
+            document.getElementById('blueHpBar').style.width = `${playerBlue.stamina}%`;
+            document.getElementById('redHpBar').style.width = `${playerRed.stamina}%`;
+
+            // Warnings Light Bulbs
+            const bWarns = document.getElementById('blueWarnings').children;
+            for (let i = 0; i < 2; i++) {
+                bWarns[i].className = i < playerBlue.warnings ? 'w-2.5 h-2.5 rounded-full bg-rose-500 shadow' : 'w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-600';
+            }
+            const rWarns = document.getElementById('redWarnings').children;
+            for (let i = 0; i < 2; i++) {
+                rWarns[i].className = i < playerRed.warnings ? 'w-2.5 h-2.5 rounded-full bg-rose-500 shadow' : 'w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-600';
+            }
+        }
+
+        // Match Timer Loop
+        setInterval(() => {
+            if (matchState.isTimerRunning && !matchState.winner) {
+                matchState.timeRemaining--;
+
+                const min = String(Math.floor(matchState.timeRemaining / 60)).padStart(2, '0');
+                const sec = String(matchState.timeRemaining % 60).padStart(2, '0');
+                document.getElementById('timerDisplay').innerText = `${min}:${sec}`;
+
+                if (matchState.timeRemaining <= 0) {
+                    if (playerBlue.score > playerRed.score) endMatch('BLUE_WIN', '경기 시간 종료 판정승');
+                    else if (playerRed.score > playerBlue.score) endMatch('RED_WIN', '경기 시간 종료 판정승');
+                    else endMatch('DRAW', '동점 연장 판정');
+                }
+            }
+        }, 1000);
+
+        function endMatch(type, reason) {
+            matchState.winner = type;
+            matchState.isTimerRunning = false;
+
+            const modal = document.getElementById('resultModal');
+            const title = document.getElementById('resultWinnerTitle');
+            const finalScore = document.getElementById('finalScoreDisplay');
+
+            if (type === 'BLUE_WIN') {
+                title.innerText = '청 (BLUE) 승리!';
+                title.className = 'text-4xl sm:text-6xl font-title text-blue-400 mb-2 drop-shadow-lg';
+            } else if (type === 'RED_WIN') {
+                title.innerText = '홍 (RED) 승리!';
+                title.className = 'text-4xl sm:text-6xl font-title text-red-400 mb-2 drop-shadow-lg';
+            } else {
+                title.innerText = '무승부 (DRAW)!';
+                title.className = 'text-4xl sm:text-6xl font-title text-amber-400 mb-2 drop-shadow-lg';
+            }
+
+            document.getElementById('resultReason').innerText = reason;
+            finalScore.innerHTML = `<span class="text-blue-400">청 ${playerBlue.score}</span> : <span class="text-red-400">${playerRed.score} 홍</span>`;
+
+            modal.classList.remove('hidden');
+        }
+
+        function restartMatch() {
+            playerBlue = new Fighter(true, canvas.width * 0.35);
+            playerRed = new Fighter(false, canvas.width * 0.65);
+
+            matchState.timeRemaining = 60;
+            matchState.winner = null;
+            matchState.isTimerRunning = true;
+
+            document.getElementById('resultModal').classList.add('hidden');
+            updateScoreboardUI();
+            triggerRefereeCall('시작! (SI-JAK)', 'bg-emerald-600', 1200);
+        }
+
+        // Main Loop
+        function gameLoop() {
+            updatePhysics();
+            drawScene();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function() {
+            resizeCanvas();
+
+            playerBlue.x = canvas.width * 0.35;
+            playerRed.x = canvas.width * 0.65;
+
+            updateScoreboardUI();
+
+            // Start Animation Loop & Match Start Call
+            requestAnimationFrame(gameLoop);
+
+            setTimeout(() => {
+                playWhistleSFX();
+                triggerRefereeCall('준비... 시작!', 'bg-emerald-600', 1500);
+                matchState.isTimerRunning = true;
+            }, 800);
+        };
+    </script>
+</body>
+</html>

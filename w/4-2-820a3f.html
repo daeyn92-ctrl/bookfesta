@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>다시 GO! GO! GO! - 시간 역행 시계</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Noto+Sans+KR:wght@300;500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        body {
+            background-color: #030712;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        /* Custom Glowing & Sci-fi Aesthetics */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+        .neon-glow-purple {
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.4), inset 0 0 15px rgba(168, 85, 247, 0.2);
+        }
+        .neon-glow-cyan {
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.4), inset 0 0 15px rgba(6, 182, 212, 0.2);
+        }
+        .text-glow-purple {
+            text-shadow: 0 0 15px rgba(192, 132, 252, 0.8), 0 0 30px rgba(168, 85, 247, 0.5);
+        }
+        .text-glow-cyan {
+            text-shadow: 0 0 15px rgba(34, 211, 238, 0.8), 0 0 30px rgba(6, 182, 212, 0.5);
+        }
+        /* Time Warp Pulse Flash Effect */
+        .time-warp-flash {
+            animation: warpFlash 0.6s cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+        @keyframes warpFlash {
+            0% {
+                box-shadow: inset 0 0 120px rgba(168, 85, 247, 0.9), 0 0 60px rgba(6, 182, 212, 0.9);
+                transform: scale(0.98);
+            }
+            50% {
+                box-shadow: inset 0 0 180px rgba(236, 72, 153, 0.8), 0 0 90px rgba(168, 85, 247, 0.8);
+                transform: scale(1.02);
+            }
+            100% {
+                box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
+                transform: scale(1);
+            }
+        }
+        /* Interactive Clock Button Rotation Animation */
+        .clock-clickable {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+        .clock-clickable:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 45px rgba(168, 85, 247, 0.6);
+        }
+        .clock-clickable:active {
+            transform: scale(0.96);
+        }
+        /* Custom Scrollbar for Timeline */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.4);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(168, 85, 247, 0.7);
+        }
+    </style>
+</head>
+<body class="min-h-screen relative flex flex-col justify-between items-center bg-slate-950 text-slate-100 selection:bg-purple-500 selection:text-white p-4">
+
+    <!-- Background Animated Particles Canvas -->
+    <canvas id="timeBgCanvas" class="fixed inset-0 pointer-events-none z-0 opacity-40"></canvas>
+
+    <!-- Top Glow Accent Header -->
+    <div class="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 z-50"></div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="relative z-10 w-full max-w-xl mx-auto flex flex-col items-center py-6 space-y-6">
+
+        <!-- HEADER SECTION -->
+        <header class="text-center space-y-2">
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-950/80 border border-purple-500/40 text-purple-300 text-xs font-semibold tracking-wider uppercase mb-1">
+                <i class="fa-solid fa-hourglass-half text-purple-400 animate-spin" style="animation-duration: 6s;"></i>
+                <span>시간 역행 어플리케이션</span>
+            </div>
+            <h1 class="text-4xl sm:text-5xl font-black tracking-tight font-orbitron bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-glow-purple">
+                다시 GO! GO! GO!
+            </h1>
+            <p class="text-slate-400 text-xs sm:text-sm font-medium">
+                <i class="fa-solid fa-hand-pointer text-cyan-400 mr-1"></i> 시계를 터치할 때마다 <span class="text-purple-300 font-bold underline decoration-purple-500 decoration-2">30분 전</span>으로 시간이 되돌아갑니다!
+            </p>
+        </header>
+
+        <!-- MAIN INTERACTIVE CLOCK CARD -->
+        <div id="clockCard" class="glass-panel glass-card neon-glow-purple clock-clickable w-full rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-300 border border-purple-500/30">
+            
+            <!-- Time Warp Overlay Animation Layer -->
+            <div id="warpPulseOverlay" class="absolute inset-0 bg-purple-600/10 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+            <!-- Click Trigger Hint Overlay Badge -->
+            <div class="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center space-x-1 animate-bounce">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>-30 MIN</span>
+            </div>
+
+            <!-- ANALOG CLOCK SVG -->
+            <div class="relative w-64 h-64 sm:w-72 sm:h-72 my-4">
+                <!-- Outer Decorative Glow Ring -->
+                <div class="absolute inset-0 rounded-full border-2 border-purple-500/20 animate-pulse"></div>
+                <div class="absolute inset-2 rounded-full border border-cyan-500/20"></div>
+
+                <svg id="analogClock" viewBox="0 0 200 200" class="w-full h-full drop-shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+                    <!-- Clock Face Base -->
+                    <circle cx="100" cy="100" r="95" fill="rgba(15, 23, 42, 0.85)" stroke="#8b5cf6" stroke-width="2.5" />
+                    <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(6, 182, 212, 0.3)" stroke-width="1" stroke-dasharray="2,4" />
+
+                    <!-- Clock Hour & Minute Ticks -->
+                    <g id="clockTicks" stroke="#a855f7" stroke-linecap="round"></g>
+
+                    <!-- Clock Numbers (1-12) -->
+                    <g font-family="Orbitron" font-size="9" font-weight="700" fill="#cbd5e1" text-anchor="middle" dominant-baseline="central">
+                        <text x="100" y="22">12</text>
+                        <text x="139" y="32.5">1</text>
+                        <text x="167.5" y="61">2</text>
+                        <text x="178" y="100">3</text>
+                        <text x="167.5" y="139">4</text>
+                        <text x="139" y="167.5">5</text>
+                        <text x="100" y="178">6</text>
+                        <text x="61" y="167.5">7</text>
+                        <text x="32.5" y="139">8</text>
+                        <text x="22" y="100">9</text>
+                        <text x="32.5" y="61">10</text>
+                        <text x="61" y="32.5">11</text>
+                    </g>
+
+                    <!-- Hour Hand -->
+                    <line id="hourHand" x1="100" y1="100" x2="100" y2="55" stroke="#f472b6" stroke-width="5" stroke-linecap="round" />
+                    <!-- Minute Hand -->
+                    <line id="minuteHand" x1="100" y1="100" x2="100" y2="35" stroke="#38bdf8" stroke-width="3.5" stroke-linecap="round" />
+                    <!-- Second Hand -->
+                    <line id="secondHand" x1="100" y1="115" x2="100" y2="28" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" />
+
+                    <!-- Center Cap Pin -->
+                    <circle cx="100" cy="100" r="5" fill="#f8fafc" stroke="#8b5cf6" stroke-width="2" />
+                    <circle cx="100" cy="100" r="2" fill="#e11d48" />
+                </svg>
+            </div>
+
+            <!-- DIGITAL TIME DISPLAY -->
+            <div class="mt-2 text-center space-y-1">
+                <div id="digitalDate" class="text-xs font-medium text-cyan-300/80 tracking-widest font-orbitron">
+                    2026-10-01 THU
+                </div>
+                <div id="digitalTime" class="text-4xl sm:text-5xl font-black font-orbitron text-purple-200 text-glow-purple tracking-wider">
+                    12:00:00 AM
+                </div>
+                <div class="text-[11px] text-slate-400 font-medium">
+                    <span id="warpStatusText" class="text-emerald-400 flex items-center justify-center gap-1 mt-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        시계 정상 작동 중 (매초 1초 전진)
+                    </span>
+                </div>
+            </div>
+
+            <!-- BIG INTERACTIVE BUTTON INSIDE CARD -->
+            <button id="btnRewindMain" class="mt-6 w-full max-w-xs py-3.5 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 text-white font-extrabold text-base shadow-[0_0_20px_rgba(168,85,247,0.5)] hover:shadow-[0_0_30px_rgba(168,85,247,0.8)] active:scale-95 transition-all flex items-center justify-center space-x-2 border border-purple-300/40">
+                <i class="fa-solid fa-backward-fast text-lg"></i>
+                <span>시간 30분 되돌리기</span>
+            </button>
+        </div>
+
+        <!-- STATS & ACTION CONTROLS PANEL -->
+        <div class="w-full grid grid-cols-2 gap-4">
+            <!-- Stat 1: Total Times Warped -->
+            <div class="glass-card rounded-2xl p-4 text-center border border-purple-500/20">
+                <div class="text-xs font-semibold text-slate-400 mb-1 flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-amber-400"></i> 타임 워프 횟수
+                </div>
+                <div id="statWarpCount" class="text-2xl sm:text-3xl font-black font-orbitron text-amber-400">
+                    0 회
+                </div>
+            </div>
+
+            <!-- Stat 2: Total Time Reversed -->
+            <div class="glass-card rounded-2xl p-4 text-center border border-purple-500/20">
+                <div class="text-xs font-semibold text-slate-400 mb-1 flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-backward text-cyan-400"></i> 되돌린 총 시간
+                </div>
+                <div id="statTotalReversed" class="text-2xl sm:text-3xl font-black font-orbitron text-cyan-400">
+                    0 분
+                </div>
+            </div>
+        </div>
+
+        <!-- QUICK REWIND SHORTCUT BUTTONS & UTILITIES -->
+        <div class="w-full glass-card rounded-2xl p-4 border border-purple-500/20 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-2">
+                <button id="btnSoundToggle" onclick="toggleSound()" class="p-2.5 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs font-bold text-slate-200 transition flex items-center space-x-1.5">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-cyan-400"></i>
+                    <span id="soundTxt">사운드 ON</span>
+                </button>
+
+                <button id="btnResetClock" onclick="resetToCurrentTime()" class="p-2.5 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs font-bold text-slate-200 transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-rotate text-purple-400"></i>
+                    <span>현재 시간 복원</span>
+                </button>
+            </div>
+
+            <!-- Speed Multiplier Toggle -->
+            <div class="flex items-center space-x-1 text-xs font-bold text-slate-300">
+                <span class="text-slate-400 mr-1">흐름 속도:</span>
+                <button onclick="setSpeed(1)" id="spd1" class="px-2.5 py-1 rounded-lg bg-purple-600 text-white shadow-sm transition">1x</button>
+                <button onclick="setSpeed(10)" id="spd10" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">10x</button>
+                <button onclick="setSpeed(60)" id="spd60" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">60x</button>
+            </div>
+        </div>
+
+        <!-- TIME WARP HISTORY LOG -->
+        <div class="w-full glass-card rounded-2xl p-5 border border-purple-500/20">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                <h3 class="text-sm font-bold text-purple-300 flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-pink-400"></i>
+                    <span>시간 되돌리기 타임라인</span>
+                </h3>
+                <span class="text-[11px] text-slate-500 font-mono" id="historyCount">최근 기록 0개</span>
+            </div>
+
+            <div id="historyList" class="space-y-2.5 max-h-48 overflow-y-auto pr-1 text-xs">
+                <!-- Dynamic Log Items will appear here -->
+                <div id="emptyHistory" class="text-center py-6 text-slate-500 font-medium">
+                    시계를 클릭하거나 '시간 되돌리기' 버튼을 눌러 타임 워프를 실행해보세요.
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER INFO -->
+        <footer class="text-center text-slate-500 text-xs py-2">
+            © 다시 GO! GO! GO! - Time Slip Engine • Touch & Click Anywhere On Clock
+        </footer>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // WEB AUDIO SYNTHESIZER FOR TIME SFX
+        // ==========================================
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            const txt = document.getElementById('soundTxt');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-cyan-400';
+                txt.innerText = '사운드 ON';
+                playTickSFX();
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+                txt.innerText = '사운드 OFF';
+            }
+        }
+
+        // Clock Tick Sound Effect
+        function playTickSFX() {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.03);
+
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.03);
+            } catch (e) {}
+        }
+
+        // Time Rewind Sci-Fi Sweep SFX
+        function playRewindSFX() {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+
+                // Frequency Sweeper (High to Low Pitch)
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(1200, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.45);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.45);
+
+                // Sub-bass thump
+                const subOsc = audioCtx.createOscillator();
+                const subGain = audioCtx.createGain();
+                subOsc.type = 'sine';
+                subOsc.frequency.setValueAtTime(120, now);
+                subOsc.frequency.linearRampToValueAtTime(30, now + 0.35);
+
+                subGain.gain.setValueAtTime(0.4, now);
+                subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                subOsc.connect(subGain);
+                subGain.connect(audioCtx.destination);
+
+                subOsc.start(now);
+                subOsc.stop(now + 0.35);
+
+            } catch (e) {}
+        }
+
+        // ==========================================
+        // VIRTUAL CLOCK ENGINE & TIME LOGIC
+        // ==========================================
+        // Virtual Time offset in milliseconds relative to current actual time
+        let timeOffsetMs = 0;
+        let speedMultiplier = 1;
+        let warpCount = 0;
+        let totalReversedMinutes = 0;
+        let historyLogs = [];
+
+        // Smooth hand rotation state for visual polish
+        let visualHourDeg = 0;
+        let visualMinDeg = 0;
+        let visualSecDeg = 0;
+
+        // Render Clock Ticks SVG dynamically
+        function initClockTicks() {
+            const ticksGroup = document.getElementById('clockTicks');
+            ticksGroup.innerHTML = '';
+
+            for (let i = 0; i < 60; i++) {
+                const angle = (i * 6) * (Math.PI / 180);
+                const isMajor = i % 5 === 0;
+                const innerR = isMajor ? 80 : 85;
+                const strokeWidth = isMajor ? 2.5 : 1;
+                const strokeColor = isMajor ? '#c084fc' : 'rgba(168, 85, 247, 0.4)';
+
+                const x1 = 100 + innerR * Math.sin(angle);
+                const y1 = 100 - innerR * Math.cos(angle);
+                const x2 = 100 + 88 * Math.sin(angle);
+                const y2 = 100 - 88 * Math.cos(angle);
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('stroke', strokeColor);
+                line.setAttribute('stroke-width', strokeWidth);
+                ticksGroup.appendChild(line);
+            }
+        }
+
+        // Get current virtual Date object
+        function getVirtualDate() {
+            return new Date(Date.now() + timeOffsetMs);
+        }
+
+        // Format Date to string
+        function formatDate(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const date = String(d.getDate()).padStart(2, '0');
+            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            const dayName = days[d.getDay()];
+            return `${year}-${month}-${date} ${dayName}`;
+        }
+
+        function formatTime12H(d) {
+            let hours = d.getHours();
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const seconds = String(d.getSeconds()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+
+            hours = hours % 12;
+            hours = hours ? hours : 12; // hour '0' should be '12'
+            const strHours = String(hours).padStart(2, '0');
+
+            return `${strHours}:${minutes}:${seconds} ${ampm}`;
+        }
+
+        // Core Time Rewind Function (30 Minutes Back)
+        function rewindTime30Min() {
+            initAudio();
+
+            const beforeDate = getVirtualDate();
+            const rewindMs = 30 * 60 * 1000; // 30 mins in ms
+            timeOffsetMs -= rewindMs;
+            const afterDate = getVirtualDate();
+
+            // Stats Update
+            warpCount++;
+            totalReversedMinutes += 30;
+
+            // Trigger Visual & Audio Feedback
+            playRewindSFX();
+            triggerWarpVisualEffect();
+
+            // Record Timeline Log
+            const logItem = {
+                id: Date.now(),
+                beforeStr: formatTime12H(beforeDate),
+                afterStr: formatTime12H(afterDate),
+                dateStr: formatDate(afterDate)
+            };
+            historyLogs.unshift(logItem);
+            updateUIStatsAndHistory();
+        }
+
+        // Trigger Glow & Flash Effects
+        function triggerWarpVisualEffect() {
+            const card = document.getElementById('clockCard');
+            const overlay = document.getElementById('warpPulseOverlay');
+            
+            card.classList.remove('time-warp-flash');
+            void card.offsetWidth; // Trigger reflow
+            card.classList.add('time-warp-flash');
+
+            overlay.style.opacity = '1';
+            setTimeout(() => {
+                overlay.style.opacity = '0';
+            }, 300);
+        }
+
+        // Reset to Actual Real-world Current Time
+        function resetToCurrentTime() {
+            initAudio();
+            timeOffsetMs = 0;
+            updateUIStatsAndHistory();
+            triggerWarpVisualEffect();
+            playTickSFX();
+        }
+
+        // Change Speed Multiplier
+        function setSpeed(spd) {
+            speedMultiplier = spd;
+            ['spd1', 'spd10', 'spd60'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (id === `spd${spd}`) {
+                    btn.className = 'px-2.5 py-1 rounded-lg bg-purple-600 text-white shadow-sm transition';
+                } else {
+                    btn.className = 'px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition';
+                }
+            });
+        }
+
+        // Update Statistics & Timeline List UI
+        function updateUIStatsAndHistory() {
+            document.getElementById('statWarpCount').innerText = `${warpCount} 회`;
+
+            const hrs = Math.floor(totalReversedMinutes / 60);
+            const mins = totalReversedMinutes % 60;
+            let timeStr = `${totalReversedMinutes} 분`;
+            if (hrs > 0) {
+                timeStr = `${hrs}시간 ${mins}분`;
+            }
+            document.getElementById('statTotalReversed').innerText = timeStr;
+
+            // History List Rendering
+            const listEl = document.getElementById('historyList');
+            document.getElementById('historyCount').innerText = `총 ${historyLogs.length}개 기록`;
+
+            if (historyLogs.length === 0) {
+                listEl.innerHTML = `
+                    <div id="emptyHistory" class="text-center py-6 text-slate-500 font-medium">
+                        시계를 클릭하거나 '시간 되돌리기' 버튼을 눌러 타임 워프를 실행해보세요.
+                    </div>`;
+                return;
+            }
+
+            listEl.innerHTML = historyLogs.map((log, idx) => `
+                <div class="glass-card rounded-xl p-3 border border-purple-500/20 flex items-center justify-between hover:border-purple-500/50 transition">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-7 h-7 rounded-lg bg-purple-950/80 border border-purple-500/40 flex items-center justify-center text-purple-400 font-bold text-xs">
+                            ${historyLogs.length - idx}
+                        </div>
+                        <div>
+                            <div class="text-slate-200 font-orbitron font-bold flex items-center gap-1.5 text-xs sm:text-sm">
+                                <span class="text-slate-400 line-through text-[11px]">${log.beforeStr}</span>
+                                <i class="fa-solid fa-arrow-left text-pink-500 text-xs"></i>
+                                <span class="text-cyan-300 font-extrabold text-glow-cyan">${log.afterStr}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-500 font-medium mt-0.5">${log.dateStr}</div>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-900/50 text-purple-300 border border-purple-500/30">
+                        -30분 되돌림
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        // MAIN ANIMATION TICK LOOP
+        let lastTimestamp = performance.now();
+
+        function clockLoop(now) {
+            const deltaSec = (now - lastTimestamp) / 1000;
+            lastTimestamp = now;
+
+            // Advance time based on speed multiplier (if speed > 1)
+            if (speedMultiplier > 1) {
+                timeOffsetMs += (speedMultiplier - 1) * deltaSec * 1000;
+            }
+
+            const nowVirtual = getVirtualDate();
+
+            // Calculate Target Hand Angles
+            const hours = nowVirtual.getHours();
+            const minutes = nowVirtual.getMinutes();
+            const seconds = nowVirtual.getSeconds();
+            const millis = nowVirtual.getMilliseconds();
+
+            const targetSecDeg = (seconds + millis / 1000) * 6; // 360 / 60
+            const targetMinDeg = (minutes + seconds / 60) * 6;  // 360 / 60
+            const targetHourDeg = ((hours % 12) + minutes / 60) * 30; // 360 / 12
+
+            // Rotate Hand Elements
+            document.getElementById('secondHand').setAttribute('transform', `rotate(${targetSecDeg}, 100, 100)`);
+            document.getElementById('minuteHand').setAttribute('transform', `rotate(${targetMinDeg}, 100, 100)`);
+            document.getElementById('hourHand').setAttribute('transform', `rotate(${targetHourDeg}, 100, 100)`);
+
+            // Digital Time & Date Update
+            document.getElementById('digitalDate').innerText = formatDate(nowVirtual);
+            document.getElementById('digitalTime').innerText = formatTime12H(nowVirtual);
+
+            // Play Tick SFX every second change
+            if (Math.floor(seconds) !== window.lastSecond) {
+                window.lastSecond = Math.floor(seconds);
+                if (speedMultiplier === 1) {
+                    playTickSFX();
+                }
+            }
+
+            requestAnimationFrame(clockLoop);
+        }
+
+        // ==========================================
+        // BACKGROUND STARFIELD & TIME PORTAL PARTICLES
+        // ==========================================
+        const bgCanvas = document.getElementById('timeBgCanvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        let particles = [];
+
+        function resizeBgCanvas() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+        }
+
+        function initParticles() {
+            particles = [];
+            const count = Math.min(60, Math.floor(window.innerWidth / 20));
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    radius: Math.random() * 2 + 0.5,
+                    color: Math.random() < 0.5 ? '#a855f7' : '#06b6d4',
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: (Math.random() - 0.5) * 0.4,
+                    alpha: Math.random() * 0.7 + 0.2
+                });
+            }
+        }
+
+        function renderBgParticles() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+            for (let p of particles) {
+                p.x += p.vx;
+                p.y += p.vy;
+
+                if (p.x < 0) p.x = bgCanvas.width;
+                if (p.x > bgCanvas.width) p.x = 0;
+                if (p.y < 0) p.y = bgCanvas.height;
+                if (p.y > bgCanvas.height) p.y = 0;
+
+                bgCtx.beginPath();
+                bgCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                bgCtx.fillStyle = p.color;
+                bgCtx.globalAlpha = p.alpha;
+                bgCtx.fill();
+            }
+
+            requestAnimationFrame(renderBgParticles);
+        }
+
+        // ==========================================
+        // EVENT LISTENERS & INITIALIZATION
+        // ==========================================
+        window.addEventListener('resize', () => {
+            resizeBgCanvas();
+            initParticles();
+        });
+
+        // Click On Clock Card triggers 30-minute rewind
+        document.getElementById('clockCard').addEventListener('click', (e) => {
+            // Prevent duplicate trigger if clicking the inner button directly
+            if (e.target.closest('#btnRewindMain')) return;
+            rewindTime30Min();
+        });
+
+        // Click On Main Button
+        document.getElementById('btnRewindMain').addEventListener('click', (e) => {
+            e.stopPropagation();
+            rewindTime30Min();
+        });
+
+        // Start App
+        window.onload = function() {
+            initClockTicks();
+            resizeBgCanvas();
+            initParticles();
+            renderBgParticles();
+            requestAnimationFrame(clockLoop);
+        };
+    </script>
+</body>
+</html>

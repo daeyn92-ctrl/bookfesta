@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>샥샥샥 - 차근차근 올라가는 수학 교실</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Google Fonts (Friendly Math Chalk/Textbook feel) -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Jua', 'Noto Sans KR', sans-serif;
+        }
+
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+            min-h: 100vh;
+        }
+
+        /* Chalkboard blackboard aesthetic panel */
+        .chalkboard {
+            background: #1e293b;
+            border: 8px solid #854d0e;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 10px 25px rgba(0,0,0,0.5);
+            border-radius: 1.5rem;
+            position: relative;
+        }
+
+        .chalkboard::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, transparent 80%);
+            pointer-events: none;
+            border-radius: 1rem;
+        }
+
+        .math-font {
+            font-family: 'Gaegu', cursive, sans-serif;
+        }
+
+        /* Shaking animation on wrong answer */
+        @keyframes shakeErr {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .shake-effect {
+            animation: shakeErr 0.4s ease-in-out;
+        }
+
+        /* Slash effect when answering correctly "샥!" */
+        @keyframes slashAnim {
+            0% { opacity: 0; transform: scale(0.5) rotate(-20deg); }
+            50% { opacity: 1; transform: scale(1.2) rotate(10deg); }
+            100% { opacity: 0; transform: scale(1.5) rotate(25deg); }
+        }
+        .slash-pop {
+            animation: slashAnim 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between items-center min-h-screen pb-6 px-3 sm:px-6">
+
+    <!-- HEADER NAVBAR -->
+    <header class="w-full max-w-4xl py-4 flex justify-between items-center border-b border-slate-700/60 mb-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-2xl text-slate-900 font-black shadow-lg shadow-amber-500/20">
+                ✍️
+            </div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-black bg-gradient-to-r from-amber-300 via-yellow-200 to-emerald-300 bg-clip-text text-transparent tracking-wide">
+                    샥샥샥 수학
+                </h1>
+                <p class="text-xs text-slate-400">쉬운 기초부터 10단계 심화까지 샥-샥-해결!</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <!-- Continuous Combo Streak -->
+            <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-2xl flex items-center space-x-2">
+                <span class="text-lg">🔥</span>
+                <div>
+                    <div class="text-[9px] text-slate-400 font-bold">연속 정답</div>
+                    <span id="combo-count" class="text-sm font-black text-amber-400">0 콤보</span>
+                </div>
+            </div>
+
+            <!-- Total Stars Score -->
+            <div class="bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-2xl flex items-center space-x-2">
+                <span class="text-lg">⭐</span>
+                <div>
+                    <div class="text-[9px] text-slate-400 font-bold">획득 별점</div>
+                    <span id="star-count" class="text-sm font-black text-yellow-300">0개</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN APPLICATION GRID -->
+    <main class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+        
+        <!-- LEFT SIDEBAR: Chapter Unit Selector & Scratchpad Toggle -->
+        <section class="md:col-span-4 space-y-4">
+            <!-- Unit Selector Card -->
+            <div class="bg-slate-800/70 border border-slate-700 p-4 rounded-2xl shadow-xl">
+                <h3 class="text-sm font-bold text-amber-300 flex items-center justify-between mb-3">
+                    <span><i class="fa-solid fa-book-bookmark mr-2"></i>학습 단원 선택</span>
+                    <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">6개 단원</span>
+                </h3>
+
+                <div id="unit-list" class="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                    <!-- Dynamic Units Inserted by JS -->
+                </div>
+            </div>
+
+            <!-- Built-in Scratchpad (샥샥 풀이장) -->
+            <div class="bg-slate-800/70 border border-slate-700 p-4 rounded-2xl shadow-xl">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-emerald-300 flex items-center">
+                        <i class="fa-solid fa-pen-ruler mr-1.5"></i> 샥샥 손풀이장
+                    </span>
+                    <button id="clear-canvas-btn" class="text-[10px] bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 px-2 py-1 rounded-lg transition">
+                        <i class="fa-solid fa-eraser mr-1"></i>지우기
+                    </button>
+                </div>
+                <div class="relative w-full h-36 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden cursor-crosshair">
+                    <canvas id="scratch-canvas" class="w-full h-full block"></canvas>
+                    <span class="absolute bottom-1 right-2 text-[9px] text-slate-500 pointer-events-none">마우스나 손가락으로 암산 메모하세요</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT MAIN STAGE: Interactive Problem Blackboard -->
+        <section class="md:col-span-8 flex flex-col space-y-4">
+            
+            <!-- TEACHER AVATAR DIALOGUE BOX -->
+            <div class="bg-gradient-to-r from-indigo-900/60 to-slate-800/80 border border-indigo-500/30 p-3.5 rounded-2xl flex items-center space-x-3 shadow-lg">
+                <div class="relative">
+                    <div class="w-12 h-12 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center text-2xl shadow-md">
+                        🧑‍🏫
+                    </div>
+                    <span class="absolute -bottom-1 -right-1 bg-emerald-500 w-4 h-4 rounded-full border-2 border-slate-900"></span>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-black text-amber-300">샥 선생님</span>
+                        <span id="difficulty-badge" class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.2 rounded-full font-bold">1단계: 초간단</span>
+                    </div>
+                    <p id="teacher-speech" class="text-xs text-slate-200 font-medium mt-0.5">
+                        "안녕! 반가워! 1단계부터 아주 쉬운 문제로 시작해 보자! 샥샥샥 풀어봐!"
+                    </p>
+                </div>
+            </div>
+
+            <!-- BLACKBOARD PROBLEM BOARD -->
+            <div id="blackboard-panel" class="chalkboard p-6 min-h-[360px] flex flex-col justify-between relative overflow-hidden">
+                
+                <!-- Graphic Slash Overlay for Correct Answer -->
+                <div id="slash-overlay" class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 z-20">
+                    <div class="text-amber-300 font-black text-7xl sm:text-9xl drop-shadow-[0_0_25px_rgba(252,211,77,0.9)] slash-pop">
+                        ⚡ 샥!
+                    </div>
+                </div>
+
+                <!-- Top Progress Bar (Level 1 ~ 10) -->
+                <div>
+                    <div class="flex justify-between items-center text-xs font-bold mb-2">
+                        <span id="current-unit-title" class="text-amber-200">1단원: 덧셈과 뺄셈</span>
+                        <span id="level-indicator-text" class="text-slate-300">난이도 Level <span id="level-num" class="text-amber-400 font-black text-base">1</span> / 10</span>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-900/80 h-3 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                        <div id="level-progress-bar" class="bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400 h-full rounded-full transition-all duration-500 w-[10%]"></div>
+                    </div>
+                </div>
+
+                <!-- PROBLEM DISPLAY BOX -->
+                <div class="my-6 text-center">
+                    <div class="inline-block px-3 py-1 bg-slate-800/80 border border-amber-500/30 rounded-full text-xs font-bold text-amber-300/90 mb-3">
+                        <i class="fa-solid fa-calculator mr-1"></i> <span id="problem-category-tag">기초 개념 익히기</span>
+                    </div>
+                    <h2 id="problem-text" class="text-2xl sm:text-4xl font-black tracking-wide text-white math-font leading-relaxed">
+                        5 + 3 = ?
+                    </h2>
+                    <!-- Sub details or hint if unlocked -->
+                    <div id="hint-box" class="hidden mt-3 p-2.5 rounded-xl bg-amber-950/50 border border-amber-500/40 text-amber-200 text-xs text-center">
+                        💡 <span id="hint-text">손가락을 차근차근 세어보거나 5에서 3만큼 더 가봐!</span>
+                    </div>
+                </div>
+
+                <!-- OPTIONS BUTTONS GRID -->
+                <div>
+                    <div id="options-grid" class="grid grid-cols-2 gap-3 mb-3">
+                        <!-- Dynamic 4 Options inserted by JS -->
+                    </div>
+
+                    <!-- Bottom Action Controls -->
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-700/60">
+                        <button id="hint-btn" class="text-xs text-amber-300/80 hover:text-amber-300 font-bold flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-amber-500/20 transition">
+                            <i class="fa-regular fa-lightbulb text-amber-400"></i>
+                            <span>힌트 보기</span>
+                        </button>
+
+                        <button id="skip-btn" class="text-xs text-slate-400 hover:text-slate-200 font-bold px-3 py-1.5 rounded-xl hover:bg-slate-800/60 transition">
+                            다음 문제로 넘어갈래 <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script>
+        // MATH UNITS & PROGRESSIVE PROBLEM DATABASE (Easy -> Hard 10 Steps per Unit)
+        const UNITS = [
+            {
+                id: 'unit1',
+                title: '1. 덧셈과 뺄셈',
+                desc: '기초 수 감각 익히기',
+                icon: '➕',
+                problems: [
+                    { level: 1, tag: "기초", q: "3 + 4 = ?", opts: ["5", "6", "7", "8"], ans: 2, hint: "3에서 4를 하나씩 세어서 더해보렴!" },
+                    { level: 2, tag: "기초", q: "10 - 4 = ?", opts: ["5", "6", "7", "8"], ans: 1, hint: "10개에서 4개를 빼면 몇 개가 남을까?" },
+                    { level: 3, tag: "기본", q: "15 + 8 = ?", opts: ["21", "22", "23", "24"], ans: 2, hint: "5와 8을 먼저 더하면 13이 되지!" },
+                    { level: 4, tag: "기본", q: "30 - 13 = ?", opts: ["15", "17", "18", "19"], ans: 1, hint: "30에서 10을 먼저 빼고 3을 더 빼보자!" },
+                    { level: 5, tag: "응용", q: "45 + 27 = ?", opts: ["62", "72", "82", "71"], ans: 1, hint: "40+20=60, 5+7=12 다 더하면?" },
+                    { level: 6, tag: "응용", q: "100 - 37 = ?", opts: ["61", "63", "67", "73"], ans: 1, hint: "100에서 30을 빼면 70, 거기서 7을 더 빼봐!" },
+                    { level: 7, tag: "심화 진입", q: "(12 + 18) - 9 = ?", opts: ["19", "21", "23", "25"], ans: 1, hint: "괄호 안의 (12+18=30)을 먼저 계산해야 해!" },
+                    { level: 8, tag: "심화", q: "125 + 45 - 30 = ?", opts: ["130", "140", "150", "160"], ans: 1, hint: "125 + 45 = 170 한 뒤 30을 빼자!" },
+                    { level: 9, tag: "고난도", q: "어떤 수에 15를 더해야 하는데 잘못하여 뺐더니 20이 되었습니다. 바른 답은?", opts: ["35", "50", "40", "60"], ans: 1, hint: "원래의 어떤 수 = 20 + 15 = 35! 그럼 바른 답은 35 + 15!" },
+                    { level: 10, tag: "🔥 최상위 마스터", q: "1부터 10까지 모두 더한 값은 얼마일까요?", opts: ["45", "50", "55", "60"], ans: 2, hint: "(1+10) + (2+9) ... 11이 5쌍 있단다!" }
+                ]
+            },
+            {
+                id: 'unit2',
+                title: '2. 곱셈구구와 분수',
+                desc: '구구단과 쪼개어 나타내기',
+                icon: '✖️',
+                problems: [
+                    { level: 1, tag: "기초", q: "2 × 4 = ?", opts: ["6", "8", "10", "12"], ans: 1, hint: "2를 4번 더해보자! 2+2+2+2" },
+                    { level: 2, tag: "기초", q: "6 × 3 = ?", opts: ["16", "18", "20", "24"], ans: 1, hint: "6단 구구단! 6일은 6, 6이 12, 6삼..." },
+                    { level: 3, tag: "기본", q: "7 × 8 = ?", opts: ["54", "56", "58", "64"], ans: 1, hint: "칠팔에 쉰여섯!" },
+                    { level: 4, tag: "기본", q: "피자 8조각 중 2조각을 분수로 나타내면?", opts: ["1/2", "1/4", "1/8", "3/8"], ans: 1, hint: "2/8 약분하면 위아래를 2로 나눠봐!" },
+                    { level: 5, tag: "응용", q: "12 × 5 = ?", opts: ["50", "60", "70", "80"], ans: 1, hint: "10 × 5 = 50, 2 × 5 = 10 더하면?" },
+                    { level: 6, tag: "응용", q: "1/3 + 1/3 = ?", opts: ["2/6", "2/3", "1/6", "1"], ans: 1, hint: "분모가 같을 땐 분자끼리 더하면 돼!" },
+                    { level: 7, tag: "심화 진입", q: "1/2 + 1/4 = ?", opts: ["2/4", "3/4", "2/6", "1"], ans: 1, hint: "1/2을 통분하여 2/4로 만들고 더해보자!" },
+                    { level: 8, tag: "심화", q: "15 × 12 = ?", opts: ["160", "170", "180", "190"], ans: 2, hint: "15 × 10 = 150, 15 × 2 = 30 다 더하면!" },
+                    { level: 9, tag: "고난도", q: "3/5 곱하기 10 은 얼마일까요?", opts: ["5", "6", "8", "10"], ans: 1, hint: "3/5 × 10 = (3 × 10) ÷ 5 = 30 ÷ 5" },
+                    { level: 10, tag: "🔥 최상위 마스터", q: "(2/3) ÷ (1/6) = ?", opts: ["2", "3", "4", "6"], ans: 2, hint: "나눗셈은 곱셈으로 바꿔서 역수를 곱하자! (2/3) × 6 = 4" }
+                ]
+            },
+            {
+                id: 'unit3',
+                title: '3. 일차방정식',
+                desc: '미지수 x값 구하기',
+                icon: '🔍',
+                problems: [
+                    { level: 1, tag: "기초", q: "x + 3 = 7 일 때, x = ?", opts: ["2", "3", "4", "5"], ans: 2, hint: "3에 무엇을 더해야 7이 될까?" },
+                    { level: 2, tag: "기초", q: "2x = 10 일 때, x = ?", opts: ["3", "4", "5", "6"], ans: 2, hint: "2에 무엇을 곱해야 10이 될까?" },
+                    { level: 3, tag: "기본", q: "x - 5 = 8 일 때, x = ?", opts: ["11", "12", "13", "14"], ans: 2, hint: "-5를 오른쪽으로 이항하면 +5가 되지!" },
+                    { level: 4, tag: "기본", q: "3x + 2 = 11 일 때, x = ?", opts: ["2", "3", "4", "5"], ans: 1, hint: "3x = 11 - 2 = 9 이므로 x는?" },
+                    { level: 5, tag: "응용", q: "5x - 4 = 2x + 5 일 때, x = ?", opts: ["2", "3", "4", "5"], ans: 1, hint: "2x를 좌변으로 이항 3x = 9!" },
+                    { level: 6, tag: "응용", q: "2(x + 3) = 14 일 때, x = ?", opts: ["3", "4", "5", "6"], ans: 1, hint: "양변을 2로 나누면 x + 3 = 7 이 돼!" },
+                    { level: 7, tag: "심화 진입", q: "x/4 + 2 = 5 일 때, x = ?", opts: ["8", "10", "12", "16"], ans: 2, hint: "x/4 = 3 이므로 양변에 4를 곱해보렴!" },
+                    { level: 8, tag: "심화", q: "3(2x - 1) = 4x + 7 일 때, x = ?", opts: ["3", "4", "5", "6"], ans: 2, hint: "6x - 3 = 4x + 7 이므로 2x = 10!" },
+                    { level: 9, tag: "고난도", q: "연속하는 세 자연수의 합이 36일 때, 가장 큰 수는?", opts: ["11", "12", "13", "14"], ans: 2, hint: "세 수를 (x-1), x, (x+1)로 두면 합은 3x = 36 -> x=12. 가장 큰 수는 x+1!" },
+                    { level: 10, tag: "🔥 최상위 마스터", q: "0.4x - 0.6 = 0.2x + 0.4 일 때, x = ?", opts: ["3", "4", "5", "6"], ans: 2, hint: "양변에 10을 곱하면 4x - 6 = 2x + 4 -> 2x = 10!" }
+                ]
+            },
+            {
+                id: 'unit4',
+                title: '4. 도형과 피타고라스',
+                desc: '각도, 넓이, 빗변의 공식',
+                icon: '📐',
+                problems: [
+                    { level: 1, tag: "기초", q: "삼각형 세 내각의 합은 몇 도일까요?", opts: ["90°", "180°", "270°", "360°"], ans: 1, hint: "모든 삼각형의 세 각을 합치면 평평한 일직선이 돼!" },
+                    { level: 2, tag: "기초", q: "밑변 6, 높이 4인 삼각형의 넓이는?", opts: ["10", "12", "24", "18"], ans: 1, hint: "삼각형 넓이 = (밑변 × 높이) ÷ 2" },
+                    { level: 3, tag: "기본", q: "직사각형 가로 8, 세로 5의 둘레의 길이는?", opts: ["26", "40", "20", "30"], ans: 0, hint: "둘레 = (8 + 5) × 2" },
+                    { level: 4, tag: "기본", q: "반지름이 5cm인 원의 넓이는? (π=3으로 계산)", opts: ["30", "75", "100", "50"], ans: 1, hint: "원 넓이 = 반지름 × 반지름 × π (5×5×3)" },
+                    { level: 5, tag: "응용", q: "직각삼각형의 두 직각변이 3, 4일 때 빗변 c는?", opts: ["5", "6", "7", "8"], ans: 0, hint: "피타고라스 정리: a² + b² = c² (9 + 16 = 25)" },
+                    { level: 6, tag: "응용", q: "정육각형의 한 내각의 크기는 몇 도일까요?", opts: ["100°", "108°", "120°", "135°"], ans: 2, hint: "다각형 내각 합 = 180 × (6-2) = 720°. 6으로 나누면?" },
+                    { level: 7, tag: "심화 진입", q: "직각삼각형에서 빗변이 10, 한 변이 6일 때 남은 변은?", opts: ["7", "8", "9", "8.5"], ans: 1, hint: "6² + x² = 10² -> 36 + x² = 100 -> x² = 64" },
+                    { level: 8, tag: "심화", q: "사다리꼴 (윗변 4, 아랫변 8, 높이 5)의 넓이는?", opts: ["25", "30", "35", "40"], ans: 1, hint: "넓이 = (윗변 + 아랫변) × 높이 ÷ 2 = 12 × 5 ÷ 2" },
+                    { level: 9, tag: "고난도", q: "한 변의 길이가 6인 정삼각형의 높이는?", opts: ["3√2", "3√3", "4√3", "6"], ans: 1, hint: "높이 = (√3 / 2) × 한 변의 길이 = (√3 / 2) × 6" },
+                    { level: 10, tag: "🔥 최상위 마스터", q: "반지름 6, 중심각 120°인 부채꼴의 호의 길이는?", opts: ["2π", "4π", "6π", "8π"], ans: 1, hint: "원주(2πr) × (120/360) = 12π × (1/3) = 4π" }
+                ]
+            },
+            {
+                id: 'unit5',
+                title: '5. 확률과 통계',
+                desc: '경우의 수와 평균 계산',
+                icon: '🎲',
+                problems: [
+                    { level: 1, tag: "기초", q: "주사위 1개를 던질 때, 홀수가 나올 경우의 수는?", opts: ["1가지", "2가지", "3가지", "6가지"], ans: 2, hint: "주사위의 홀수는 1, 3, 5 세 가지가 있어!" },
+                    { level: 2, tag: "기초", q: "동전 1개를 던질 때 앞면이 나올 확률은?", opts: ["1/4", "1/2", "1/3", "1"], ans: 1, hint: "전체 경우(앞,뒤 2가지) 중 앞면은 1가지!" },
+                    { level: 3, tag: "기본", q: "수학 점수 80점, 90점, 100점의 평균은?", opts: ["85점", "90점", "95점", "100점"], ans: 1, hint: "다 더해서(270) 개수(3)로 나누면 돼!" },
+                    { level: 4, tag: "기본", q: "주사위 1개를 던져 4 이하가 나올 확률은?", opts: ["1/2", "2/3", "1/3", "5/6"], ans: 1, hint: "1, 2, 3, 4 총 4가지 -> 4/6 약분하면 2/3!" },
+                    { level: 5, tag: "응용", q: "동전 2개를 동시에 던질 때 둘 다 앞면일 확률은?", opts: ["1/2", "1/3", "1/4", "1/8"], ans: 2, hint: "전체 4가지 (앞앞, 앞뒤, 뒤앞, 뒤뒤) 중 (앞앞) 1가지!" },
+                    { level: 6, tag: "응용", q: "4명의 학생 중 대표 2명을 뽑는 경우의 수는?", opts: ["4가지", "6가지", "8가지", "12가지"], ans: 1, hint: "(4 × 3) ÷ 2 = 6가지!" },
+                    { level: 7, tag: "심화 진입", q: "주사위 2개를 던져 눈의 합이 7이 되는 경우의 수는?", opts: ["4가지", "5가지", "6가지", "7가지"], ans: 2, hint: "(1,6), (2,5), (3,4), (4,3), (5,2), (6,1) 6가지!" },
+                    { level: 8, tag: "심화", q: "5명의 시험 평균이 80점일 때, 총점은 몇 점일까?", opts: ["380점", "400점", "420점", "450점"], ans: 1, hint: "총점 = 평균 × 명수 = 80 × 5" },
+                    { level: 9, tag: "고난도", q: "윷놀이에서 윷을 던졌을 때 '개'가 나올 확률은?", opts: ["1/16", "4/16", "6/16", "8/16"], ans: 2, hint: "등 2개, 배 2개 나오는 경우 = 4C2 / 2⁴ = 6/16 = 3/8" },
+                    { level: 10, tag: "🔥 최상위 마스터", q: "남학생 3명, 여학생 2명을 한 줄로 세울 때 여학생끼리 이웃할 확률은?", opts: ["1/5", "2/5", "3/5", "1/2"], ans: 1, hint: "여학생 2명을 1명으로 묶어서 계산하면 4! × 2! / 5! = 2/5" }
+                ]
+            },
+            {
+                id: 'unit6',
+                title: '6. 이차방정식과 함수',
+                desc: '중고등 수학의 핵심 도전',
+                icon: '📈',
+                problems: [
+                    { level: 1, tag: "기초", q: "y = 2x + 1 일 때, x = 3 이면 y = ?", opts: ["5", "6", "7", "8"], ans: 2, hint: "x에 3을 넣어서 계산해봐! 2×3 + 1" },
+                    { level: 2, tag: "기초", q: "x² = 16 (x > 0) 일 때 x의 값은?", opts: ["2", "3", "4", "8"], ans: 2, hint: "같은 수를 두 번 곱해서 16이 되는 양수는?" },
+                    { level: 3, tag: "기본", q: "일차함수 y = -3x + 6의 x절편은?", opts: ["2", "3", "-2", "6"], ans: 0, hint: "y = 0 일 때의 x값을 구하면 돼! 0 = -3x + 6" },
+                    { level: 4, tag: "기본", q: "x² - 5x + 6 = 0 의 두 근의 합은?", opts: ["5", "-5", "6", "-6"], ans: 0, hint: "근과 계수와의 관계: 두 근의 합 = -b/a = -(-5)/1 = 5" },
+                    { level: 5, tag: "응용", q: "(x - 2)(x - 4) = 0 의 두 해 x는?", opts: ["2 또는 4", "-2 또는 -4", "2 또는 -4", "6"], ans: 0, hint: "각 괄호가 0이 되는 x의 값을 찾으렴!" },
+                    { level: 6, tag: "응용", q: "이차함수 y = (x - 3)² + 2 의 꼭짓점 좌표는?", opts: ["(3, 2)", "(-3, 2)", "(3, -2)", "(0, 2)"], ans: 0, hint: "표준형 y = (x - p)² + q 에서 꼭짓점은 (p, q)" },
+                    { level: 7, tag: "심화 진입", q: "x² - 9 = 0 의 양수해 x = ?", opts: ["3", "9", "-3", "81"], ans: 0, hint: "x² = 9 이므로 제곱해서 9가 되는 양수는 3!" },
+                    { level: 8, tag: "심화", q: "x² + 4x + 4 = 0 의 해(중근)는?", opts: ["x = 2", "x = -2", "x = 4", "x = -4"], ans: 1, hint: "(x + 2)² = 0 이므로 x = -2!" },
+                    { level: 9, tag: "고난도", q: "y = x² - 4x + 5 의 최솟값은?", opts: ["1", "2", "3", "5"], ans: 0, hint: "y = (x - 2)² + 1 로 변형하면 최솟값은 1!" },
+                    { level: 10, tag: "🔥 최상위 마스터", q: "x² - 2x - 1 = 0 의 근의 공식 해 중 양수는?", opts: ["1 + √2", "1 + √3", "2 + √2", "√2"], ans: 0, hint: "x = [-b ± √(b² - 4ac)] / 2a = [2 ± √(4+4)]/2 = 1 ± √2" }
+                ]
+            }
+        ];
+
+        // APP STATE
+        let currentUnitIndex = 0;
+        let currentLevelIndex = 0; // 0 to 9 (Level 1 to 10)
+        let comboStreak = 0;
+        let totalStars = 0;
+        let hintUnlocked = false;
+
+        // Web Audio Synthesizer for sound effects
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'correct') {
+                // Happy high pop slash chime
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.25); // C6
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'wrong') {
+                // Low wrong buzz
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'levelUp') {
+                // Fanfare sound
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+                    gain.gain.setValueAtTime(0.15, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.35);
+                });
+            }
+        }
+
+        function renderUnitList() {
+            const container = document.getElementById('unit-list');
+            container.innerHTML = '';
+
+            UNITS.forEach((unit, idx) => {
+                const isSelected = idx === currentUnitIndex;
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left p-3 rounded-xl border transition-all flex items-center justify-between ${
+                    isSelected 
+                    ? 'bg-amber-500/20 border-amber-400 text-amber-200 font-bold shadow-lg shadow-amber-500/10' 
+                    : 'bg-slate-900/50 border-slate-700/80 text-slate-300 hover:bg-slate-800/80'
+                }`;
+
+                btn.innerHTML = `
+                    <div class="flex items-center space-x-2.5">
+                        <span class="text-xl">${unit.icon}</span>
+                        <div>
+                            <div class="text-xs font-bold">${unit.title}</div>
+                            <div class="text-[10px] text-slate-400">${unit.desc}</div>
+                        </div>
+                    </div>
+                    ${isSelected ? '<span class="text-amber-400 text-xs"><i class="fa-solid fa-chevron-right"></i></span>' : ''}
+                `;
+
+                btn.addEventListener('click', () => {
+                    currentUnitIndex = idx;
+                    currentLevelIndex = 0; // Reset to level 1 on unit change
+                    renderUnitList();
+                    loadCurrentProblem();
+                });
+
+                container.appendChild(btn);
+            });
+        }
+
+        function loadCurrentProblem() {
+            const unit = UNITS[currentUnitIndex];
+            const prob = unit.problems[currentLevelIndex];
+            hintUnlocked = false;
+
+            // Update Titles & Level Badges
+            document.getElementById('current-unit-title').innerText = unit.title;
+            document.getElementById('level-num').innerText = prob.level;
+            document.getElementById('problem-category-tag').innerText = prob.tag;
+
+            // Level Progress Bar
+            const percent = ((prob.level) / 10) * 100;
+            document.getElementById('level-progress-bar').style.width = `${percent}%`;
+
+            // Teacher Speech & Badge according to difficulty
+            const badgeEl = document.getElementById('difficulty-badge');
+            const speechEl = document.getElementById('teacher-speech');
+
+            if (prob.level <= 3) {
+                badgeEl.innerText = `${prob.level}단계: 초간단 난이도`;
+                badgeEl.className = "text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold";
+                speechEl.innerText = `"좋아! 1~3단계는 기본 개념이야! 가벼운 마음으로 샥샥 풀어봐!"`;
+            } else if (prob.level <= 6) {
+                badgeEl.innerText = `${prob.level}단계: 응용 난이도`;
+                badgeEl.className = "text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold";
+                speechEl.innerText = `"오호! 난이도가 점점 올라가고 있어! 방심하지 말고 실력을 보여줘!"`;
+            } else if (prob.level <= 9) {
+                badgeEl.innerText = `${prob.level}단계: 심화 도전`;
+                badgeEl.className = "text-[10px] bg-orange-500/20 text-orange-300 border border-orange-500/40 px-2 py-0.5 rounded-full font-bold";
+                speechEl.innerText = `"조금 고난도 문제야! 왼쪽 '손풀이장'에 직접 메모하면서 차근차근 계산해보렴!"`;
+            } else {
+                badgeEl.innerText = `10단계: 🔥 최상위 마스터`;
+                badgeEl.className = "text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold animate-pulse";
+                speechEl.innerText = `"대단해! 드디어 단원의 마지막 10단계 마스터 문제야! 집중해서 샥- 맞혀보자!"`;
+            }
+
+            // Problem Text
+            document.getElementById('problem-text').innerText = prob.q;
+
+            // Reset Hint
+            document.getElementById('hint-box').classList.add('hidden');
+            document.getElementById('hint-text').innerText = prob.hint;
+
+            // Options Grid
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+
+            prob.opts.forEach((optText, optIdx) => {
+                const optBtn = document.createElement('button');
+                optBtn.className = "w-full py-3.5 px-4 bg-slate-800/90 hover:bg-amber-500/20 border-2 border-slate-600/80 hover:border-amber-400 rounded-2xl text-base sm:text-lg font-bold text-white transition transform active:scale-95 shadow-md flex items-center justify-center space-x-2";
+                
+                optBtn.innerHTML = `
+                    <span class="w-6 h-6 rounded-full bg-slate-700 text-xs flex items-center justify-center font-bold text-slate-300">${optIdx + 1}</span>
+                    <span>${optText}</span>
+                `;
+
+                optBtn.addEventListener('click', () => handleAnswerCheck(optIdx));
+                grid.appendChild(optBtn);
+            });
+        }
+
+        function handleAnswerCheck(selectedIndex) {
+            const unit = UNITS[currentUnitIndex];
+            const prob = unit.problems[currentLevelIndex];
+            const board = document.getElementById('blackboard-panel');
+
+            if (selectedIndex === prob.ans) {
+                // CORRECT ANSWER!
+                playSound('correct');
+
+                // Visual Slash Pop Effect
+                const slash = document.getElementById('slash-overlay');
+                slash.classList.remove('opacity-0');
+                setTimeout(() => slash.classList.add('opacity-0'), 600);
+
+                // Update Score & Streak
+                comboStreak++;
+                totalStars += prob.level * 10;
+                document.getElementById('combo-count').innerText = `${comboStreak} 콤보`;
+                document.getElementById('star-count').innerText = `${totalStars}개`;
+
+                // Progress to Next Level
+                if (currentLevelIndex < 9) {
+                    currentLevelIndex++;
+                    setTimeout(() => {
+                        loadCurrentProblem();
+                    }, 500);
+                } else {
+                    // CHAPTER COMPLETED!
+                    playSound('levelUp');
+                    document.getElementById('teacher-speech').innerText = `🎉 축하해! ${unit.title}의 10단계를 모두 정복했어! 넌 수학 천재야!`;
+                    setTimeout(() => {
+                        // Move to next unit if available
+                        if (currentUnitIndex < UNITS.length - 1) {
+                            currentUnitIndex++;
+                            currentLevelIndex = 0;
+                            renderUnitList();
+                            loadCurrentProblem();
+                        } else {
+                            currentLevelIndex = 0;
+                            loadCurrentProblem();
+                        }
+                    }, 1800);
+                }
+
+            } else {
+                // WRONG ANSWER
+                playSound('wrong');
+                comboStreak = 0;
+                document.getElementById('combo-count').innerText = `0 콤보`;
+
+                board.classList.add('shake-effect');
+                setTimeout(() => board.classList.remove('shake-effect'), 400);
+
+                document.getElementById('teacher-speech').innerText = `"아쉬워! 힌트 단추를 누르거나 손풀이장에 다시 천천히 계산해 볼까?"`;
+            }
+        }
+
+        // SCRATCHPAD CANVAS LOGIC
+        const canvas = document.getElementById('scratch-canvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            ctx.strokeStyle = '#fef08a'; // Soft yellow chalk color
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startDraw(e) {
+            isDrawing = true;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const pos = getPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+        }
+
+        function stopDraw() {
+            isDrawing = false;
+        }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', stopDraw);
+
+        canvas.addEventListener('touchstart', startDraw);
+        canvas.addEventListener('touchmove', draw);
+        window.addEventListener('touchend', stopDraw);
+
+        document.getElementById('clear-canvas-btn').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        // Hint & Skip Button Handlers
+        document.getElementById('hint-btn').addEventListener('click', () => {
+            initAudio();
+            document.getElementById('hint-box').classList.remove('hidden');
+        });
+
+        document.getElementById('skip-btn').addEventListener('click', () => {
+            initAudio();
+            comboStreak = 0;
+            document.getElementById('combo-count').innerText = `0 콤보`;
+            if (currentLevelIndex < 9) {
+                currentLevelIndex++;
+            } else {
+                currentLevelIndex = 0;
+            }
+            loadCurrentProblem();
+        });
+
+        // INITIALIZATION ON LOAD
+        window.onload = function() {
+            resizeCanvas();
+            renderUnitList();
+            loadCurrentProblem();
+        };
+
+        window.onresize = function() {
+            resizeCanvas();
+        };
+    </script>
+</body>
+</html>

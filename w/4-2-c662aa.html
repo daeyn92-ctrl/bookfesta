@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>버려진 숲 - 3분의 생존</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Orbitron:wght@600;900&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .font-title {
+            font-family: 'Black Han Sans', sans-serif;
+        }
+        .font-num {
+            font-family: 'Orbitron', sans-serif;
+        }
+        body {
+            background-color: #030712;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: crosshair;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+        .blood-glow {
+            text-shadow: 0 0 15px rgba(239, 68, 68, 0.9);
+        }
+        .green-glow {
+            text-shadow: 0 0 15px rgba(34, 197, 94, 0.9);
+        }
+        .vignette-danger {
+            box-shadow: inset 0 0 80px rgba(239, 68, 68, 0.6);
+            animation: pulseDanger 1s infinite alternate;
+        }
+        @keyframes pulseDanger {
+            0% { box-shadow: inset 0 0 60px rgba(239, 68, 68, 0.4); }
+            100% { box-shadow: inset 0 0 110px rgba(239, 68, 68, 0.8); }
+        }
+        /* Mobile Joystick Styling */
+        .joystick-base {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+        }
+        .joystick-thumb {
+            background: rgba(239, 68, 68, 0.6);
+            border: 2px solid #ef4444;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #ef4444;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden bg-slate-950">
+
+    <!-- DANGER OVERLAY EFFECT -->
+    <div id="dangerOverlay" class="absolute inset-0 z-10 pointer-events-none opacity-0 transition-opacity duration-300 vignette-danger"></div>
+
+    <!-- GAME CANVAS -->
+    <canvas id="gameCanvas" class="absolute inset-0 z-0"></canvas>
+
+    <!-- HUD OVERLAY -->
+    <div id="hudOverlay" class="absolute top-4 left-4 right-4 z-20 flex justify-between items-start pointer-events-none">
+        
+        <!-- PLAYER STATUS PANEL -->
+        <div class="glass-panel rounded-2xl p-3 sm:p-4 flex items-center space-x-4 pointer-events-auto shadow-2xl">
+            <div class="relative w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 via-rose-700 to-slate-900 p-0.5 flex items-center justify-center shadow-lg">
+                <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                    <i class="fa-solid fa-person-running text-red-500 text-xl animate-pulse"></i>
+                </div>
+            </div>
+            <div class="flex flex-col space-y-1.5 w-36 sm:w-48">
+                <!-- HP Bar -->
+                <div class="flex justify-between items-center text-xs font-bold">
+                    <span class="text-red-400 font-title tracking-wider flex items-center gap-1">
+                        <i class="fa-solid fa-heart text-red-500"></i> 도망자 HP
+                    </span>
+                    <span id="hpText" class="text-slate-200 font-num">100 / 100</span>
+                </div>
+                <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-red-900/50">
+                    <div id="hpBar" class="bg-gradient-to-r from-red-600 to-rose-400 h-full w-full transition-all duration-200 shadow-[0_0_10px_#ef4444]"></div>
+                </div>
+
+                <!-- Stamina Bar -->
+                <div class="flex justify-between items-center text-[10px] font-bold text-slate-400">
+                    <span>스태미나 (Shift/질주)</span>
+                    <span id="staminaText" class="font-num text-cyan-400">100%</span>
+                </div>
+                <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-cyan-900/50">
+                    <div id="staminaBar" class="bg-gradient-to-r from-cyan-500 to-blue-400 h-full w-full transition-all duration-100"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TIMED SURVIVAL COUNTDOWN -->
+        <div class="glass-panel rounded-2xl px-5 py-3 text-center pointer-events-auto shadow-2xl border-2 border-red-500/40">
+            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1">
+                <i class="fa-solid fa-stopwatch text-red-500"></i> 생존 남은 시간
+            </div>
+            <div id="timerTxt" class="text-3xl sm:text-4xl font-num font-black text-red-500 blood-glow leading-none mt-1">03:00</div>
+        </div>
+
+        <!-- CONTROLS & SOUND BUTTONS -->
+        <div class="flex items-center space-x-2 pointer-events-auto">
+            <button onclick="toggleAudio()" id="audioBtn" class="glass-panel hover:bg-slate-800 text-slate-200 p-3 rounded-2xl border border-slate-800 text-sm transition active:scale-95 shadow-lg">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MOBILE TOUCH CONTROLS -->
+    <div id="mobileControls" class="sm:hidden absolute inset-0 z-20 pointer-events-none">
+        <!-- Joystick Area -->
+        <div id="moveTouchArea" class="absolute bottom-6 left-6 w-32 h-32 joystick-base pointer-events-auto flex items-center justify-center">
+            <div id="moveTouchThumb" class="w-12 h-12 joystick-thumb"></div>
+        </div>
+        <!-- Mobile Action Button (Sprint) -->
+        <div class="absolute bottom-8 right-8 pointer-events-auto">
+            <button id="btnMobileSprint" class="w-20 h-20 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 border-2 border-cyan-300 text-white flex flex-col items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.6)] active:scale-90">
+                <i class="fa-solid fa-bolt text-2xl"></i>
+                <span class="text-[10px] font-black mt-0.5">질주</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- START MENU MODAL -->
+    <div id="startMenuModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-4">
+        <div class="glass-panel border-2 border-red-600/60 rounded-3xl max-w-lg w-full p-8 text-center text-slate-100 shadow-[0_0_80px_rgba(239,68,68,0.4)] relative">
+            <div class="w-24 h-24 bg-gradient-to-tr from-red-800 via-rose-600 to-amber-600 rounded-3xl mx-auto flex items-center justify-center text-slate-950 text-5xl mb-4 shadow-[0_0_35px_rgba(239,68,68,0.8)] border-2 border-amber-200">
+                <i class="fa-solid fa-tree text-slate-950 animate-pulse"></i>
+            </div>
+            
+            <h1 class="text-5xl font-title text-red-500 blood-glow tracking-wider mb-2">버려진 숲</h1>
+            <p class="text-sm font-bold text-amber-400 mb-6">"살인마가 숲속 미로를 배회하고 있다. 3분간 목숨을 걸고 생존하라!"</p>
+
+            <div class="bg-slate-900/90 rounded-2xl p-4 border border-slate-800 text-left space-y-2 mb-6 text-xs text-slate-300">
+                <div class="flex items-center gap-2 text-red-400 font-bold text-sm border-b border-slate-800 pb-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> 탈출 수칙 및 미션
+                </div>
+                <p>• <b>도망자 HP:</b> 100 (살인자에게 습격당하면 감소)</p>
+                <p>• <b>제한 시간:</b> 3분 (03:00) 동안 미로 속에서 생존 시 성공</p>
+                <p>• <b>살인자의 추적:</b> 살인자가 가까워지면 심장 소리가 빨라집니다!</p>
+                <p>• <b>아이템 습득:</b> 숲 속에 떨어진 구급상자<i class="fa-solid fa-briefcase-medical text-emerald-400 mx-1"></i>와 에너지 드링크<i class="fa-solid fa-flask text-cyan-400 mx-1"></i>를 활용하세요.</p>
+                <p>• <b>조작법:</b> [WASD / 방향키] 이동 | [Shift / Space] 질주 모드</p>
+            </div>
+
+            <button onclick="startGame()" class="w-full bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 text-slate-950 font-black py-4 rounded-2xl text-xl shadow-[0_0_30px_rgba(239,68,68,0.7)] border-2 border-amber-200 transition active:scale-95">
+                <i class="fa-solid fa-play mr-2"></i> 도망치기 시작 (3분)
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER MODAL -->
+    <div id="gameOverModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl hidden flex items-center justify-center p-4">
+        <div class="glass-panel border-2 border-red-600 rounded-3xl max-w-md w-full p-8 text-center text-slate-100 shadow-[0_0_80px_rgba(239,68,68,0.6)]">
+            <div class="w-20 h-20 bg-red-950 border-2 border-red-500 rounded-full mx-auto flex items-center justify-center text-red-500 text-4xl mb-4 blood-glow">
+                <i class="fa-solid fa-skull"></i>
+            </div>
+            <h2 class="text-4xl font-title text-red-600 blood-glow mb-2">살해당했습니다</h2>
+            <p id="gameOverReason" class="text-xs text-slate-400 mb-6">버려진 숲의 살인자에게 잡혀 살해되었습니다.</p>
+
+            <div class="bg-slate-900/90 rounded-2xl p-4 border border-slate-800 space-y-2 mb-6">
+                <div class="flex justify-between text-xs font-bold text-slate-400">
+                    <span>버틴 시간</span>
+                    <span id="finalSurviveTime" class="text-amber-400 font-num">00:00</span>
+                </div>
+            </div>
+
+            <button onclick="restartGame()" class="w-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white font-black py-3.5 rounded-2xl text-base shadow-[0_0_25px_rgba(239,68,68,0.5)] border border-red-300 transition active:scale-95">
+                <i class="fa-solid fa-rotate-right mr-2"></i> 다시 도전하기
+            </button>
+        </div>
+    </div>
+
+    <!-- VICTORY MODAL -->
+    <div id="victoryModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl hidden flex items-center justify-center p-4">
+        <div class="glass-panel border-2 border-emerald-500 rounded-3xl max-w-md w-full p-8 text-center text-slate-100 shadow-[0_0_80px_rgba(34,197,94,0.5)]">
+            <div class="w-20 h-20 bg-emerald-950 border-2 border-emerald-400 rounded-full mx-auto flex items-center justify-center text-emerald-400 text-4xl mb-4 green-glow">
+                <i class="fa-solid fa-person-walking-arrow-right"></i>
+            </div>
+            <h2 class="text-4xl font-title text-emerald-400 green-glow mb-2">탈출 성공!</h2>
+            <p class="text-xs text-slate-300 mb-6">살인마의 추적을 피해 버려진 숲을 마침내 살아남았습니다!</p>
+
+            <div class="bg-slate-900/90 rounded-2xl p-4 border border-slate-800 space-y-2 mb-6">
+                <div class="flex justify-between text-xs font-bold text-slate-400">
+                    <span>최종 생존 시간</span>
+                    <span class="text-emerald-400 font-num">03:00 (성공)</span>
+                </div>
+                <div class="flex justify-between text-xs font-bold text-slate-400">
+                    <span>남은 HP</span>
+                    <span id="victoryHpTxt" class="text-red-400 font-num">100 / 100</span>
+                </div>
+            </div>
+
+            <button onclick="restartGame()" class="w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-500 text-slate-950 font-black py-3.5 rounded-2xl text-base shadow-[0_0_25px_rgba(34,197,94,0.5)] border border-emerald-300 transition active:scale-95">
+                <i class="fa-solid fa-rotate-right mr-2"></i> 다시 생존하기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // WEB AUDIO SYNTHESIZER FOR HEARTBEAT & IMPACT EFFECTS
+        let audioCtx = null;
+        let isMuted = false;
+        let lastHeartbeatTime = 0;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudio() {
+            isMuted = !isMuted;
+            const icon = document.getElementById('audioIcon');
+            if (isMuted) {
+                icon.className = 'fa-solid fa-volume-xmark text-red-400';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-slate-200';
+            }
+        }
+
+        // Heartbeat Sound Effect (Pitch & Frequency depends on Killer distance)
+        function triggerHeartbeat(proximityFactor) { // proximityFactor 0.0 ~ 1.0
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const interval = 1.2 - proximityFactor * 0.85; // Faster beats when close
+
+            if (now - lastHeartbeatTime >= interval) {
+                lastHeartbeatTime = now;
+
+                try {
+                    // Thump 1
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(60 + proximityFactor * 30, now);
+                    osc.frequency.exponentialRampToValueAtTime(20, now + 0.15);
+
+                    gain.gain.setValueAtTime(0.4 * (0.3 + proximityFactor * 0.7), now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+
+                    // Thump 2 (Secondary heartbeat pulse)
+                    setTimeout(() => {
+                        if (!audioCtx) return;
+                        const t2 = audioCtx.currentTime;
+                        const osc2 = audioCtx.createOscillator();
+                        const gain2 = audioCtx.createGain();
+                        osc2.type = 'sine';
+                        osc2.frequency.setValueAtTime(50 + proximityFactor * 25, t2);
+                        osc2.frequency.exponentialRampToValueAtTime(15, t2 + 0.12);
+
+                        gain2.gain.setValueAtTime(0.3 * (0.3 + proximityFactor * 0.7), t2);
+                        gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.12);
+
+                        osc2.connect(gain2);
+                        gain2.connect(audioCtx.destination);
+                        osc2.start(t2);
+                        osc2.stop(t2 + 0.12);
+                    }, 140);
+                } catch (e) {}
+            }
+        }
+
+        function playHitSFX() {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(30, now + 0.25);
+
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } catch (e) {}
+        }
+
+        function playPickupSFX() {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } catch (e) {}
+        }
+
+        // CANVAS & GAME SETUP
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // MAZE ENGINE (GRID BASED)
+        const TILE_SIZE = 64; // Pixels per wall cell
+        const MAZE_COLS = 25; // 25 columns
+        const MAZE_ROWS = 25; // 25 rows
+        let mazeGrid = [];
+
+        // Generate Maze using Recursive Backtracking Algorithm
+        function generateMaze(cols, rows) {
+            let grid = Array.from({ length: rows }, () => Array(cols).fill(1)); // 1 = Wall, 0 = Path
+
+            function walk(r, c) {
+                grid[r][c] = 0;
+                const dirs = [
+                    [-2, 0], [2, 0], [0, -2], [0, 2]
+                ].sort(() => Math.random() - 0.5);
+
+                for (let [dr, dc] of dirs) {
+                    let nr = r + dr;
+                    let nc = c + dc;
+                    if (nr > 0 && nr < rows - 1 && nc > 0 && nc < cols - 1 && grid[nr][nc] === 1) {
+                        grid[r + dr / 2][c + dc / 2] = 0;
+                        walk(nr, nc);
+                    }
+                }
+            }
+
+            walk(1, 1);
+            
+            // Create a few extra openings for loop paths in the forest
+            for (let r = 2; r < rows - 2; r += 2) {
+                for (let c = 2; c < cols - 2; c += 2) {
+                    if (Math.random() < 0.25) grid[r][c] = 0;
+                }
+            }
+
+            return grid;
+        }
+
+        // GAME STATE VARIABLES
+        let gameRunning = false;
+        let isPaused = false;
+        let gameTimeSeconds = 180; // 3 Minutes Countdown
+        let timerInterval = null;
+
+        // PLAYER OBJECT (도망자)
+        const player = {
+            x: TILE_SIZE * 1.5,
+            y: TILE_SIZE * 1.5,
+            radius: 14,
+            speed: 3.2,
+            sprintSpeed: 5.5,
+            hp: 100,
+            maxHp: 100,
+            stamina: 100,
+            maxStamina: 100,
+            isSprinting: false,
+            angle: 0
+        };
+
+        // KILLER OBJECT (살인자)
+        const killer = {
+            x: TILE_SIZE * (MAZE_COLS - 1.5),
+            y: TILE_SIZE * (MAZE_ROWS - 1.5),
+            radius: 18,
+            speed: 2.8,
+            rageSpeed: 3.8,
+            angle: 0,
+            attackCooldown: 0,
+            state: 'PATROL', // PATROL or CHASE
+            patrolTarget: { x: 0, y: 0 }
+        };
+
+        // ITEMS IN THE FOREST
+        let items = [];
+
+        // CONTROLS & INPUT
+        const keys = {};
+        const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        const moveStick = { active: false, startX: 0, startY: 0, vx: 0, vy: 0 };
+
+        window.addEventListener('keydown', (e) => {
+            initAudio();
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === 'Shift' || e.key === ' ') {
+                player.isSprinting = true;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+            if (e.key === 'Shift' || e.key === ' ') {
+                player.isSprinting = false;
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        // Touch Joystick Controls
+        const moveTouchArea = document.getElementById('moveTouchArea');
+        const moveTouchThumb = document.getElementById('moveTouchThumb');
+
+        moveTouchArea.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            initAudio();
+            const touch = e.touches[0];
+            const rect = moveTouchArea.getBoundingClientRect();
+            moveStick.active = true;
+            moveStick.startX = rect.left + rect.width / 2;
+            moveStick.startY = rect.top + rect.height / 2;
+            updateJoystick(touch.clientX, touch.clientY);
+        });
+
+        moveTouchArea.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (moveStick.active) {
+                const touch = e.touches[0];
+                updateJoystick(touch.clientX, touch.clientY);
+            }
+        });
+
+        const endStick = () => {
+            moveStick.active = false;
+            moveStick.vx = 0;
+            moveStick.vy = 0;
+            moveTouchThumb.style.transform = `translate(0px, 0px)`;
+        };
+
+        moveTouchArea.addEventListener('touchend', endStick);
+        moveTouchArea.addEventListener('touchcancel', endStick);
+
+        function updateJoystick(clientX, clientY) {
+            const dx = clientX - moveStick.startX;
+            const dy = clientY - moveStick.startY;
+            const dist = Math.hypot(dx, dy);
+            const maxRadius = 40;
+
+            const angle = Math.atan2(dy, dx);
+            const cappedDist = Math.min(dist, maxRadius);
+
+            const tx = Math.cos(angle) * cappedDist;
+            const ty = Math.sin(angle) * cappedDist;
+
+            moveTouchThumb.style.transform = `translate(${tx}px, ${ty}px)`;
+
+            moveStick.vx = (tx / maxRadius);
+            moveStick.vy = (ty / maxRadius);
+        }
+
+        document.getElementById('btnMobileSprint').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            initAudio();
+            player.isSprinting = true;
+        });
+
+        document.getElementById('btnMobileSprint').addEventListener('touchend', (e) => {
+            e.preventDefault();
+            player.isSprinting = false;
+        });
+
+        // Wall Collision Check Helper
+        function isWall(x, y, radius = 10) {
+            const points = [
+                { x: x - radius, y: y - radius },
+                { x: x + radius, y: y - radius },
+                { x: x - radius, y: y + radius },
+                { x: x + radius, y: y + radius }
+            ];
+
+            for (let p of points) {
+                const col = Math.floor(p.x / TILE_SIZE);
+                const row = Math.floor(p.y / TILE_SIZE);
+
+                if (row < 0 || row >= MAZE_ROWS || col < 0 || col >= MAZE_COLS) return true;
+                if (mazeGrid[row][col] === 1) return true;
+            }
+            return false;
+        }
+
+        // Spawn items in open maze locations
+        function spawnForestItems() {
+            items = [];
+            for (let i = 0; i < 8; i++) {
+                let r, c;
+                do {
+                    r = Math.floor(Math.random() * (MAZE_ROWS - 2)) + 1;
+                    c = Math.floor(Math.random() * (MAZE_COLS - 2)) + 1;
+                } while (mazeGrid[r][c] === 1);
+
+                items.push({
+                    x: (c + 0.5) * TILE_SIZE,
+                    y: (r + 0.5) * TILE_SIZE,
+                    type: Math.random() < 0.5 ? 'hp' : 'stamina'
+                });
+            }
+        }
+
+        function updatePhysics() {
+            if (!gameRunning || isPaused) return;
+
+            // 1. PLAYER MOVEMENT & STAMINA
+            let moveX = 0;
+            let moveY = 0;
+
+            if (keys['w'] || keys['arrowup']) moveY -= 1;
+            if (keys['s'] || keys['arrowdown']) moveY += 1;
+            if (keys['a'] || keys['arrowleft']) moveX -= 1;
+            if (keys['d'] || keys['arrowright']) moveX += 1;
+
+            if (moveStick.active) {
+                moveX = moveStick.vx;
+                moveY = moveStick.vy;
+            }
+
+            // Sprinting Mechanic
+            let currentSpeed = player.speed;
+            if (player.isSprinting && player.stamina > 0 && (moveX !== 0 || moveY !== 0)) {
+                currentSpeed = player.sprintSpeed;
+                player.stamina = Math.max(0, player.stamina - 0.6);
+            } else {
+                player.stamina = Math.min(player.maxStamina, player.stamina + 0.25);
+            }
+
+            const len = Math.hypot(moveX, moveY);
+            if (len > 0) {
+                const dx = (moveX / (len > 1 ? len : 1)) * currentSpeed;
+                const dy = (moveY / (len > 1 ? len : 1)) * currentSpeed;
+
+                // Axis-aligned wall sliding movement
+                if (!isWall(player.x + dx, player.y, player.radius)) {
+                    player.x += dx;
+                }
+                if (!isWall(player.x, player.y + dy, player.radius)) {
+                    player.y += dy;
+                }
+            }
+
+            // Player Aim Facing Angle (Follows Mouse or Touch Direction)
+            if (moveStick.active && Math.hypot(moveStick.vx, moveStick.vy) > 0.1) {
+                player.angle = Math.atan2(moveStick.vy, moveStick.vx);
+            } else {
+                const screenCenterX = canvas.width / 2;
+                const screenCenterY = canvas.height / 2;
+                player.angle = Math.atan2(mouse.y - screenCenterY, mouse.x - screenCenterX);
+            }
+
+            // 2. KILLER AI LOGIC (살인자)
+            const distToPlayer = Math.hypot(player.x - killer.x, player.y - killer.y);
+            
+            // Heartbeat audio & UI Vignette proportional to proximity (closer = stronger)
+            const proximityFactor = Math.max(0, 1 - distToPlayer / 600);
+            if (proximityFactor > 0) {
+                triggerHeartbeat(proximityFactor);
+                document.getElementById('dangerOverlay').style.opacity = proximityFactor * 0.9;
+            } else {
+                document.getElementById('dangerOverlay').style.opacity = 0;
+            }
+
+            // State Machine for Killer: CHASE or PATROL
+            if (distToPlayer < 320) {
+                killer.state = 'CHASE';
+            } else if (distToPlayer > 500) {
+                killer.state = 'PATROL';
+            }
+
+            let targetX, targetY;
+            if (killer.state === 'CHASE') {
+                targetX = player.x;
+                targetY = player.y;
+            } else {
+                // Patrol random point in maze
+                if (!killer.patrolTarget.x || Math.hypot(killer.x - killer.patrolTarget.x, killer.y - killer.patrolTarget.y) < 30) {
+                    let r, c;
+                    do {
+                        r = Math.floor(Math.random() * (MAZE_ROWS - 2)) + 1;
+                        c = Math.floor(Math.random() * (MAZE_COLS - 2)) + 1;
+                    } while (mazeGrid[r][c] === 1);
+                    killer.patrolTarget = { x: (c + 0.5) * TILE_SIZE, y: (r + 0.5) * TILE_SIZE };
+                }
+                targetX = killer.patrolTarget.x;
+                targetY = killer.patrolTarget.y;
+            }
+
+            // Move Killer towards Target with collision
+            const kAngle = Math.atan2(targetY - killer.y, targetX - killer.x);
+            killer.angle = kAngle;
+            
+            const kSpeed = killer.state === 'CHASE' ? killer.rageSpeed : killer.speed;
+            const kdx = Math.cos(kAngle) * kSpeed;
+            const kdy = Math.sin(kAngle) * kSpeed;
+
+            if (!isWall(killer.x + kdx, killer.y, killer.radius)) {
+                killer.x += kdx;
+            }
+            if (!isWall(killer.x, killer.y + kdy, killer.radius)) {
+                killer.y += kdy;
+            }
+
+            // 3. KILLER ATTACKING PLAYER
+            if (killer.attackCooldown > 0) killer.attackCooldown--;
+
+            if (distToPlayer < player.radius + killer.radius + 5) {
+                if (killer.attackCooldown <= 0) {
+                    player.hp -= 25; // Massive hit
+                    killer.attackCooldown = 45; // 0.75 sec cooldown
+                    playHitSFX();
+                    updateHUD();
+
+                    if (player.hp <= 0) {
+                        gameOver("살인자에게 미로 속에서 잡혀 습격당했습니다!");
+                        return;
+                    }
+                }
+            }
+
+            // 4. ITEM PICKUPS
+            for (let i = items.length - 1; i >= 0; i--) {
+                const item = items[i];
+                if (Math.hypot(player.x - item.x, player.y - item.y) < player.radius + 15) {
+                    playPickupSFX();
+                    if (item.type === 'hp') {
+                        player.hp = Math.min(player.maxHp, player.hp + 30);
+                    } else if (item.type === 'stamina') {
+                        player.stamina = player.maxStamina;
+                    }
+                    updateHUD();
+                    items.splice(i, 1);
+                }
+            }
+
+            updateHUD();
+        }
+
+        function updateHUD() {
+            document.getElementById('hpText').innerText = `${Math.max(0, Math.floor(player.hp))} / 100`;
+            document.getElementById('hpBar').style.width = `${Math.max(0, (player.hp / player.maxHp) * 100)}%`;
+            document.getElementById('staminaText').innerText = `${Math.floor(player.stamina)}%`;
+            document.getElementById('staminaBar').style.width = `${Math.max(0, (player.stamina / player.maxStamina) * 100)}%`;
+        }
+
+        function render() {
+            // Guard check to ensure maze grid is generated before rendering
+            if (!mazeGrid || mazeGrid.length === 0) return;
+
+            // Camera Centered on Player
+            const cameraX = player.x - canvas.width / 2;
+            const cameraY = player.y - canvas.height / 2;
+
+            ctx.save();
+            ctx.translate(-cameraX, -cameraY);
+
+            // Dark Forest Floor
+            ctx.fillStyle = '#050c0a';
+            ctx.fillRect(cameraX, cameraY, canvas.width, canvas.height);
+
+            // Render Maze Trees / Walls
+            const startCol = Math.max(0, Math.floor(cameraX / TILE_SIZE));
+            const endCol = Math.min(MAZE_COLS, Math.ceil((cameraX + canvas.width) / TILE_SIZE));
+            const startRow = Math.max(0, Math.floor(cameraY / TILE_SIZE));
+            const endRow = Math.min(MAZE_ROWS, Math.ceil((cameraY + canvas.height) / TILE_SIZE));
+
+            for (let r = startRow; r < endRow; r++) {
+                for (let c = startCol; c < endCol; c++) {
+                    if (mazeGrid[r][c] === 1) {
+                        // Dense Dark Forest Trees / Wall
+                        ctx.fillStyle = '#0f1f18';
+                        ctx.fillRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+                        // Tree Border Bark Detail
+                        ctx.strokeStyle = '#040d08';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+                        ctx.fillStyle = '#162e24';
+                        ctx.beginPath();
+                        ctx.arc((c + 0.5) * TILE_SIZE, (r + 0.5) * TILE_SIZE, TILE_SIZE * 0.35, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        // Dirt Trail Path
+                        ctx.fillStyle = '#0a1410';
+                        ctx.fillRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                    }
+                }
+            }
+
+            // Draw Items
+            for (let item of items) {
+                ctx.fillStyle = item.type === 'hp' ? '#22c55e' : '#06b6d4';
+                ctx.beginPath();
+                ctx.arc(item.x, item.y, 8 + Math.sin(Date.now() * 0.008) * 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Icon label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(item.type === 'hp' ? '+' : '⚡', item.x, item.y + 3);
+            }
+
+            // Draw Killer (살인자)
+            ctx.save();
+            ctx.translate(killer.x, killer.y);
+            ctx.rotate(killer.angle);
+
+            // Killer Shadow Body
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(0, 0, killer.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#7f1d1d';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Terrifying Glowing Red Eyes
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(6, -6, 4, 0, Math.PI * 2);
+            ctx.arc(6, 6, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(7, -6, 2, 0, Math.PI * 2);
+            ctx.arc(7, 6, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            // Draw Player (도망자)
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+
+            // Player Body Circle
+            ctx.fillStyle = '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#e0f2fe';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Player Vision Direction Indicator
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(4, -2, 10, 4);
+
+            ctx.restore();
+
+            // DARK FOG OF WAR & FLASHLIGHT EFFECT
+            ctx.restore(); // Restore camera translate for screen overlay gradient
+
+            ctx.save();
+            const screenPX = canvas.width / 2;
+            const screenPY = canvas.height / 2;
+
+            // Flashlight Cone Light Mask
+            ctx.fillStyle = 'rgba(3, 7, 18, 0.94)'; // Pitch dark forest ambient
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.globalCompositeOperation = 'destination-out';
+
+            // Flashlight Light Cone
+            const flashAngle = player.angle;
+            const coneAngle = Math.PI / 3.5; // 50 degree flashlight beam
+            const flashDist = 320;
+
+            ctx.beginPath();
+            ctx.moveTo(screenPX, screenPY);
+            ctx.arc(screenPX, screenPY, flashDist, flashAngle - coneAngle / 2, flashAngle + coneAngle / 2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Immediate Proximity Ambient Light around player
+            const radialLight = ctx.createRadialGradient(screenPX, screenPY, 10, screenPX, screenPY, 80);
+            radialLight.addColorStop(0, 'rgba(0,0,0,1)');
+            radialLight.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = radialLight;
+            ctx.beginPath();
+            ctx.arc(screenPX, screenPY, 80, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            updatePhysics();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateTimer() {
+            if (!gameRunning || isPaused) return;
+
+            gameTimeSeconds--;
+
+            const mins = Math.floor(gameTimeSeconds / 60);
+            const secs = gameTimeSeconds % 60;
+            document.getElementById('timerTxt').innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+            if (gameTimeSeconds <= 0) {
+                victory();
+            }
+        }
+
+        function startGame() {
+            document.getElementById('startMenuModal').classList.add('hidden');
+            resetGame();
+            gameRunning = true;
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('victoryModal').classList.add('hidden');
+            resetGame();
+            gameRunning = true;
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function resetGame() {
+            if (timerInterval) clearInterval(timerInterval);
+
+            mazeGrid = generateMaze(MAZE_COLS, MAZE_ROWS);
+            gameTimeSeconds = 180; // 3 Minutes
+
+            player.x = TILE_SIZE * 1.5;
+            player.y = TILE_SIZE * 1.5;
+            player.hp = 100;
+            player.stamina = 100;
+
+            killer.x = TILE_SIZE * (MAZE_COLS - 1.5);
+            killer.y = TILE_SIZE * (MAZE_ROWS - 1.5);
+            killer.state = 'PATROL';
+
+            spawnForestItems();
+            updateHUD();
+
+            document.getElementById('timerTxt').innerText = "03:00";
+            document.getElementById('dangerOverlay').style.opacity = 0;
+        }
+
+        function gameOver(reason) {
+            gameRunning = false;
+            if (timerInterval) clearInterval(timerInterval);
+
+            const elapsed = 180 - gameTimeSeconds;
+            const mins = Math.floor(elapsed / 60);
+            const secs = elapsed % 60;
+
+            document.getElementById('gameOverReason').innerText = reason;
+            document.getElementById('finalSurviveTime').innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            document.getElementById('gameOverModal').classList.remove('hidden');
+        }
+
+        function victory() {
+            gameRunning = false;
+            if (timerInterval) clearInterval(timerInterval);
+
+            document.getElementById('victoryHpTxt').innerText = `${Math.floor(player.hp)} / 100`;
+            document.getElementById('victoryModal').classList.remove('hidden');
+        }
+
+        // START ENGINE LOOP
+        window.onload = function() {
+            resetGame();
+            gameRunning = false; // Stay on start menu until user clicks start
+            gameLoop();
+        };
+    </script>
+</body>
+</html>

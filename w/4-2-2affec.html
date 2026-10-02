@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>우현 피크 풀샥 (Woohyeon Peak Full-Suspension)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .font-num {
+            font-family: 'Orbitron', sans-serif;
+        }
+        body {
+            background-color: #0b0f19;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        /* Custom Glowing & Glass Effects */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .kashima-gold {
+            background: linear-gradient(135deg, #fef08a, #f59e0b, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gold-glow {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+        }
+        /* Touch Controls Overlay Pulse */
+        .control-btn:active {
+            transform: scale(0.92);
+            filter: brightness(1.3);
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden bg-slate-950">
+
+    <!-- GAME CANVAS -->
+    <canvas id="gameCanvas" class="absolute inset-0 z-0"></canvas>
+
+    <!-- TOP HUD: TELEMETRY & SUSPENSION METRICS -->
+    <div class="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        
+        <!-- BRAND & RIDER BADGE -->
+        <div class="glass-panel rounded-2xl px-4 py-2 flex items-center space-x-3 pointer-events-auto border-amber-500/50 shadow-lg">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 via-amber-400 to-yellow-200 p-0.5 shadow-md">
+                <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                    <i class="fa-solid fa-bicycle text-amber-400 text-lg"></i>
+                </div>
+            </div>
+            <div>
+                <div class="text-xs font-bold text-amber-400 tracking-wider flex items-center gap-1">
+                    <span>WOOHYEON PEAK</span>
+                    <span class="bg-amber-500/20 text-amber-300 text-[9px] px-1.5 py-0.2 rounded border border-amber-400/40">FULL-SUS</span>
+                </div>
+                <h1 class="text-lg font-black tracking-tight text-white font-num flex items-center gap-2">
+                    우현 피크 풀샥 <span class="text-xs font-normal text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/40">무적 댐퍼 가동중</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- LIVE SUSPENSION TELEMETRY (FRONT & REAR TRAVEL) -->
+        <div class="glass-panel rounded-2xl p-2.5 px-4 flex items-center space-x-4 pointer-events-auto shadow-lg">
+            <!-- Front Fork -->
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">FRONT FORK</span>
+                <div class="w-16 bg-slate-800 rounded-full h-2.5 my-1 overflow-hidden border border-amber-500/30">
+                    <div id="frontShockBar" class="bg-gradient-to-r from-amber-400 to-amber-200 h-full w-1/2 transition-all duration-75"></div>
+                </div>
+                <span id="frontShockTxt" class="text-xs font-num font-bold text-amber-300">0%</span>
+            </div>
+
+            <div class="h-8 w-[1px] bg-slate-700/80"></div>
+
+            <!-- Rear Shock -->
+            <div class="flex flex-col items-center">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">REAR SHOCK</span>
+                <div class="w-16 bg-slate-800 rounded-full h-2.5 my-1 overflow-hidden border border-amber-500/30">
+                    <div id="rearShockBar" class="bg-gradient-to-r from-amber-400 to-amber-200 h-full w-1/2 transition-all duration-75"></div>
+                </div>
+                <span id="rearShockTxt" class="text-xs font-num font-bold text-amber-300">0%</span>
+            </div>
+        </div>
+
+        <!-- SPEED & DISTANCE HUD -->
+        <div class="glass-panel rounded-2xl px-4 py-2 flex items-center space-x-4 pointer-events-auto shadow-lg">
+            <div class="text-right">
+                <div class="text-[10px] font-bold text-slate-400 tracking-wider">SPEED</div>
+                <div class="text-2xl font-num font-black text-cyan-400 gold-glow leading-none" id="speedDisplay">0 <span class="text-xs font-normal text-slate-300">KM/H</span></div>
+            </div>
+            <div class="h-8 w-[1px] bg-slate-700/80"></div>
+            <div class="text-right">
+                <div class="text-[10px] font-bold text-slate-400 tracking-wider">STAIRS / DISTANCE</div>
+                <div class="text-xl font-num font-bold text-amber-400 leading-none" id="distDisplay">0 <span class="text-xs font-normal text-slate-300">M</span></div>
+            </div>
+        </div>
+
+        <!-- TOP RIGHT CONTROLS BUTTONS -->
+        <div class="flex items-center space-x-2 pointer-events-auto">
+            <button onclick="openGarage()" class="glass-panel hover:bg-slate-800 text-amber-300 p-2.5 px-3.5 rounded-2xl border border-amber-500/40 font-bold text-xs flex items-center space-x-1.5 transition active:scale-95 shadow-lg">
+                <i class="fa-solid fa-wrench text-amber-400"></i>
+                <span>풀샥 정비소</span>
+            </button>
+            <button onclick="toggleAudio()" id="audioBtn" class="glass-panel hover:bg-slate-800 text-slate-200 p-2.5 rounded-2xl border border-slate-700 text-xs transition active:scale-95 shadow-lg">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- FLOATING ABSORB NOTIFIER -->
+    <div id="absorbBadge" class="absolute top-28 left-1/2 -translate-x-1/2 z-20 pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-2 scale-90">
+        <div class="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.8)] border-2 border-white flex items-center space-x-2 text-sm sm:text-base">
+            <i class="fa-solid fa-bolt animate-bounce"></i>
+            <span>PERFECT SUSPENSION ABSORB! (-100% IMPACT)</span>
+        </div>
+    </div>
+
+    <!-- TOUCH / MOBILE CONTROL BUTTONS OVERLAY -->
+    <div class="absolute bottom-4 left-4 right-4 z-10 flex items-end justify-between pointer-events-none">
+        <!-- LEFT CONTROLS: LEAN BACK / LEAN FORWARD -->
+        <div class="flex items-center space-x-2 pointer-events-auto">
+            <button id="btnTiltLeft" class="control-btn w-16 h-16 sm:w-20 sm:h-20 glass-panel rounded-3xl border-2 border-slate-700/80 active:border-amber-400 flex flex-col items-center justify-center text-slate-200 active:text-amber-300 shadow-xl">
+                <i class="fa-solid fa-arrow-rotate-left text-xl"></i>
+                <span class="text-[10px] font-bold mt-1">뒤로 기울이기</span>
+            </button>
+            <button id="btnTiltRight" class="control-btn w-16 h-16 sm:w-20 sm:h-20 glass-panel rounded-3xl border-2 border-slate-700/80 active:border-amber-400 flex flex-col items-center justify-center text-slate-200 active:text-amber-300 shadow-xl">
+                <i class="fa-solid fa-arrow-rotate-right text-xl"></i>
+                <span class="text-[10px] font-bold mt-1">앞으로 기울이기</span>
+            </button>
+        </div>
+
+        <!-- CENTER: SUPER SUSPENSION SQUASH & BOOST -->
+        <div class="flex items-center space-x-3 pointer-events-auto">
+            <button id="btnJump" class="control-btn w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-300 text-slate-950 font-black rounded-3xl shadow-[0_0_30px_rgba(245,158,11,0.5)] border-2 border-amber-200 flex flex-col items-center justify-center active:scale-95 transition">
+                <i class="fa-solid fa-angles-up text-2xl"></i>
+                <span class="text-xs font-black mt-0.5">풀샥 점프</span>
+            </button>
+            <button id="btnNitro" class="control-btn w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-tr from-cyan-600 to-blue-500 text-white font-bold rounded-3xl shadow-lg border border-cyan-300/50 flex flex-col items-center justify-center active:scale-95">
+                <i class="fa-solid fa-gauge-high text-xl"></i>
+                <span class="text-[10px] font-bold mt-0.5">부스터</span>
+            </button>
+        </div>
+
+        <!-- RIGHT CONTROLS: BRAKE / ACCEL -->
+        <div class="flex items-center space-x-2 pointer-events-auto">
+            <button id="btnBrake" class="control-btn w-16 h-16 sm:w-20 sm:h-20 glass-panel rounded-3xl border-2 border-red-900/60 active:border-red-500 flex flex-col items-center justify-center text-red-400 shadow-xl">
+                <i class="fa-solid fa-hand text-xl"></i>
+                <span class="text-[10px] font-bold mt-1">유압 감속</span>
+            </button>
+            <button id="btnGas" class="control-btn w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 text-white font-black rounded-3xl shadow-xl border-2 border-emerald-300 flex flex-col items-center justify-center active:scale-95">
+                <i class="fa-solid fa-forward-fast text-2xl"></i>
+                <span class="text-xs font-bold mt-1">풀 가속</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- SUSPENSION TUNING GARAGE MODAL -->
+    <div id="garageModal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-xl hidden flex items-center justify-center p-4">
+        <div class="glass-panel border-2 border-amber-500/60 rounded-3xl max-w-lg w-full p-6 shadow-[0_0_50px_rgba(245,158,11,0.3)] relative text-slate-100">
+            <!-- Close Button -->
+            <button onclick="closeGarage()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Modal Header -->
+            <div class="flex items-center space-x-3 border-b border-slate-800 pb-4 mb-4">
+                <div class="p-3 bg-amber-500/20 border border-amber-500/50 rounded-2xl text-amber-400 text-2xl">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-black text-amber-300 font-num">카시마 풀서스펜션 튜닝 랩</h2>
+                    <p class="text-xs text-slate-400">계단산 지형에 맞춰 서스펜션 세팅을 맞춤 설정하세요!</p>
+                </div>
+            </div>
+
+            <!-- Tuning Controls -->
+            <div class="space-y-4 text-xs">
+                <!-- Air Pressure -->
+                <div>
+                    <div class="flex justify-between font-bold mb-1">
+                        <span class="text-amber-400">포크 공기압 (Air Pressure)</span>
+                        <span id="airVal" class="text-cyan-400 font-num">75 PSI</span>
+                    </div>
+                    <input type="range" id="airSlider" min="40" max="120" value="75" oninput="updateTune()" class="w-full accent-amber-500 cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
+                        <span>초말랑 (구름착지)</span>
+                        <span>단단함 (고속스피드)</span>
+                    </div>
+                </div>
+
+                <!-- Rebound Damping -->
+                <div>
+                    <div class="flex justify-between font-bold mb-1">
+                        <span class="text-amber-400">리바운드 댐핑 (Rebound Speed)</span>
+                        <span id="reboundVal" class="text-cyan-400 font-num">80%</span>
+                    </div>
+                    <input type="range" id="reboundSlider" min="20" max="100" value="80" oninput="updateTune()" class="w-full accent-amber-500 cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
+                        <span>Slow (묵직함)</span>
+                        <span>Fast (연속계단 파쇄)</span>
+                    </div>
+                </div>
+
+                <!-- Kashima Coating Upgrade Option -->
+                <div class="p-3 bg-amber-950/40 border border-amber-500/30 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <div class="font-bold text-amber-300">FOX Factory Kashima Gold</div>
+                        <div class="text-[10px] text-slate-400">마찰 계수 0.01% - 모든 충격 완전 무력화</div>
+                    </div>
+                    <span class="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-1 rounded-md">적용 완료</span>
+                </div>
+            </div>
+
+            <button onclick="closeGarage()" class="w-full mt-6 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black py-3 rounded-xl border border-amber-200 text-sm shadow-lg transition active:scale-95">
+                세팅 완료 및 산악 계단 출격!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // AUDIO SYNTHESIZER FOR MTB SUSPENSION & STAIR IMPACTS
+        let audioCtx = null;
+        let isMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudio() {
+            isMuted = !isMuted;
+            const icon = document.getElementById('audioIcon');
+            if (isMuted) {
+                icon.className = 'fa-solid fa-volume-xmark text-red-400';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-slate-200';
+            }
+        }
+
+        // Sound 1: Suspension Squish Sound (Air compression)
+        function playSuspensionSquishSound(intensity) {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                // Low pitch squish sweep
+                osc.frequency.setValueAtTime(180 * intensity, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+
+                gain.gain.setValueAtTime(0.25 * intensity, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } catch (e) {}
+        }
+
+        // Sound 2: Stair Bump Sound (Metallic & Tire Rattle)
+        function playStairBumpSound() {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(120 + Math.random() * 80, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.08);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } catch (e) {}
+        }
+
+        // Sound 3: Jump / Boost Sound
+        function playBoostSound() {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.3);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } catch (e) {}
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // GAME CONSTANTS & STATE
+        const GRAVITY = 0.45;
+        let airPressureSetting = 75; // PSI
+        let reboundSetting = 0.8;
+
+        // BIKE & RIDER PHYSICS OBJECT
+        const bike = {
+            x: 200,
+            y: 200,
+            vx: 0,
+            vy: 0,
+            angle: 0, // frame tilt angle (rad)
+            angularVelocity: 0,
+            wheelBase: 70, // distance between wheels
+            wheelRadius: 22,
+            
+            // Suspension stroke offsets (pixels compressed)
+            frontForkCompress: 0, // 0 to 18 max
+            rearShockCompress: 0,  // 0 to 18 max
+
+            // Input States
+            gas: false,
+            brake: false,
+            tiltLeft: false,
+            tiltRight: false,
+            nitro: false,
+
+            // Grounded state
+            isGrounded: false,
+            distance: 0,
+            speedKm: 0
+        };
+
+        // PARTICLES CONTAINER
+        let particles = [];
+
+        // TERRAIN GENERATOR (Mountain Trails, Stairs, Drops, Gaps)
+        const TERRAIN_SEGMENT_WIDTH = 20;
+        let terrainPoints = [];
+
+        function generateTerrain() {
+            terrainPoints = [];
+            let currentY = 400;
+            let currentX = 0;
+
+            // Pre-generate 10,000 meters of continuous stairs & mountain terrain
+            for (let i = 0; i < 2000; i++) {
+                const segType = Math.floor(Math.random() * 5);
+
+                if (i < 10) {
+                    // Smooth Starting Area
+                    terrainPoints.push({ x: currentX, y: currentY, type: 'flat' });
+                    currentX += 80;
+                } else if (segType === 0 || segType === 1) {
+                    // STAIRS SECTION (Downhill Stairs)
+                    const stairCount = 10 + Math.floor(Math.random() * 20);
+                    const stepWidth = 18;
+                    const stepHeight = 12;
+                    for (let s = 0; s < stairCount; s++) {
+                        currentX += stepWidth;
+                        terrainPoints.push({ x: currentX, y: currentY, type: 'stair' });
+                        currentY += stepHeight;
+                        terrainPoints.push({ x: currentX, y: currentY, type: 'stair' });
+                    }
+                } else if (segType === 2) {
+                    // BIG ROCKY DROP / RAMP
+                    currentX += 120;
+                    currentY += 150; // Steep downhill
+                    terrainPoints.push({ x: currentX, y: currentY, type: 'drop' });
+                } else if (segType === 3) {
+                    // WOODEN BRIDGE / BOARDWALK
+                    for (let b = 0; b < 15; b++) {
+                        currentX += 25;
+                        currentY += (Math.random() - 0.4) * 10;
+                        terrainPoints.push({ x: currentX, y: currentY, type: 'bridge' });
+                    }
+                } else {
+                    // SMOOTH MOUNTAIN SLOPE
+                    for (let m = 0; m < 10; m++) {
+                        currentX += 40;
+                        currentY += 15;
+                        terrainPoints.push({ x: currentX, y: currentY, type: 'slope' });
+                    }
+                }
+            }
+        }
+
+        generateTerrain();
+
+        // Get Terrain Y at specific X coordinate
+        function getTerrainY(x) {
+            if (x < 0) return 400;
+            for (let i = 0; i < terrainPoints.length - 1; i++) {
+                const p1 = terrainPoints[i];
+                const p2 = terrainPoints[i + 1];
+                if (x >= p1.x && x <= p2.x) {
+                    const ratio = (x - p1.x) / (p2.x - p1.x || 1);
+                    return p1.y + (p2.y - p1.y) * ratio;
+                }
+            }
+            return 2000;
+        }
+
+        // KEYBOARD CONTROLS
+        window.addEventListener('keydown', (e) => {
+            initAudio();
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') bike.gas = true;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') bike.brake = true;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') bike.tiltLeft = true;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') bike.tiltRight = true;
+            if (e.key === ' ' ) triggerJump();
+            if (e.key === 'Shift') bike.nitro = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') bike.gas = false;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') bike.brake = false;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') bike.tiltLeft = false;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') bike.tiltRight = false;
+            if (e.key === 'Shift') bike.nitro = false;
+        });
+
+        // TOUCH BUTTON BINDINGS
+        function bindTouchBtn(id, onPress, onRelease) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            
+            const start = (e) => {
+                e.preventDefault();
+                initAudio();
+                onPress();
+            };
+            const end = (e) => {
+                e.preventDefault();
+                onRelease();
+            };
+
+            btn.addEventListener('touchstart', start);
+            btn.addEventListener('touchend', end);
+            btn.addEventListener('mousedown', start);
+            btn.addEventListener('mouseup', end);
+            btn.addEventListener('mouseleave', end);
+        }
+
+        bindTouchBtn('btnGas', () => bike.gas = true, () => bike.gas = false);
+        bindTouchBtn('btnBrake', () => bike.brake = true, () => bike.brake = false);
+        bindTouchBtn('btnTiltLeft', () => bike.tiltLeft = true, () => bike.tiltLeft = false);
+        bindTouchBtn('btnTiltRight', () => bike.tiltRight = true, () => bike.tiltRight = false);
+        bindTouchBtn('btnNitro', () => bike.nitro = true, () => bike.nitro = false);
+        
+        document.getElementById('btnJump').addEventListener('click', () => {
+            initAudio();
+            triggerJump();
+        });
+
+        function triggerJump() {
+            if (bike.isGrounded) {
+                bike.vy = -11;
+                // Compression stroke effect before launch
+                bike.frontForkCompress = 18;
+                bike.rearShockCompress = 18;
+                playBoostSound();
+                spawnSparks(bike.x, bike.y, 12, '#f59e0b');
+            }
+        }
+
+        function triggerAbsorbBadge() {
+            const badge = document.getElementById('absorbBadge');
+            badge.classList.remove('opacity-0', '-translate-y-2', 'scale-90');
+            badge.classList.add('opacity-100', 'translate-y-0', 'scale-100');
+            setTimeout(() => {
+                badge.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
+                badge.classList.add('opacity-0', '-translate-y-2', 'scale-90');
+            }, 800);
+        }
+
+        function spawnSparks(x, y, count = 5, color = '#f59e0b') {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.7) * 7,
+                    life: 1.0,
+                    size: 2 + Math.random() * 4,
+                    color: color
+                });
+            }
+        }
+
+        function updatePhysics() {
+            // Apply Gravity
+            bike.vy += GRAVITY;
+
+            // Gas Acceleration & Braking
+            let accel = 0;
+            if (bike.gas) accel += bike.nitro ? 0.8 : 0.45;
+            if (bike.brake) accel -= 0.35;
+
+            bike.vx += accel;
+            bike.vx *= 0.985; // Air Drag
+
+            // Manual Angle Tilting
+            if (bike.tiltLeft) bike.angularVelocity -= 0.008;
+            if (bike.tiltRight) bike.angularVelocity += 0.008;
+
+            bike.angle += bike.angularVelocity;
+            bike.angularVelocity *= 0.92;
+
+            // Update Coordinates
+            bike.x += bike.vx;
+            bike.y += bike.vy;
+
+            // WHEEL POSITIONS CALCULATION
+            const cosA = Math.cos(bike.angle);
+            const sinA = Math.sin(bike.angle);
+
+            const rearWheelX = bike.x - (bike.wheelBase / 2) * cosA;
+            const rearWheelY = bike.y - (bike.wheelBase / 2) * sinA + bike.wheelRadius;
+
+            const frontWheelX = bike.x + (bike.wheelBase / 2) * cosA;
+            const frontWheelY = bike.y + (bike.wheelBase / 2) * sinA + bike.wheelRadius;
+
+            // Ground Collision Detection for both wheels
+            const rearGroundY = getTerrainY(rearWheelX);
+            const frontGroundY = getTerrainY(frontWheelX);
+
+            let rearHit = rearWheelY >= rearGroundY;
+            let frontHit = frontWheelY >= frontGroundY;
+
+            // FULL-SUSPENSION ABSORB PHYSICS (NEVER COLLAPSE OR CRASH!)
+            if (rearHit || frontHit) {
+                bike.isGrounded = true;
+
+                // Determine Terrain Slope Angle
+                const slopeAngle = Math.atan2(frontGroundY - rearGroundY, frontWheelX - rearWheelX);
+
+                // Auto-Leveling / Self-Righting Safety (Ensure Rider NEVER falls!)
+                const angleDiff = slopeAngle - bike.angle;
+                bike.angularVelocity += angleDiff * 0.08; 
+
+                // Compress Suspensions based on vertical impact speed
+                const impactVel = Math.abs(bike.vy);
+                if (impactVel > 3) {
+                    const compressAmt = Math.min(18, impactVel * 1.8);
+                    bike.frontForkCompress = compressAmt;
+                    bike.rearShockCompress = compressAmt;
+
+                    playSuspensionSquishSound(Math.min(1, impactVel / 10));
+                    playStairBumpSound();
+                    spawnSparks(bike.x, bike.y, 4, '#eab308');
+
+                    if (impactVel > 7) {
+                        triggerAbsorbBadge();
+                    }
+                }
+
+                // Snap Bike Y to Terrain gracefully
+                const avgGroundY = (rearGroundY + frontGroundY) / 2 - bike.wheelRadius;
+                bike.y = avgGroundY;
+                bike.vy = 0;
+            } else {
+                bike.isGrounded = false;
+            }
+
+            // Gradually Rebound / Decompress Suspensions
+            bike.frontForkCompress *= (1 - reboundSetting * 0.2);
+            bike.rearShockCompress *= (1 - reboundSetting * 0.2);
+
+            // Update Distance & Telemetry Speed
+            bike.distance = Math.max(0, Math.floor(bike.x / 10));
+            bike.speedKm = Math.floor(Math.abs(bike.vx) * 3.6);
+
+            // Update HUD elements
+            const frontRatio = Math.min(100, Math.floor((bike.frontForkCompress / 18) * 100));
+            const rearRatio = Math.min(100, Math.floor((bike.rearShockCompress / 18) * 100));
+
+            document.getElementById('frontShockBar').style.width = `${frontRatio}%`;
+            document.getElementById('frontShockTxt').innerText = `${frontRatio}%`;
+            document.getElementById('rearShockBar').style.width = `${rearRatio}%`;
+            document.getElementById('rearShockTxt').innerText = `${rearRatio}%`;
+
+            document.getElementById('speedDisplay').innerHTML = `${bike.speedKm} <span class="text-xs font-normal text-slate-300">KM/H</span>`;
+            document.getElementById('distDisplay').innerHTML = `${bike.distance} <span class="text-xs font-normal text-slate-300">M</span>`;
+
+            // Update Particle Life
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.04;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function renderScenery(camX, camY) {
+            // SKY GRADIENT
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGrad.addColorStop(0, '#030712');
+            skyGrad.addColorStop(0.5, '#0f172a');
+            skyGrad.addColorStop(1, '#1e1b4b');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // PARALLAX MOUNTAIN SILHOUETTES
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            for (let x = 0; x <= canvas.width; x += 50) {
+                const mountainY = canvas.height - 180 - Math.sin((x + camX * 0.2) * 0.005) * 90;
+                ctx.lineTo(x, mountainY);
+            }
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.fill();
+
+            // DRAW STAIRS / TERRAIN TRAIL
+            ctx.save();
+            ctx.translate(-camX + canvas.width * 0.3, -camY + canvas.height * 0.6);
+
+            // Ground Fill below stairs
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.moveTo(terrainPoints[0].x, terrainPoints[0].y);
+            for (let p of terrainPoints) {
+                ctx.lineTo(p.x, p.y);
+            }
+            ctx.lineTo(terrainPoints[terrainPoints.length - 1].x, canvas.height + camY + 500);
+            ctx.lineTo(terrainPoints[0].x, canvas.height + camY + 500);
+            ctx.closePath();
+            ctx.fill();
+
+            // Terrain Surface Line (Gold/Amber Stair Trail)
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#f59e0b';
+            ctx.beginPath();
+            for (let i = 0; i < terrainPoints.length; i++) {
+                const p = terrainPoints[i];
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+
+            // Draw Stair Step Visual Highlights
+            ctx.strokeStyle = '#fef08a';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < terrainPoints.length - 1; i++) {
+                const p1 = terrainPoints[i];
+                if (p1.type === 'stair') {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p1.x + 10, p1.y);
+                    ctx.stroke();
+                }
+            }
+
+            // DRAW PARTICLES
+            for (let p of particles) {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // DRAW HIGH-END FULL-SUSPENSION MTB & RIDER
+            drawFullSuspensionMTB();
+
+            ctx.restore();
+        }
+
+        function drawFullSuspensionMTB() {
+            ctx.save();
+            ctx.translate(bike.x, bike.y);
+            ctx.rotate(bike.angle);
+
+            const halfWB = bike.wheelBase / 2;
+
+            // 1. REAR WHEEL (Knobby Mountain Tire)
+            const rearX = -halfWB;
+            const rearY = bike.wheelRadius - bike.rearShockCompress * 0.4;
+
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#334155';
+            ctx.fillStyle = '#090d16';
+            ctx.beginPath();
+            ctx.arc(rearX, rearY, bike.wheelRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Gold Kashima Rim Line
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(rearX, rearY, bike.wheelRadius - 4, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 2. FRONT WHEEL
+            const frontX = halfWB;
+            const frontY = bike.wheelRadius - bike.frontForkCompress * 0.4;
+
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#334155';
+            ctx.fillStyle = '#090d16';
+            ctx.beginPath();
+            ctx.arc(frontX, frontY, bike.wheelRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(frontX, frontY, bike.wheelRadius - 4, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 3. FRONT KASHIMA FORK (SUSPENSION)
+            ctx.strokeStyle = '#fbbf24'; // Kashima Gold
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(frontX, frontY);
+            ctx.lineTo(frontX - 12, frontY - 38 + bike.frontForkCompress * 0.5);
+            ctx.stroke();
+
+            // 4. MAIN CARBON FRAME
+            ctx.strokeStyle = '#0284c7'; // Neon Blue Frame
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            // Bottom bracket
+            const bbX = -10;
+            const bbY = 10;
+
+            // Frame Triangles
+            ctx.moveTo(rearX, rearY);
+            ctx.lineTo(bbX, bbY); // Chainstay
+            ctx.lineTo(frontX - 15, -25); // Downtube
+            ctx.lineTo(bbX, bbY);
+
+            ctx.moveTo(rearX, rearY);
+            ctx.lineTo(-20, -18); // Seatstay
+            ctx.lineTo(-5, -20); // Top tube link
+            ctx.lineTo(frontX - 15, -25); // Top tube
+            ctx.stroke();
+
+            // 5. REAR SHOCK ABSORBER (Kashima Gold Reservoir)
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(bbX, bbY - 5);
+            ctx.lineTo(-18, -12 + bike.rearShockCompress * 0.3);
+            ctx.stroke();
+
+            // 6. RIDER "WOOHYEON" (Helmed Mountain Biker)
+            // Torso
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(-15, -22); // Saddle
+            ctx.lineTo(-5, -45); // Spine
+            ctx.stroke();
+
+            // Arms to Handlebars
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(-5, -45);
+            ctx.lineTo(frontX - 18, -32);
+            ctx.stroke();
+
+            // Helmet & Goggles
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(-2, -56, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Visor
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(2, -58, 7, 5);
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            updatePhysics();
+
+            // Camera smoothly follows Woohyeon
+            renderScenery(bike.x, bike.y);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function openGarage() {
+            document.getElementById('garageModal').classList.remove('hidden');
+        }
+
+        function closeGarage() {
+            document.getElementById('garageModal').classList.add('hidden');
+        }
+
+        function updateTune() {
+            airPressureSetting = parseInt(document.getElementById('airSlider').value);
+            reboundSetting = parseInt(document.getElementById('reboundSlider').value) / 100;
+
+            document.getElementById('airVal').innerText = `${airPressureSetting} PSI`;
+            document.getElementById('reboundVal').innerText = `${Math.floor(reboundSetting * 100)}%`;
+        }
+
+        // START ENGINE ON LOAD
+        window.onload = function() {
+            gameLoop();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>냥이 키우기 - 나만의 솜방망이 반려묘 어플</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Jua', 'Noto Sans KR', sans-serif;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: #fdf2f8;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+        }
+
+        /* Pulsing & Floating Animations */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(1deg); }
+        }
+        .animate-float {
+            animation: floatSlow 3s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(244, 114, 182, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(236, 72, 153, 0.8); }
+        }
+        .glow-pink {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        /* Canvas Style */
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* Custom Scrollbar for Modal */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fbcfe8;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f43f5e;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="relative flex flex-col justify-between min-h-screen select-none bg-gradient-to-b from-amber-50 via-pink-50 to-purple-100">
+
+    <!-- INTERACTIVE GAME CANVAS -->
+    <canvas id="catCanvas" class="absolute inset-0 z-0"></canvas>
+
+    <!-- TOP HUD OVERLAY (Cat Stats & Profile) -->
+    <header class="relative z-10 w-full max-w-xl mx-auto p-3 sm:p-4 flex flex-col space-y-2 pointer-events-none">
+        <div class="flex justify-between items-center bg-white/85 backdrop-blur-md p-3.5 rounded-3xl border-2 border-pink-200 shadow-xl pointer-events-auto">
+            <!-- Cat Profile Avatar & Name -->
+            <div class="flex items-center space-x-3">
+                <div id="cat-avatar-btn" class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-pink-300 to-amber-200 p-1 shadow-inner cursor-pointer hover:scale-105 transition transform flex items-center justify-center text-3xl relative">
+                    <span id="cat-emoji-badge">🐱</span>
+                    <span class="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black border border-white" id="cat-personality-badge">애교쟁이</span>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 id="cat-name-display" class="text-xl font-black text-slate-800">나비</h1>
+                        <button id="open-customizer-btn" class="text-xs bg-pink-100 text-pink-600 hover:bg-pink-200 px-2 py-0.5 rounded-full font-bold transition">
+                            <i class="fa-solid fa-sliders mr-1"></i>커스텀
+                        </button>
+                    </div>
+                    <p id="cat-desc-display" class="text-xs text-pink-600 font-bold">LV.<span id="cat-level">1</span> · 친밀도 <span id="affection-val">50</span>pt</p>
+                </div>
+            </div>
+
+            <!-- Quick Action Info / Coin -->
+            <div class="flex flex-col items-end space-y-1">
+                <div class="bg-amber-100 border border-amber-300 px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-sm">
+                    <span class="text-amber-500 text-sm">🪙</span>
+                    <span id="cat-coins" class="text-amber-800 font-black text-sm">150</span>
+                </div>
+                <div id="cat-mood-tag" class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    😊 기분 최고냥!
+                </div>
+            </div>
+        </div>
+
+        <!-- STATS PROGRESS BARS (Hunger, Thirst, Happiness) -->
+        <div class="grid grid-cols-3 gap-2 bg-white/80 backdrop-blur-md p-2.5 rounded-2xl border border-pink-100 shadow-md pointer-events-auto">
+            <!-- Hunger -->
+            <div class="flex flex-col">
+                <div class="flex justify-between text-[11px] font-bold text-amber-800 mb-0.5">
+                    <span>🍲 배고픔</span>
+                    <span id="hunger-num">80%</span>
+                </div>
+                <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden p-0.5">
+                    <div id="hunger-bar" class="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all duration-300 w-4/5"></div>
+                </div>
+            </div>
+
+            <!-- Thirst -->
+            <div class="flex flex-col">
+                <div class="flex justify-between text-[11px] font-bold text-sky-800 mb-0.5">
+                    <span>🥛 목마름</span>
+                    <span id="thirst-num">75%</span>
+                </div>
+                <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden p-0.5">
+                    <div id="thirst-bar" class="bg-gradient-to-r from-sky-400 to-blue-500 h-full rounded-full transition-all duration-300 w-3/4"></div>
+                </div>
+            </div>
+
+            <!-- Happiness -->
+            <div class="flex flex-col">
+                <div class="flex justify-between text-[11px] font-bold text-pink-800 mb-0.5">
+                    <span>💖 행복도</span>
+                    <span id="happy-num">90%</span>
+                </div>
+                <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden p-0.5">
+                    <div id="happy-bar" class="bg-gradient-to-r from-pink-400 to-rose-500 h-full rounded-full transition-all duration-300 w-[90%]"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CAT SPEECH BUBBLE OVERLAY -->
+    <div id="speech-container" class="relative z-10 w-full max-w-sm mx-auto text-center pointer-events-none mt-2 transition-all duration-300 transform scale-100">
+        <div class="inline-block bg-white/95 border-2 border-pink-400 text-pink-900 px-4 py-2.5 rounded-3xl shadow-lg backdrop-blur-md relative animate-float">
+            <p id="cat-speech" class="text-sm font-black tracking-wide">
+                "집사야 반가워냥! 쓰다듬어주거나 맛있는 걸 줘냥~ 💕"
+            </p>
+            <!-- Speech Tail -->
+            <div class="w-3 h-3 bg-white border-r-2 border-b-2 border-pink-400 transform rotate-45 absolute -bottom-2 left-1/2 -translate-x-1/2"></div>
+        </div>
+    </div>
+
+    <!-- MAIN ACTION CONTROLS & TOY TOOLBAR -->
+    <footer class="relative z-10 w-full max-w-xl mx-auto p-3 sm:p-4 flex flex-col space-y-2 pointer-events-auto mb-2">
+        <!-- Active Toy Selector & Play Mode -->
+        <div class="bg-white/90 backdrop-blur-md p-3 rounded-3xl border-2 border-pink-200 shadow-2xl flex flex-col space-y-2">
+            <!-- Top Row: Essential Care Buttons (Food, Water, Treat, Clean) -->
+            <div class="grid grid-cols-4 gap-2">
+                <!-- Food Button -->
+                <button id="btn-feed-food" class="flex flex-col items-center justify-center p-2.5 bg-gradient-to-b from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 border border-amber-300 rounded-2xl shadow-sm active:scale-95 transition">
+                    <span class="text-2xl">🍲</span>
+                    <span class="text-xs font-black text-amber-900 mt-1">사료 주기</span>
+                </button>
+
+                <!-- Water Button -->
+                <button id="btn-feed-water" class="flex flex-col items-center justify-center p-2.5 bg-gradient-to-b from-sky-100 to-sky-200 hover:from-sky-200 hover:to-sky-300 border border-sky-300 rounded-2xl shadow-sm active:scale-95 transition">
+                    <span class="text-2xl">🥛</span>
+                    <span class="text-xs font-black text-sky-900 mt-1">물 주기</span>
+                </button>
+
+                <!-- Special Treat Churu -->
+                <button id="btn-feed-churu" class="flex flex-col items-center justify-center p-2.5 bg-gradient-to-b from-rose-100 to-pink-200 hover:from-rose-200 hover:to-pink-300 border border-rose-300 rounded-2xl shadow-sm active:scale-95 transition relative">
+                    <span class="text-2xl">🐟</span>
+                    <span class="text-xs font-black text-rose-900 mt-1">특식 츄르</span>
+                    <span class="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] px-1.5 rounded-full font-bold">10🪙</span>
+                </button>
+
+                <!-- Clean Litterbox / Brush -->
+                <button id="btn-groom" class="flex flex-col items-center justify-center p-2.5 bg-gradient-to-b from-purple-100 to-indigo-200 hover:from-purple-200 hover:to-indigo-300 border border-purple-300 rounded-2xl shadow-sm active:scale-95 transition">
+                    <span class="text-2xl">🧹</span>
+                    <span class="text-xs font-black text-purple-900 mt-1">빗질하기</span>
+                </button>
+            </div>
+
+            <!-- Divider -->
+            <div class="border-t border-pink-100 my-1"></div>
+
+            <!-- Bottom Row: Interactive Toy Selection Toolbar -->
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-black text-pink-700 flex items-center pl-1">
+                    <i class="fa-solid fa-gamepad mr-1.5"></i>장난감 선택
+                </span>
+
+                <div class="flex space-x-1.5">
+                    <!-- Laser Pointer Toy -->
+                    <button data-toy="laser" class="toy-btn px-3 py-1.5 bg-pink-100 border border-pink-300 rounded-xl text-xs font-bold text-pink-800 hover:bg-pink-200 transition flex items-center space-x-1">
+                        <span>🔴</span>
+                        <span>레이저</span>
+                    </button>
+
+                    <!-- Feather Wand Toy -->
+                    <button data-toy="feather" class="toy-btn px-3 py-1.5 bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-800 hover:bg-amber-200 transition flex items-center space-x-1">
+                        <span>🪶</span>
+                        <span>깃털</span>
+                    </button>
+
+                    <!-- Catnip Fish -->
+                    <button data-toy="fish" class="toy-btn px-3 py-1.5 bg-emerald-100 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-800 hover:bg-emerald-200 transition flex items-center space-x-1">
+                        <span>🐟</span>
+                        <span>캣닙인형</span>
+                    </button>
+
+                    <!-- Yarn Ball -->
+                    <button data-toy="yarn" class="toy-btn px-3 py-1.5 bg-purple-100 border border-purple-300 rounded-xl text-xs font-bold text-purple-800 hover:bg-purple-200 transition flex items-center space-x-1">
+                        <span>🧶</span>
+                        <span>털실</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- CAT CUSTOMIZATION & PERSONALITY SETTINGS MODAL -->
+    <div id="customizer-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-white w-full max-w-lg rounded-3xl border-4 border-pink-300 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-pink-400 via-rose-400 to-purple-400 p-4 text-white flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <span class="text-2xl">🐱</span>
+                    <h2 class="text-xl font-black">나만의 냥이 커스텀 설정</h2>
+                </div>
+                <button id="close-modal-btn" class="w-8 h-8 bg-white/20 hover:bg-white/40 rounded-full flex items-center justify-center font-bold text-lg transition">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Modal Content Form -->
+            <div class="p-5 overflow-y-auto space-y-5 flex-1">
+                <!-- 1. Cat Name Input -->
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">🏷️ 냥이 이름</label>
+                    <input type="text" id="input-cat-name" value="나비" maxlength="8" class="w-full px-4 py-2.5 rounded-2xl border-2 border-pink-200 focus:border-pink-500 outline-none font-bold text-slate-800 bg-pink-50/50">
+                </div>
+
+                <!-- 2. Fur Color & Pattern Selection -->
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-2">🎨 털 색상 및 패턴</label>
+                    <div class="grid grid-cols-3 gap-2.5" id="color-options">
+                        <!-- Options generated dynamically via JS -->
+                    </div>
+                </div>
+
+                <!-- 3. Personality Selection -->
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-2">✨ 냥이의 성격 (대사 및 행동 특성)</label>
+                    <div class="grid grid-cols-2 gap-2" id="personality-options">
+                        <!-- Options generated dynamically via JS -->
+                    </div>
+                </div>
+
+                <!-- 4. Favorite Toy & Treat Selection -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">🎁 최애 장난감</label>
+                        <select id="select-fav-toy" class="w-full p-2.5 rounded-xl border-2 border-pink-200 bg-pink-50/50 font-bold text-xs text-slate-800 outline-none">
+                            <option value="laser">🔴 레이저 포인터</option>
+                            <option value="feather">🪶 깃털 낚싯대</option>
+                            <option value="fish">🐟 캣닙 인형</option>
+                            <option value="yarn">🧶 알록달록 털실</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 mb-1">🍗 최애 간식</label>
+                        <select id="select-fav-treat" class="w-full p-2.5 rounded-xl border-2 border-pink-200 bg-pink-50/50 font-bold text-xs text-slate-800 outline-none">
+                            <option value="churu">🐟 닭가슴살 츄르</option>
+                            <option value="tuna">🍣 생연어 스틱</option>
+                            <option value="catnip">🌿 캣닙 쿠키</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer Save Button -->
+            <div class="p-4 bg-slate-50 border-t border-pink-100 flex justify-end">
+                <button id="save-cat-btn" class="w-full py-3.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white rounded-2xl font-black text-base shadow-lg shadow-pink-500/30 active:scale-98 transition">
+                    ✨ 설정 완료! 내 냥이와 놀아주기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CAT COLOR PATTERNS DEFINITION
+        const FUR_PATTERNS = [
+            { id: 'cheese', name: '🧀 치즈 태비', mainColor: '#f97316', stripeColor: '#c2410c', bellyColor: '#fef3c7', earColor: '#f43f5e', icon: '🐱' },
+            { id: 'calico', name: '🐱 삼색이', mainColor: '#f97316', spotColor: '#1e293b', bellyColor: '#ffffff', earColor: '#f43f5e', icon: '🐈' },
+            { id: 'tuxedo', name: '🐧 턱시도', mainColor: '#0f172a', bellyColor: '#ffffff', earColor: '#f43f5e', icon: '🐈‍⬛' },
+            { id: 'white', name: '⚪ 페르시안 백묘', mainColor: '#ffffff', bellyColor: '#f1f5f9', earColor: '#fda4af', icon: '🤍' },
+            { id: 'russian', name: '🩶 러시안 블루', mainColor: '#64748b', bellyColor: '#94a3b8', earColor: '#f43f5e', icon: '🩶' },
+            { id: 'pink', name: '🌸 파스텔 핑크', mainColor: '#f472b6', stripeColor: '#ec4899', bellyColor: '#fdf2f8', earColor: '#f43f5e', icon: '💖' }
+        ];
+
+        // CAT PERSONALITY DEFINITIONS
+        const PERSONALITIES = [
+            { id: 'cute', name: '💖 애교쟁이', desc: '집사를 보면 골골송을 자주 불러요!', speeched: ['집사야 우쭈쭈냥~ 💕', '젤리 만져줄 거냐옹?', '집사 옆이 최고냥! 🐾'] },
+            { id: 'playful', name: '⚡ 장난꾸러기', desc: '장난감에 엄청 빠르고 민첩하게 반응해요!', speeched: ['우다다 타임이다냥! 💨', '장난감 빨리 던져라냥!', '냥냥펀치 맛 좀 볼래냥?! 🐾'] },
+            { id: 'glutton', name: '🤤 식탐왕', desc: '사료와 츄르를 줄 때 가장 행복해해요!', speeched: ['배고프다냥... 츄르 주라냥! 🍲', '밥 그릇이 비었다냥!', '먹는 게 세상에서 제일 좋다냥~ 🐟'] },
+            { id: 'queen', name: '👑 도도한 냥왕님', desc: '도도하지만 기분을 맞춰주면 대단한 애정을 줘요.', speeched: ['감히 내 길을 막느냐냥?', '쓰다듬는 걸 허락해주겠다냥.', '간식을 바치라냥! 👑'] },
+            { id: 'timid', name: '👀 쫄보 귀염둥이', desc: '조심성이 많지만 마음을 열면 껌딱지가 돼요.', speeched: ['놀라게 하지 말라냥... 🙈', '집사야 꼭 끌어안아줘냥!', '히잉.. 조심조심~ 🐾'] }
+        ];
+
+        // GAME STATE
+        let catConfig = {
+            name: '나비',
+            furId: 'cheese',
+            personalityId: 'cute',
+            favToy: 'laser',
+            favTreat: 'churu'
+        };
+
+        let catStats = {
+            hunger: 85,
+            thirst: 80,
+            happiness: 90,
+            affection: 65,
+            level: 1,
+            coins: 150
+        };
+
+        let activeToy = null; // 'laser', 'feather', 'fish', 'yarn'
+        let mousePos = { x: 0, y: 0 };
+        let activeToyObject = null;
+
+        // CANVAS & CONTEXT SETUP
+        const canvas = document.getElementById('catCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        // CAT PHYSICAL STATE & ANIMATION VARS
+        let catPos = { x: width / 2, y: height / 2 + 50 };
+        let catTargetPos = { x: width / 2, y: height / 2 + 50 };
+        let catEyeState = 'normal'; // 'normal', 'happy', 'blink', 'surprised', 'sleep'
+        let catAction = 'idle'; // 'idle', 'walking', 'playing', 'eating', 'drinking', 'purring'
+        let catFacing = 1; // 1: Right, -1: Left
+        let tailAngle = 0;
+        let purrTimer = 0;
+        let animFrame = 0;
+
+        // PARTICLE SYSTEM (Hearts, Sparks, Food Bits)
+        let particles = [];
+
+        // WEB AUDIO SYSTEM
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Play Synthesized Sound Effects (Meow, Purr, Munch, Water Slurp, Toy Squeak)
+        function playSound(type) {
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'meow') {
+                // Synthesized Cute Pitch-bent Meow
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                
+                // Frequency contour for "Me-ow"
+                osc.frequency.setValueAtTime(550, now);
+                osc.frequency.exponentialRampToValueAtTime(850, now + 0.15);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.45);
+
+                gain.gain.setValueAtTime(0.01, now);
+                gain.gain.linearRampToValueAtTime(0.25, now + 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } else if (type === 'purr') {
+                // Low Rumble Purr
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(75, now);
+                
+                // Tremolo effect for purring
+                const lfo = audioCtx.createOscillator();
+                lfo.frequency.setValueAtTime(18, now);
+                const lfoGain = audioCtx.createGain();
+                lfoGain.gain.setValueAtTime(0.08, now);
+
+                lfo.connect(gain.gain);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                lfo.start(now);
+                osc.start(now);
+                lfo.stop(now + 0.8);
+                osc.stop(now + 0.8);
+            } else if (type === 'munch') {
+                // Crunchy Kibble sound
+                for (let i = 0; i < 3; i++) {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(150 + Math.random() * 300, now + i * 0.1);
+
+                    gain.gain.setValueAtTime(0.08, now + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.08);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + i * 0.1);
+                    osc.stop(now + i * 0.1 + 0.09);
+                }
+            } else if (type === 'slurp') {
+                // Water Slurp Sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(600, now + 0.15);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'squeak') {
+                // Toy High Squeak
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, now);
+                osc.frequency.exponentialRampToValueAtTime(1800, now + 0.1);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+        }
+
+        // DRAW CAT ON CANVAS
+        function renderCat() {
+            const fur = FUR_PATTERNS.find(f => f.id === catConfig.furId) || FUR_PATTERNS[0];
+
+            ctx.save();
+            ctx.translate(catPos.x, catPos.y);
+
+            // Flip horizontal based on facing
+            ctx.scale(catFacing, 1);
+
+            // 1. Draw Tail
+            ctx.save();
+            ctx.beginPath();
+            const tailWiggle = Math.sin(animFrame * 0.08) * 15;
+            ctx.moveTo(-35, -10);
+            ctx.quadraticCurveTo(-65 + tailWiggle, -45 + tailWiggle * 0.5, -55 + tailWiggle, -70);
+            ctx.strokeStyle = fur.mainColor;
+            ctx.lineWidth = 14;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            ctx.restore();
+
+            // 2. Draw Body Shadow
+            ctx.beginPath();
+            ctx.ellipse(0, 35, 45, 12, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.12)';
+            ctx.fill();
+
+            // 3. Draw Cat Body
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 42, 35, 0, 0, Math.PI * 2);
+            ctx.fillStyle = fur.mainColor;
+            ctx.fill();
+
+            // Belly Overlay (if available)
+            if (fur.bellyColor) {
+                ctx.beginPath();
+                ctx.ellipse(5, 5, 26, 22, 0, 0, Math.PI * 2);
+                ctx.fillStyle = fur.bellyColor;
+                ctx.fill();
+            }
+
+            // Stripe / Spot Accents on Body
+            if (fur.stripeColor) {
+                ctx.strokeStyle = fur.stripeColor;
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(-15, -20); ctx.lineTo(-10, -10);
+                ctx.moveTo(0, -25); ctx.lineTo(2, -12);
+                ctx.moveTo(15, -20); ctx.lineTo(10, -10);
+                ctx.stroke();
+            }
+
+            // 4. Draw Paws (Front & Back)
+            ctx.fillStyle = fur.bellyColor || '#ffffff';
+            // Left Front Paw
+            ctx.beginPath(); ctx.arc(-22, 28, 11, 0, Math.PI * 2); ctx.fill();
+            // Right Front Paw
+            ctx.beginPath(); ctx.arc(22, 28, 11, 0, Math.PI * 2); ctx.fill();
+
+            // 5. Draw Head
+            const headY = -35 + Math.sin(animFrame * 0.05) * 2;
+            ctx.save();
+            ctx.translate(0, headY);
+
+            // Ears
+            // Left Ear
+            ctx.beginPath();
+            ctx.moveTo(-28, -20);
+            ctx.lineTo(-42, -50);
+            ctx.lineTo(-12, -32);
+            ctx.fillStyle = fur.mainColor;
+            ctx.fill();
+            // Left Ear Inner
+            ctx.beginPath();
+            ctx.moveTo(-26, -23);
+            ctx.lineTo(-37, -44);
+            ctx.lineTo(-15, -31);
+            ctx.fillStyle = fur.earColor || '#f43f5e';
+            ctx.fill();
+
+            // Right Ear
+            ctx.beginPath();
+            ctx.moveTo(28, -20);
+            ctx.lineTo(42, -50);
+            ctx.lineTo(12, -32);
+            ctx.fillStyle = fur.mainColor;
+            ctx.fill();
+            // Right Ear Inner
+            ctx.beginPath();
+            ctx.moveTo(26, -23);
+            ctx.lineTo(37, -44);
+            ctx.lineTo(15, -31);
+            ctx.fillStyle = fur.earColor || '#f43f5e';
+            ctx.fill();
+
+            // Head Base Circle
+            ctx.beginPath();
+            ctx.arc(0, -10, 32, 0, Math.PI * 2);
+            ctx.fillStyle = fur.mainColor;
+            ctx.fill();
+
+            // Cheeks (Fluffy)
+            ctx.beginPath(); ctx.arc(-20, -2, 14, 0, Math.PI * 2); ctx.fillStyle = fur.mainColor; ctx.fill();
+            ctx.beginPath(); ctx.arc(20, -2, 14, 0, Math.PI * 2); ctx.fillStyle = fur.mainColor; ctx.fill();
+
+            // Pink Nose
+            ctx.beginPath();
+            ctx.moveTo(-3, -8);
+            ctx.lineTo(3, -8);
+            ctx.lineTo(0, -4);
+            ctx.closePath();
+            ctx.fillStyle = '#f43f5e';
+            ctx.fill();
+
+            // Mouth Lines
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(0, -4); ctx.quadraticCurveTo(-5, 2, -10, -1);
+            ctx.moveTo(0, -4); ctx.quadraticCurveTo(5, 2, 10, -1);
+            ctx.stroke();
+
+            // Whiskers
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            // Left Whiskers
+            ctx.beginPath(); ctx.moveTo(-12, -6); ctx.lineTo(-45, -12); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-12, -3); ctx.lineTo(-48, -2); ctx.stroke();
+            // Right Whiskers
+            ctx.beginPath(); ctx.moveTo(12, -6); ctx.lineTo(45, -12); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(12, -3); ctx.lineTo(48, -2); ctx.stroke();
+
+            // 6. Eyes (Dynamic Expression)
+            if (catEyeState === 'happy' || catAction === 'purring') {
+                // Happy Arc Eyes
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 3.5;
+                ctx.beginPath();
+                ctx.arc(-14, -14, 7, Math.PI, 0);
+                ctx.arc(14, -14, 7, Math.PI, 0);
+                ctx.stroke();
+            } else if (catEyeState === 'blink') {
+                // Closed Eyes
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 3.5;
+                ctx.beginPath();
+                ctx.moveTo(-20, -14); ctx.lineTo(-8, -14);
+                ctx.moveTo(8, -14); ctx.lineTo(20, -14);
+                ctx.stroke();
+            } else {
+                // Normal Big Cute Eyes
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath(); ctx.arc(-14, -14, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(14, -14, 8, 0, Math.PI * 2); ctx.fill();
+
+                // Eye Shine Sparkles
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath(); ctx.arc(-16, -17, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(12, -17, 3, 0, Math.PI * 2); ctx.fill();
+            }
+
+            // Blushing Cheeks
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.35)';
+            ctx.beginPath(); ctx.arc(-22, -4, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(22, -4, 7, 0, Math.PI * 2); ctx.fill();
+
+            ctx.restore(); // Restore Head
+            ctx.restore(); // Restore Cat
+        }
+
+        // DRAW TOYS & ITEMS ON CANVAS
+        function renderActiveToy() {
+            if (!activeToy) return;
+
+            ctx.save();
+            if (activeToy === 'laser') {
+                // Laser Red Dot & Glow Ring
+                ctx.beginPath();
+                ctx.arc(mousePos.x, mousePos.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#ef4444';
+                ctx.shadowColor = '#f87171';
+                ctx.shadowBlur = 15;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(mousePos.x, mousePos.y, 16 + Math.sin(animFrame * 0.2) * 4, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            } else if (activeToy === 'feather') {
+                // Feather Wand attached to Cursor
+                ctx.font = '36px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🪶', mousePos.x, mousePos.y);
+            } else if (activeToy === 'fish') {
+                // Catnip Fish
+                ctx.font = '40px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🐟', mousePos.x, mousePos.y);
+            } else if (activeToy === 'yarn') {
+                // Rolling Yarn Ball
+                ctx.font = '38px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🧶', mousePos.x, mousePos.y);
+            }
+            ctx.restore();
+        }
+
+        // PARTICLE CREATION
+        function spawnParticles(x, y, emoji, count = 5) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: -2 - Math.random() * 3,
+                    alpha: 1,
+                    size: 16 + Math.random() * 12,
+                    emoji: emoji
+                });
+            }
+        }
+
+        function updateParticles() {
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.025;
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.font = `${p.size}px sans-serif`;
+                ctx.fillText(p.emoji, p.x, p.y);
+                ctx.restore();
+
+                if (p.alpha <= 0) particles.splice(idx, 1);
+            });
+        }
+
+        // UPDATE UI STATS DISPLAY
+        function updateUI() {
+            document.getElementById('cat-name-display').innerText = catConfig.name;
+            document.getElementById('cat-coins').innerText = catStats.coins;
+            document.getElementById('cat-level').innerText = catStats.level;
+            document.getElementById('affection-val').innerText = catStats.affection;
+
+            // Update Progress Bars
+            document.getElementById('hunger-num').innerText = `${Math.ceil(catStats.hunger)}%`;
+            document.getElementById('hunger-bar').style.width = `${catStats.hunger}%`;
+
+            document.getElementById('thirst-num').innerText = `${Math.ceil(catStats.thirst)}%`;
+            document.getElementById('thirst-bar').style.width = `${catStats.thirst}%`;
+
+            document.getElementById('happy-num').innerText = `${Math.ceil(catStats.happiness)}%`;
+            document.getElementById('happy-bar').style.width = `${catStats.happiness}%`;
+
+            // Personality Badge
+            const pers = PERSONALITIES.find(p => p.id === catConfig.personalityId) || PERSONALITIES[0];
+            document.getElementById('cat-personality-badge').innerText = pers.name.split(' ')[1] || pers.name;
+
+            // Mood Tag
+            const moodTag = document.getElementById('cat-mood-tag');
+            if (catStats.hunger < 30) {
+                moodTag.innerText = '🤤 배고파냥! 사료 줘!';
+                moodTag.className = 'text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200';
+            } else if (catStats.thirst < 30) {
+                moodTag.innerText = '🥛 목말라냥! 물 줘!';
+                moodTag.className = 'text-[11px] font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200';
+            } else if (catStats.happiness > 80) {
+                moodTag.innerText = '🥰 기분 최고냥!';
+                moodTag.className = 'text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200';
+            } else {
+                moodTag.innerText = '😸 편안하다냥';
+                moodTag.className = 'text-[11px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-md border border-pink-200';
+            }
+        }
+
+        // CAT SPEECH DIALOGUE TRIGGER
+        function speak(text) {
+            const speechEl = document.getElementById('cat-speech');
+            speechEl.innerText = `"${text}"`;
+            playSound('meow');
+
+            const container = document.getElementById('speech-container');
+            container.classList.remove('scale-100');
+            container.classList.add('scale-110');
+            setTimeout(() => {
+                container.classList.remove('scale-110');
+                container.classList.add('scale-100');
+            }, 200);
+        }
+
+        function gameLoop() {
+            animFrame++;
+
+            // Clear Background with Room Decor Grid
+            ctx.fillStyle = '#fdf2f8';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw Cozy Living Room Floor & Carpet
+            ctx.fillStyle = '#fbcfe8';
+            ctx.fillRect(0, height * 0.75, width, height * 0.25);
+
+            // Draw Decorative Carpet Circle
+            ctx.beginPath();
+            ctx.ellipse(width / 2, height * 0.78, width * 0.35, 60, 0, 0, Math.PI * 2);
+            ctx.fillStyle = '#f472b6';
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#db2777';
+            ctx.stroke();
+
+            // Cat Movement Logic toward Target Position
+            const dx = catTargetPos.x - catPos.x;
+            const dy = catTargetPos.y - catPos.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist > 15) {
+                catPos.x += (dx / dist) * 4;
+                catPos.y += (dy / dist) * 4;
+                catFacing = dx >= 0 ? 1 : -1;
+                catAction = 'walking';
+            } else {
+                if (catAction === 'walking') catAction = 'idle';
+            }
+
+            // Random Eye Blinking Logic
+            if (animFrame % 180 === 0 && catEyeState === 'normal') {
+                catEyeState = 'blink';
+                setTimeout(() => { if (catEyeState === 'blink') catEyeState = 'normal'; }, 200);
+            }
+
+            // Render Particles, Cat, and Toys
+            updateParticles();
+            renderCat();
+            renderActiveToy();
+
+            // Decay Stats Slowly
+            if (animFrame % 300 === 0) {
+                catStats.hunger = Math.max(0, catStats.hunger - 1);
+                catStats.thirst = Math.max(0, catStats.thirst - 1.2);
+                catStats.happiness = Math.max(0, catStats.happiness - 0.8);
+                updateUI();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // INTERACTIVE TOUCH / MOUSE EVENT LISTENERS
+        canvas.addEventListener('mousemove', (e) => {
+            mousePos.x = e.clientX;
+            mousePos.y = e.clientY;
+
+            // If active toy is playing, cat chases toy!
+            if (activeToy) {
+                catTargetPos.x = mousePos.x;
+                catTargetPos.y = Math.min(height * 0.8, mousePos.y);
+            }
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const clickX = e.clientX;
+            const clickY = e.clientY;
+
+            // Check if clicking near cat (Petting Action)
+            const distToCat = Math.hypot(clickX - catPos.x, clickY - catPos.y);
+            if (distToCat < 70) {
+                // Petting Cat!
+                catEyeState = 'happy';
+                catAction = 'purring';
+                playSound('purr');
+                spawnParticles(clickX, clickY, '💖', 6);
+
+                catStats.happiness = Math.min(100, catStats.happiness + 5);
+                catStats.affection += 2;
+                catStats.coins += 1;
+                updateUI();
+
+                const pers = PERSONALITIES.find(p => p.id === catConfig.personalityId);
+                const randomMsg = pers.speeched[Math.floor(Math.random() * pers.speeched.length)];
+                speak(randomMsg);
+
+                setTimeout(() => { catEyeState = 'normal'; catAction = 'idle'; }, 1500);
+            } else if (activeToy) {
+                // Playing with Toy Sound & Action
+                playSound('squeak');
+                spawnParticles(clickX, clickY, '✨', 4);
+                catStats.happiness = Math.min(100, catStats.happiness + 8);
+                catStats.coins += 2;
+                updateUI();
+            }
+        });
+
+        // CARE BUTTON EVENT HANDLERS
+        document.getElementById('btn-feed-food').addEventListener('click', () => {
+            catTargetPos = { x: width / 2 - 80, y: height / 2 + 50 };
+            catEyeState = 'happy';
+            playSound('munch');
+            spawnParticles(catPos.x, catPos.y - 40, '🍲', 5);
+
+            catStats.hunger = Math.min(100, catStats.hunger + 25);
+            catStats.happiness = Math.min(100, catStats.happiness + 5);
+            updateUI();
+            speak(`"냐미냐미! 사료 너무 맛있다냥~ 🍲"`);
+        });
+
+        document.getElementById('btn-feed-water').addEventListener('click', () => {
+            catTargetPos = { x: width / 2 + 80, y: height / 2 + 50 };
+            catEyeState = 'happy';
+            playSound('slurp');
+            spawnParticles(catPos.x, catPos.y - 40, '🥛', 5);
+
+            catStats.thirst = Math.min(100, catStats.thirst + 30);
+            updateUI();
+            speak(`"할짝할짝! 시원한 물 최고다냥~ 🥛"`);
+        });
+
+        document.getElementById('btn-feed-churu').addEventListener('click', () => {
+            if (catStats.coins < 10) {
+                speak(`"코인이 부족하다냥! 쓰다듬어 주거나 같이 놀아서 코인을 모아라냥!"`);
+                return;
+            }
+            catStats.coins -= 10;
+            catStats.hunger = Math.min(100, catStats.hunger + 35);
+            catStats.happiness = 100;
+            catStats.affection += 10;
+
+            catEyeState = 'happy';
+            playSound('munch');
+            playSound('purr');
+            spawnParticles(catPos.x, catPos.y - 40, '🐟', 8);
+
+            updateUI();
+            speak(`"꺄아아-! 천상의 맛 츄르다냥! 집사 최고!! 💖"`);
+        });
+
+        document.getElementById('btn-groom').addEventListener('click', () => {
+            catEyeState = 'happy';
+            playSound('purr');
+            spawnParticles(catPos.x, catPos.y - 30, '✨', 6);
+
+            catStats.happiness = Math.min(100, catStats.happiness + 10);
+            catStats.affection += 3;
+            updateUI();
+            speak(`"골골골~ 빗질해주니 나른하다냥~ 🧹"`);
+        });
+
+        // TOY TOOLBAR BUTTONS
+        document.querySelectorAll('.toy-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const toyType = btn.getAttribute('data-toy');
+                
+                // Toggle active toy
+                if (activeToy === toyType) {
+                    activeToy = null;
+                    btn.classList.remove('ring-4', 'ring-pink-400', 'bg-pink-300');
+                    speak(`"장난감 놀이 끝이다냥?"`);
+                } else {
+                    document.querySelectorAll('.toy-btn').forEach(b => b.classList.remove('ring-4', 'ring-pink-400', 'bg-pink-300'));
+                    activeToy = toyType;
+                    btn.classList.add('ring-4', 'ring-pink-400', 'bg-pink-300');
+                    playSound('squeak');
+
+                    if (toyType === 'laser') speak(`"헉! 빨간 점이다냥! 우다다!! 🔴"`);
+                    else if (toyType === 'feather') speak(`"살랑살랑 깃털 잡아라냥! 🪶"`);
+                    else if (toyType === 'fish') speak(`"캣닙 향기에 취한다냥~ 🐟"`);
+                    else if (toyType === 'yarn') speak(`"데굴데굴 털실 뭉치 냥냥펀치! 🧶"`);
+                }
+            });
+        });
+
+        // MODAL CUSTOMIZATION INITIALIZER & LOGIC
+        function initCustomizerModal() {
+            // Render Color Options
+            const colorContainer = document.getElementById('color-options');
+            colorContainer.innerHTML = '';
+            FUR_PATTERNS.forEach(f => {
+                const btn = document.createElement('button');
+                btn.className = `p-2.5 rounded-2xl border-2 flex flex-col items-center justify-center space-y-1 transition ${catConfig.furId === f.id ? 'border-pink-500 bg-pink-100 shadow-md scale-102' : 'border-slate-200 bg-slate-50 hover:bg-pink-50'}`;
+                btn.innerHTML = `
+                    <span class="text-2xl">${f.icon}</span>
+                    <span class="text-[11px] font-black text-slate-800">${f.name}</span>
+                `;
+                btn.onclick = () => {
+                    catConfig.furId = f.id;
+                    initCustomizerModal();
+                };
+                colorContainer.appendChild(btn);
+            });
+
+            // Render Personality Options
+            const persContainer = document.getElementById('personality-options');
+            persContainer.innerHTML = '';
+            PERSONALITIES.forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = `p-2.5 rounded-2xl border-2 text-left transition ${catConfig.personalityId === p.id ? 'border-pink-500 bg-pink-100 shadow-md' : 'border-slate-200 bg-slate-50 hover:bg-pink-50'}`;
+                btn.innerHTML = `
+                    <div class="text-xs font-black text-pink-900">${p.name}</div>
+                    <div class="text-[10px] text-slate-500 font-bold leading-tight mt-0.5">${p.desc}</div>
+                `;
+                btn.onclick = () => {
+                    catConfig.personalityId = p.id;
+                    initCustomizerModal();
+                };
+                persContainer.appendChild(btn);
+            });
+        }
+
+        // MODAL OPEN / CLOSE LISTENERS
+        document.getElementById('open-customizer-btn').addEventListener('click', () => {
+            initCustomizerModal();
+            document.getElementById('customizer-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('cat-avatar-btn').addEventListener('click', () => {
+            initCustomizerModal();
+            document.getElementById('customizer-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('close-modal-btn').addEventListener('click', () => {
+            document.getElementById('customizer-modal').classList.add('hidden');
+        });
+
+        document.getElementById('save-cat-btn').addEventListener('click', () => {
+            const inputName = document.getElementById('input-cat-name').value.trim();
+            if (inputName) catConfig.name = inputName;
+
+            catConfig.favToy = document.getElementById('select-fav-toy').value;
+            catConfig.favTreat = document.getElementById('select-fav-treat').value;
+
+            document.getElementById('customizer-modal').classList.add('hidden');
+            updateUI();
+            speak(`"야옹~! 설정 완료다냥! 날 잘 부탁해 집사야! 💕"`);
+        });
+
+        // RESIZE CANVAS ADAPTIVELY
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            catPos = { x: width / 2, y: height / 2 + 50 };
+            catTargetPos = { x: width / 2, y: height / 2 + 50 };
+        });
+
+        // START GAME ON WINDOW LOAD
+        window.onload = function() {
+            updateUI();
+            gameLoop();
+            // Default show customizer modal once at startup
+            initCustomizerModal();
+        };
+    </script>
+</body>
+</html>

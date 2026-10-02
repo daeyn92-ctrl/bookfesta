@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>기가 다시 생겨나는 블루블라스트 ⚡</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts (Pretendard-like Outfit & Noto Sans KR) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Noto+Sans+KR:wght@400;700;900&display=swap" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'Noto Sans KR', 'sans-serif'],
+          },
+          colors: {
+            cyber: {
+              bg: '#030712',
+              card: '#0f172a',
+              blue: '#06b6d4',
+              neon: '#38bdf8',
+              glow: '#60a5fa',
+              accent: '#818cf8',
+            }
+          },
+          animation: {
+            'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 3s ease-in-out infinite',
+            'ki-charge': 'kiCharge 0.8s ease-out forwards',
+          },
+          keyframes: {
+            pulseGlow: {
+              '0%, 100%': { boxShadow: '0 0 15px rgba(6, 182, 212, 0.4), 0 0 30px rgba(56, 189, 248, 0.2)' },
+              '50%': { boxShadow: '0 0 25px rgba(6, 182, 212, 0.8), 0 0 50px rgba(56, 189, 248, 0.5)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-6px)' },
+            },
+            kiCharge: {
+              '0%': { transform: 'scale(1)', filter: 'brightness(1)' },
+              '50%': { transform: 'scale(1.08)', filter: 'brightness(1.5)' },
+              '100%': { transform: 'scale(1)', filter: 'brightness(1)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
+      color: #f8fafc;
+      overflow: hidden;
+    }
+
+    /* Glassmorphism Card Style */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    /* Glowing Text Effects */
+    .text-glow-blue {
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.7), 0 0 20px rgba(6, 182, 212, 0.5);
+    }
+    
+    .text-glow-gold {
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(245, 158, 11, 0.5);
+    }
+
+    /* Custom Gauge Bar Pulse Animation */
+    .ki-bar-fill {
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease;
+      background: linear-gradient(90deg, #0284c7 0%, #06b6d4 50%, #38bdf8 100%);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+    }
+
+    /* Canvas Grid Wrapper Shadow */
+    .board-wrapper {
+      box-shadow: 0 0 35px rgba(6, 182, 212, 0.25), inset 0 0 15px rgba(3, 7, 18, 0.8);
+    }
+
+    /* Floating drag ghost canvas */
+    #drag-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+      transform: translate(-50%, -100%);
+      display: none;
+      filter: drop-shadow(0 10px 20px rgba(6, 182, 212, 0.6));
+    }
+  </style>
+</head>
+<body class="min-h-screen w-screen flex flex-col items-center justify-between p-3 sm:p-6 select-none font-sans">
+
+  <!-- HEADER & LOGO -->
+  <header class="w-full max-w-md flex justify-between items-center z-10 my-1">
+    <div class="flex items-center space-x-2">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-blue-500 to-indigo-500 p-0.5 shadow-lg shadow-cyan-500/30 flex items-center justify-center animate-pulse-glow">
+        <i class="fa-solid fa-bolt text-xl text-yellow-300"></i>
+      </div>
+      <div>
+        <h1 class="text-base sm:text-lg font-black tracking-wider text-glow-blue bg-gradient-to-r from-cyan-300 via-blue-200 to-indigo-200 bg-clip-text text-transparent">
+          블루블라스트
+        </h1>
+        <p class="text-[10px] sm:text-xs text-cyan-400 font-bold tracking-tight">기가 다시 생겨나는 퍼즐 ⚡</p>
+      </div>
+    </div>
+
+    <!-- Mute & Pause Buttons -->
+    <div class="flex items-center space-x-2">
+      <button id="sound-btn" onclick="toggleSound()" class="w-9 h-9 rounded-xl glass-panel text-cyan-300 hover:text-white flex items-center justify-center transition-all active:scale-95">
+        <i id="sound-icon" class="fa-solid fa-volume-high text-sm"></i>
+      </button>
+      <button onclick="openHelpModal()" class="w-9 h-9 rounded-xl glass-panel text-cyan-300 hover:text-white flex items-center justify-center transition-all active:scale-95">
+        <i class="fa-solid fa-circle-question text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN DASHBOARD (SCORE & KI GAUGE) -->
+  <section class="w-full max-w-md glass-panel rounded-2xl p-3 sm:p-4 my-2 flex flex-col space-y-3 z-10 shadow-xl">
+    
+    <!-- Top Score Info -->
+    <div class="flex justify-between items-center text-xs font-extrabold uppercase">
+      <div class="flex flex-col">
+        <span class="text-slate-400 text-[10px]">CURRENT SCORE</span>
+        <span id="score-val" class="text-2xl sm:text-3xl font-black text-white text-glow-blue">0</span>
+      </div>
+      
+      <div class="flex items-center space-x-3">
+        <div class="flex flex-col items-end">
+          <span class="text-slate-400 text-[10px]">BEST SCORE</span>
+          <span id="high-score-val" class="text-base sm:text-lg text-yellow-400 font-bold text-glow-gold">0</span>
+        </div>
+        <div class="bg-cyan-950/80 border border-cyan-500/40 rounded-xl px-2.5 py-1 text-center">
+          <span class="block text-[9px] text-cyan-300">COMBO</span>
+          <span id="combo-val" class="text-sm font-black text-cyan-400">0x</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- KI (ENERGY) RECOVERY GAUGE BAR -->
+    <div id="ki-container" class="relative w-full flex flex-col space-y-1">
+      <div class="flex justify-between items-center text-xs">
+        <span class="font-black text-cyan-300 flex items-center gap-1 text-[11px]">
+          <i class="fa-solid fa-fire-flame-curved text-cyan-400 animate-bounce"></i>
+          남은 '기' (Ki Energy)
+        </span>
+        <span id="ki-percent-text" class="font-extrabold text-cyan-300 text-xs">100%</span>
+      </div>
+
+      <!-- Bar Outline Container -->
+      <div class="w-full h-4 bg-slate-900 rounded-full border border-cyan-500/40 overflow-hidden p-0.5 relative shadow-inner">
+        <div id="ki-bar" class="h-full rounded-full ki-bar-fill w-full"></div>
+        <!-- Pulse overlay line -->
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse pointer-events-none"></div>
+      </div>
+
+      <!-- Ki Regenerate Banner Toast -->
+      <div id="ki-regen-toast" class="absolute -top-7 right-0 text-[11px] font-black text-cyan-300 bg-cyan-900/90 px-2 py-0.5 rounded-md border border-cyan-400/50 shadow-lg opacity-0 transition-all duration-300 pointer-events-none flex items-center space-x-1">
+        <i class="fa-solid fa-sparkles text-yellow-300"></i>
+        <span>줄 제거! 기 다시 충전 +30!⚡</span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- MAIN GAME AREA -->
+  <main class="w-full max-w-md flex flex-col items-center justify-center relative my-auto">
+    
+    <!-- 8x8 CANVAS BOARD -->
+    <div class="board-wrapper relative rounded-2xl p-2 bg-slate-950 border border-cyan-500/30 overflow-hidden">
+      <canvas id="game-canvas" width="340" height="340" class="block rounded-xl cursor-pointer"></canvas>
+      
+      <!-- Math Trigger Alert Overlay -->
+      <div id="combo-banner" class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-all duration-300 scale-50 z-20">
+        <span class="text-3xl font-black text-yellow-300 drop-shadow-[0_0_20px_rgba(250,204,21,0.9)] tracking-widest uppercase italic">
+          GREAT BLAST!
+        </span>
+      </div>
+    </div>
+
+    <!-- TRAY PIECES CONTAINER (3 PIECES AT A TIME) -->
+    <div class="w-full grid grid-cols-3 gap-2 mt-4 px-1 h-28 sm:h-32">
+      <div id="tray-0" class="glass-panel rounded-2xl p-1 flex items-center justify-center relative cursor-grab active:cursor-grabbing hover:border-cyan-400/60 transition-colors"></div>
+      <div id="tray-1" class="glass-panel rounded-2xl p-1 flex items-center justify-center relative cursor-grab active:cursor-grabbing hover:border-cyan-400/60 transition-colors"></div>
+      <div id="tray-2" class="glass-panel rounded-2xl p-1 flex items-center justify-center relative cursor-grab active:cursor-grabbing hover:border-cyan-400/60 transition-colors"></div>
+    </div>
+
+  </main>
+
+  <!-- GUGUDAN MATH QUIZ MODAL -->
+  <div id="quiz-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden animate-fadeIn">
+    <div class="w-full max-w-sm glass-panel rounded-3xl border-2 border-cyan-400/60 p-6 flex flex-col items-center text-center shadow-[0_0_50px_rgba(6,182,212,0.5)] relative overflow-hidden">
+      
+      <!-- Modal Top Tag -->
+      <div class="bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-extrabold text-xs px-3 py-1 rounded-full shadow-md mb-3 flex items-center space-x-1">
+        <i class="fa-solid fa-brain"></i>
+        <span>기가 부족해! 구구단 찬스! ⚡</span>
+      </div>
+
+      <h2 class="text-lg font-bold text-slate-200 mb-1">문제를 맞히고 '기'를 대량 회복하세요!</h2>
+      <p class="text-xs text-cyan-300 mb-4">제한 시간 내 정답 선택 시 <strong class="text-yellow-300">+50% 기 충전</strong>!</p>
+
+      <!-- Quiz Problem Display -->
+      <div class="w-full bg-slate-900/90 border border-cyan-500/50 rounded-2xl py-4 my-2 text-3xl font-black text-cyan-300 tracking-wider shadow-inner text-glow-blue flex items-center justify-center space-x-2">
+        <span id="quiz-question">7 × 8 = ?</span>
+      </div>
+
+      <!-- Quiz Timer Bar -->
+      <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden my-3 border border-cyan-500/30">
+        <div id="quiz-timer-bar" class="h-full bg-yellow-400 transition-all duration-100 w-full"></div>
+      </div>
+
+      <!-- Multiple Choice Options Grid -->
+      <div id="quiz-options-grid" class="w-full grid grid-cols-2 gap-3 mt-2">
+        <!-- 4 Option buttons dynamically rendered -->
+      </div>
+
+    </div>
+  </div>
+
+  <!-- GAME OVER / REVIVE MODAL -->
+  <div id="gameover-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm glass-panel rounded-3xl border-2 border-red-500/50 p-6 flex flex-col items-center text-center shadow-[0_0_50px_rgba(239,68,68,0.4)]">
+      
+      <div class="w-16 h-16 bg-red-500/20 rounded-full border border-red-500/50 flex items-center justify-center mb-3 text-red-400 text-3xl">
+        <i class="fa-solid fa-skull-crossbones"></i>
+      </div>
+
+      <h2 class="text-2xl font-black text-white mb-1">기가 모두 방전되었습니다!</h2>
+      <p class="text-xs text-slate-400 mb-4">더 이상 놓을 수 있는 블록이 없거나 기가 다 소모되었어요.</p>
+
+      <!-- Final Score Box -->
+      <div class="w-full bg-slate-900/80 rounded-2xl p-4 border border-slate-800 mb-5 flex justify-around items-center">
+        <div>
+          <span class="block text-[10px] text-slate-400 font-bold">최종 점수</span>
+          <span id="final-score" class="text-2xl font-black text-cyan-300">0</span>
+        </div>
+        <div class="h-8 border-r border-slate-700"></div>
+        <div>
+          <span class="block text-[10px] text-slate-400 font-bold">최고 기록</span>
+          <span id="final-best" class="text-2xl font-black text-yellow-400">0</span>
+        </div>
+      </div>
+
+      <!-- Restart Button -->
+      <button onclick="restartGame()" class="w-full py-4 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-black rounded-2xl shadow-lg shadow-cyan-500/30 text-sm active:scale-95 transition-all flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-rotate-right"></i>
+        <span>다시 시작하기</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- HOW TO PLAY / HELP MODAL -->
+  <div id="help-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm glass-panel rounded-3xl p-6 flex flex-col items-center text-left text-xs space-y-3 relative">
+      <button onclick="closeHelpModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-base">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h3 class="text-base font-black text-cyan-300 flex items-center space-x-2">
+        <i class="fa-solid fa-gamepad"></i>
+        <span>게임 방법 설명</span>
+      </h3>
+
+      <div class="space-y-2 text-slate-300 leading-relaxed">
+        <p>1. 하단 트레이의 **푸른 블록**을 드래그하여 8×8 격자에 놓으세요.</p>
+        <p>2. **가로 또는 세로 한 줄**을 완성하면 블록이 파괴되며 점수를 얻습니다.</p>
+        <p>3. **⚡ 핵심 규칙**: 블록을 놓으면 '기'가 줄어들지만, **줄을 만들면 '기가 다시 나타나며' 회복**됩니다!</p>
+        <p>4. **🧠 구구단 찬스**: 기가 부족하거나 콤보를 달성하면 구구단 퀴즈가 나옵니다. 정답을 맞히면 대량의 '기'가 충전됩니다!</p>
+      </div>
+
+      <button onclick="closeHelpModal()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl text-xs mt-2">
+        확인했습니다!
+      </button>
+    </div>
+  </div>
+
+  <!-- FLOATING DRAG CANVAS GHOST -->
+  <canvas id="drag-ghost" width="100" height="100"></canvas>
+
+  <script>
+    /* ===================================================================
+       AUDIO SYNTHESIZER (Web Audio API for zero external audio asset load)
+       =================================================================== */
+    class SoundFx {
+      constructor() {
+        this.ctx = null;
+        this.isMuted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+      }
+
+      playTone(freq, type, duration, gainVal = 0.1) {
+        if (this.isMuted) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(e) {}
+      }
+
+      playPlace() {
+        this.playTone(320, 'sine', 0.15, 0.12);
+      }
+
+      playClear() {
+        // Laser sweep effect
+        if (this.isMuted) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.3);
+        } catch(e) {}
+      }
+
+      playKiRegen() {
+        // Powerup chime
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'sine', 0.2, 0.1), idx * 60);
+        });
+      }
+
+      playQuizSuccess() {
+        [523, 659, 783, 1046, 1318].forEach((freq, idx) => {
+          setTimeout(() => this.playTone(freq, 'triangle', 0.25, 0.12), idx * 80);
+        });
+      }
+
+      playQuizFail() {
+        this.playTone(180, 'sawtooth', 0.4, 0.15);
+      }
+    }
+
+    const sound = new SoundFx();
+
+    function toggleSound() {
+      sound.isMuted = !sound.isMuted;
+      const icon = document.getElementById('sound-icon');
+      if (sound.isMuted) {
+        icon.className = "fa-solid fa-volume-xmark text-red-400 text-sm";
+      } else {
+        icon.className = "fa-solid fa-volume-high text-sm";
+        sound.playTone(440, 'sine', 0.1);
+      }
+    }
+
+    /* ===================================================================
+       GAME CONFIG & BLOCK SHAPE DEFINITIONS
+       =================================================================== */
+    const GRID_SIZE = 8;
+    let CELL_SIZE = 40; // Calculated dynamically on canvas
+    
+    // Tetris/Block puzzle shapes definition (relative coordinates)
+    const SHAPES = [
+      // Single
+      { name: '1x1', matrix: [[1]], color: '#38bdf8' },
+      // Lines
+      { name: '1x2', matrix: [[1, 1]], color: '#06b6d4' },
+      { name: '2x1', matrix: [[1], [1]], color: '#06b6d4' },
+      { name: '1x3', matrix: [[1, 1, 1]], color: '#0284c7' },
+      { name: '3x1', matrix: [[1], [1], [1]], color: '#0284c7' },
+      { name: '1x4', matrix: [[1, 1, 1, 1]], color: '#3b82f6' },
+      // Squares
+      { name: '2x2', matrix: [[1, 1], [1, 1]], color: '#60a5fa' },
+      { name: '3x3', matrix: [[1,1,1],[1,1,1],[1,1,1]], color: '#2563eb' },
+      // L Shapes
+      { name: 'L2x2_1', matrix: [[1, 0], [1, 1]], color: '#818cf8' },
+      { name: 'L2x2_2', matrix: [[0, 1], [1, 1]], color: '#818cf8' },
+      { name: 'L2x2_3', matrix: [[1, 1], [1, 0]], color: '#818cf8' },
+      { name: 'L2x2_4', matrix: [[1, 1], [0, 1]], color: '#818cf8' },
+      // T Shapes
+      { name: 'T3x2', matrix: [[1, 1, 1], [0, 1, 0]], color: '#a855f7' },
+      { name: 'T2x3', matrix: [[0, 1], [1, 1], [0, 1]], color: '#a855f7' }
+    ];
+
+    /* ===================================================================
+       GAME STATE VARIABLES
+       =================================================================== */
+    let grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+    let score = 0;
+    let highScore = localStorage.getItem('blueblast_highscore') || 0;
+    let kiEnergy = 100; // 0 ~ 100
+    let comboCount = 0;
+    let trayPieces = [null, null, null]; // holds shape objects
+    let lineClearsTotal = 0;
+
+    // Drag State
+    let draggingIndex = null;
+    let dragGhostCanvas = document.getElementById('drag-ghost');
+    let dragGhostCtx = dragGhostCanvas.getContext('2d');
+
+    // Canvas references
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+
+    /* ===================================================================
+       PARTICLE SYSTEM FOR BLAST EFFECTS
+       =================================================================== */
+    let particles = [];
+
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 8;
+        this.vy = (Math.random() - 0.5) * 8;
+        this.color = color;
+        this.alpha = 1;
+        this.size = Math.random() * 6 + 3;
+        this.decay = Math.random() * 0.03 + 0.02;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= this.decay;
+      }
+
+      draw(context) {
+        context.save();
+        context.globalAlpha = Math.max(0, this.alpha);
+        context.fillStyle = this.color;
+        context.shadowColor = this.color;
+        context.shadowBlur = 10;
+        context.beginPath();
+        context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+      }
+    }
+
+    function createExplosion(cellX, cellY, color) {
+      const px = cellX * CELL_SIZE + CELL_SIZE / 2;
+      const py = cellY * CELL_SIZE + CELL_SIZE / 2;
+      for (let i = 0; i < 12; i++) {
+        particles.push(new Particle(px, py, color));
+      }
+    }
+
+    /* ===================================================================
+       INITIALIZATION & RENDERING
+       =================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('high-score-val').innerText = highScore;
+      resizeCanvas();
+      initGame();
+      setupEvents();
+      requestAnimationFrame(gameLoop);
+    });
+
+    function resizeCanvas() {
+      // Responsive canvas resizing for crystal crisp rendering
+      const maxContainerWidth = Math.min(window.innerWidth - 32, 360);
+      canvas.width = maxContainerWidth;
+      canvas.height = maxContainerWidth;
+      CELL_SIZE = canvas.width / GRID_SIZE;
+      renderBoard();
+      renderTray();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    function initGame() {
+      grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+      score = 0;
+      kiEnergy = 100;
+      comboCount = 0;
+      lineClearsTotal = 0;
+      updateUI();
+      fillTray();
+    }
+
+    function restartGame() {
+      document.getElementById('gameover-modal').classList.add('hidden');
+      initGame();
+    }
+
+    function updateUI() {
+      document.getElementById('score-val').innerText = score.toLocaleString();
+      document.getElementById('combo-val').innerText = `${comboCount}x`;
+      
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('blueblast_highscore', highScore);
+        document.getElementById('high-score-val').innerText = highScore.toLocaleString();
+      }
+
+      // Update Ki Bar
+      const kiBar = document.getElementById('ki-bar');
+      const kiText = document.getElementById('ki-percent-text');
+      kiBar.style.width = `${Math.max(0, Math.min(100, kiEnergy))}%`;
+      kiText.innerText = `${Math.round(kiEnergy)}%`;
+
+      if (kiEnergy < 25) {
+        kiBar.style.background = 'linear-gradient(90deg, #dc2626 0%, #ef4444 100%)';
+        kiBar.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.9)';
+      } else {
+        kiBar.style.background = 'linear-gradient(90deg, #0284c7 0%, #06b6d4 50%, #38bdf8 100%)';
+        kiBar.style.boxShadow = '0 0 12px rgba(56, 189, 248, 0.8)';
+      }
+    }
+
+    function fillTray() {
+      for (let i = 0; i < 3; i++) {
+        if (!trayPieces[i]) {
+          const randIdx = Math.floor(Math.random() * SHAPES.length);
+          trayPieces[i] = JSON.parse(JSON.stringify(SHAPES[randIdx]));
+        }
+      }
+      renderTray();
+      checkGameOver();
+    }
+
+    /* ===================================================================
+       CANVAS DRAWING FUNCTIONS
+       =================================================================== */
+    function renderBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw Grid background cells
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const x = c * CELL_SIZE;
+          const y = r * CELL_SIZE;
+
+          ctx.fillStyle = '#0f172a';
+          ctx.strokeStyle = '#1e293b';
+          ctx.lineWidth = 1;
+
+          // Cell background
+          drawRoundedRect(ctx, x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4, 6, true, true);
+
+          // If block exists
+          if (grid[r][c]) {
+            drawBlock(ctx, x, y, CELL_SIZE, grid[r][c]);
+          }
+        }
+      }
+    }
+
+    function drawBlock(context, x, y, size, color) {
+      context.save();
+      context.fillStyle = color;
+      context.shadowColor = color;
+      context.shadowBlur = 12;
+
+      // Solid rounded block
+      drawRoundedRect(context, x + 3, y + 3, size - 6, size - 6, 8, true, false);
+
+      // Highlight bevel top-left
+      context.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      drawRoundedRect(context, x + 5, y + 5, size - 10, (size - 10) / 2, 4, true, false);
+
+      context.restore();
+    }
+
+    function drawRoundedRect(ctx, x, y, width, height, radius, fill, stroke) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function renderTray() {
+      for (let i = 0; i < 3; i++) {
+        const slot = document.getElementById(`tray-${i}`);
+        slot.innerHTML = '';
+
+        if (trayPieces[i]) {
+          const pieceCanvas = document.createElement('canvas');
+          const shape = trayPieces[i];
+          const rows = shape.matrix.length;
+          const cols = shape.matrix[0].length;
+          const previewCellSize = 18;
+
+          pieceCanvas.width = cols * previewCellSize + 8;
+          pieceCanvas.height = rows * previewCellSize + 8;
+
+          const pCtx = pieceCanvas.getContext('2d');
+          for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+              if (shape.matrix[r][c]) {
+                drawBlock(pCtx, c * previewCellSize + 4, r * previewCellSize + 4, previewCellSize, shape.color);
+              }
+            }
+          }
+
+          slot.appendChild(pieceCanvas);
+        }
+      }
+    }
+
+    /* ===================================================================
+       GAME LOGIC: PLACEMENT & LINE CLEARING & KI RECOVERY
+       =================================================================== */
+    function canPlacePiece(shapeMatrix, startRow, startCol) {
+      const rows = shapeMatrix.length;
+      const cols = shapeMatrix[0].length;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (shapeMatrix[r][c]) {
+            const gr = startRow + r;
+            const gc = startCol + c;
+
+            if (gr < 0 || gr >= GRID_SIZE || gc < 0 || gc >= GRID_SIZE) {
+              return false; // Out of bounds
+            }
+            if (grid[gr][gc] !== null) {
+              return false; // Cell occupied
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    function placePiece(trayIndex, startRow, startCol) {
+      const shape = trayPieces[trayIndex];
+      const rows = shape.matrix.length;
+      const cols = shape.matrix[0].length;
+      let blockCount = 0;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (shape.matrix[r][c]) {
+            grid[startRow + r][startCol + c] = shape.color;
+            blockCount++;
+          }
+        }
+      }
+
+      sound.playPlace();
+      
+      // Consume a small amount of Ki per piece placed (e.g., -8)
+      kiEnergy = Math.max(0, kiEnergy - 8);
+
+      score += blockCount * 10;
+      trayPieces[trayIndex] = null;
+
+      // Check for Line Clears
+      checkAndClearLines();
+
+      // Check if Tray is Empty -> Refill
+      if (trayPieces.every(p => p === null)) {
+        fillTray();
+      } else {
+        renderTray();
+        checkGameOver();
+      }
+
+      updateUI();
+    }
+
+    function checkAndClearLines() {
+      let rowsToClear = [];
+      let colsToClear = [];
+
+      // Check Rows
+      for (let r = 0; r < GRID_SIZE; r++) {
+        if (grid[r].every(cell => cell !== null)) {
+          rowsToClear.push(r);
+        }
+      }
+
+      // Check Cols
+      for (let c = 0; c < GRID_SIZE; c++) {
+        let isFull = true;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          if (grid[r][c] === null) {
+            isFull = false;
+            break;
+          }
+        }
+        if (isFull) colsToClear.push(c);
+      }
+
+      const totalLines = rowsToClear.length + colsToClear.length;
+
+      if (totalLines > 0) {
+        sound.playClear();
+        comboCount++;
+        lineClearsTotal += totalLines;
+
+        // BLAST & CLEAR PARTICLES
+        rowsToClear.forEach(r => {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            createExplosion(c, r, grid[r][c] || '#06b6d4');
+            grid[r][c] = null;
+          }
+        });
+
+        colsToClear.forEach(c => {
+          for (let r = 0; r < GRID_SIZE; r++) {
+            createExplosion(c, r, grid[r][c] || '#06b6d4');
+            grid[r][c] = null;
+          }
+        });
+
+        // ⚡ 핵심 기능: 한줄 만들 때마다 "기가 다시 나타나고 충전됨!"
+        const kiRegenAmount = totalLines * 25 + (comboCount * 5);
+        kiEnergy = Math.min(100, kiEnergy + kiRegenAmount);
+        sound.playKiRegen();
+
+        // Toast animation
+        triggerKiToast(`줄 제거! 기 다시 충전 +${kiRegenAmount}!⚡`);
+
+        // Score bonus
+        score += totalLines * 100 * comboCount;
+
+        // Confetti if multi line clear
+        if (totalLines >= 2) {
+          triggerComboBanner();
+          confetti({ particleCount: 35, spread: 60, origin: { y: 0.6 } });
+        }
+
+        // TRIGGER GUGUDAN QUIZ IF:
+        // Every 3 line clears OR when Ki is low OR combo is high
+        if (lineClearsTotal % 3 === 0 || comboCount >= 3) {
+          setTimeout(() => {
+            triggerGugudanQuiz();
+          }, 600);
+        }
+
+      } else {
+        comboCount = 0; // reset combo if no line cleared
+      }
+
+      renderBoard();
+      updateUI();
+    }
+
+    function triggerKiToast(msg) {
+      const toast = document.getElementById('ki-regen-toast');
+      toast.querySelector('span').innerText = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('animate-ki-charge');
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        toast.classList.remove('animate-ki-charge');
+      }, 1500);
+    }
+
+    function triggerComboBanner() {
+      const banner = document.getElementById('combo-banner');
+      banner.classList.remove('opacity-0', 'scale-50');
+      banner.classList.add('scale-100');
+      setTimeout(() => {
+        banner.classList.add('opacity-0', 'scale-50');
+        banner.classList.remove('scale-100');
+      }, 1200);
+    }
+
+    /* ===================================================================
+       GUGUDAN (MULTIPLICATION TABLE) QUIZ MECHANIC
+       =================================================================== */
+    let quizTimerInterval = null;
+
+    function triggerGugudanQuiz() {
+      const modal = document.getElementById('quiz-modal');
+      const questionEl = document.getElementById('quiz-question');
+      const optionsGrid = document.getElementById('quiz-options-grid');
+      const timerBar = document.getElementById('quiz-timer-bar');
+
+      // Generate random multiplication (2~9)
+      const a = Math.floor(Math.random() * 8) + 2;
+      const b = Math.floor(Math.random() * 8) + 2;
+      const correctAnswer = a * b;
+
+      questionEl.innerText = `${a} × ${b} = ?`;
+
+      // Create 4 multiple choice options
+      let options = [correctAnswer];
+      while (options.length < 4) {
+        let wrong = correctAnswer + (Math.floor(Math.random() * 5) - 2) * (Math.floor(Math.random() * 3) + 1);
+        if (wrong > 0 && !options.includes(wrong)) {
+          options.push(wrong);
+        }
+      }
+      // Shuffle options
+      options.sort(() => Math.random() - 0.5);
+
+      optionsGrid.innerHTML = '';
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "py-3 bg-slate-800 hover:bg-cyan-600 border border-cyan-500/40 rounded-2xl text-xl font-bold text-white shadow-md active:scale-95 transition-all";
+        btn.innerText = opt;
+        btn.onclick = () => handleQuizAnswer(opt === correctAnswer);
+        optionsGrid.appendChild(btn);
+      });
+
+      modal.classList.remove('hidden');
+
+      // Timer 6 Seconds
+      let timeLeft = 100;
+      timerBar.style.width = '100%';
+
+      clearInterval(quizTimerInterval);
+      quizTimerInterval = setInterval(() => {
+        timeLeft -= 2.5;
+        timerBar.style.width = `${Math.max(0, timeLeft)}%`;
+        if (timeLeft <= 0) {
+          clearInterval(quizTimerInterval);
+          handleQuizAnswer(false); // Time out = wrong
+        }
+      }, 100);
+    }
+
+    function handleQuizAnswer(isCorrect) {
+      clearInterval(quizTimerInterval);
+      const modal = document.getElementById('quiz-modal');
+      modal.classList.add('hidden');
+
+      if (isCorrect) {
+        sound.playQuizSuccess();
+        kiEnergy = Math.min(100, kiEnergy + 50); // Restore +50 Ki!
+        score += 500;
+        triggerKiToast("구구단 정답! Ki 에너지 +50% 보너스 충전! ⚡");
+        confetti({ particleCount: 50, spread: 70, origin: { y: 0.5 } });
+      } else {
+        sound.playQuizFail();
+        triggerKiToast("구구단 오답! 기 충전 실패 😭");
+      }
+
+      updateUI();
+      checkGameOver();
+    }
+
+    /* ===================================================================
+       GAME OVER CHECK
+       =================================================================== */
+    function checkGameOver() {
+      // Game over condition 1: Ki is completely depleted
+      // Game over condition 2: No valid placement available for any piece in tray
+      let canPlaceAny = false;
+
+      for (let i = 0; i < 3; i++) {
+        const shape = trayPieces[i];
+        if (shape) {
+          for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+              if (canPlacePiece(shape.matrix, r, c)) {
+                canPlaceAny = true;
+                break;
+              }
+            }
+            if (canPlaceAny) break;
+          }
+        }
+        if (canPlaceAny) break;
+      }
+
+      if ((!canPlaceAny && trayPieces.some(p => p !== null)) || kiEnergy <= 0) {
+        // Last chance Quiz if Ki is 0 but we haven't answered one yet
+        if (kiEnergy <= 0 && canPlaceAny) {
+          triggerGugudanQuiz();
+          return;
+        }
+
+        // Show Game Over Modal
+        document.getElementById('final-score').innerText = score.toLocaleString();
+        document.getElementById('final-best').innerText = highScore.toLocaleString();
+        document.getElementById('gameover-modal').classList.remove('hidden');
+      }
+    }
+
+    /* ===================================================================
+       DRAG AND DROP TOUCH & MOUSE HANDLERS
+       =================================================================== */
+    function setupEvents() {
+      for (let i = 0; i < 3; i++) {
+        const slot = document.getElementById(`tray-${i}`);
+
+        slot.addEventListener('mousedown', (e) => startDrag(i, e.clientX, e.clientY));
+        slot.addEventListener('touchstart', (e) => {
+          if (e.touches.length > 0) {
+            startDrag(i, e.touches[0].clientX, e.touches[0].clientY);
+          }
+        }, { passive: false });
+      }
+
+      window.addEventListener('mousemove', onDragMove);
+      window.addEventListener('touchmove', (e) => {
+        if (draggingIndex !== null && e.touches.length > 0) {
+          onDragMove(e.touches[0]);
+        }
+      }, { passive: false });
+
+      window.addEventListener('mouseup', endDrag);
+      window.addEventListener('touchend', endDrag);
+    }
+
+    function startDrag(index, clientX, clientY) {
+      if (!trayPieces[index]) return;
+
+      draggingIndex = index;
+      const shape = trayPieces[index];
+
+      // Draw Ghost
+      const rows = shape.matrix.length;
+      const cols = shape.matrix[0].length;
+      dragGhostCanvas.width = cols * CELL_SIZE;
+      dragGhostCanvas.height = rows * CELL_SIZE;
+
+      dragGhostCtx.clearRect(0, 0, dragGhostCanvas.width, dragGhostCanvas.height);
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (shape.matrix[r][c]) {
+            drawBlock(dragGhostCtx, c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, shape.color);
+          }
+        }
+      }
+
+      dragGhostCanvas.style.display = 'block';
+      updateGhostPosition(clientX, clientY);
+    }
+
+    function onDragMove(e) {
+      if (draggingIndex === null) return;
+      if (e.preventDefault) e.preventDefault();
+      updateGhostPosition(e.clientX, e.clientY);
+    }
+
+    function updateGhostPosition(clientX, clientY) {
+      // Offset ghost so finger doesn't block shape view
+      dragGhostCanvas.style.left = `${clientX}px`;
+      dragGhostCanvas.style.top = `${clientY - 40}px`;
+    }
+
+    function endDrag(e) {
+      if (draggingIndex === null) return;
+
+      dragGhostCanvas.style.display = 'none';
+      const shape = trayPieces[draggingIndex];
+
+      // Calculate where dropped on game canvas
+      const canvasRect = canvas.getBoundingClientRect();
+      const touchX = (e.clientX || (e.changedTouches && e.changedTouches[0].clientX)) - canvasRect.left;
+      const touchY = ((e.clientY || (e.changedTouches && e.changedTouches[0].clientY)) - 40) - canvasRect.top;
+
+      const targetCol = Math.floor(touchX / CELL_SIZE);
+      const targetRow = Math.floor(touchY / CELL_SIZE);
+
+      if (canPlacePiece(shape.matrix, targetRow, targetCol)) {
+        placePiece(draggingIndex, targetRow, targetCol);
+      }
+
+      draggingIndex = null;
+    }
+
+    /* ===================================================================
+       MAIN GAME ANIMATION LOOP
+       =================================================================== */
+    function gameLoop() {
+      // Render particles overlay
+      renderBoard();
+
+      // Update & draw particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.update();
+        p.draw(ctx);
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    /* ===================================================================
+       MODAL CONTROLS
+       =================================================================== */
+    function openHelpModal() {
+      document.getElementById('help-modal').classList.remove('hidden');
+    }
+
+    function closeHelpModal() {
+      document.getElementById('help-modal').classList.add('hidden');
+    }
+  </script>
+
+</body>
+</html>

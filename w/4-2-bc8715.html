@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>마왕의 독 포션 공방 - 기사를 처단하라!</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Cinzel:wght@700;900&family=Noto+Sans+KR:wght@600;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Jua', 'Noto Sans KR', sans-serif;
+            touch-action: manipulation;
+        }
+
+        body {
+            background: #09030a;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .cinzel-font {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Demon Aura Glow & Float Animation */
+        @keyframes demonFloat {
+            0%, 100% { transform: translateY(0px) scale(1); filter: drop-shadow(0 0 20px rgba(225, 29, 72, 0.8)); }
+            50% { transform: translateY(-10px) scale(1.03); filter: drop-shadow(0 0 35px rgba(239, 68, 68, 1)); }
+        }
+
+        .demon-active {
+            animation: demonFloat 3s infinite ease-in-out;
+        }
+
+        /* Cauldron Bubbling Effect */
+        @keyframes bubbleUp {
+            0% { transform: translateY(20px) scale(0.4); opacity: 0; }
+            50% { opacity: 0.9; }
+            100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
+        }
+
+        .cauldron-bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: bubbleUp 1.8s infinite ease-in;
+        }
+
+        /* Knight Entrance Animation */
+        @keyframes knightWalk {
+            0% { transform: translateX(-120px) scale(0.8); opacity: 0; }
+            100% { transform: translateX(0px) scale(1); opacity: 1; }
+        }
+
+        .knight-enter {
+            animation: knightWalk 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Knight Defeat Shake & Poison Color Switch */
+        @keyframes knightCollapse {
+            0% { transform: rotate(0deg) scale(1); filter: hue-rotate(0deg); }
+            25% { transform: rotate(-15deg) scale(1.1); filter: hue-rotate(90deg) invert(0.2); }
+            50% { transform: rotate(15deg) scale(1.05); filter: hue-rotate(180deg) invert(0.4); }
+            75% { transform: rotate(-30deg) scale(0.9); opacity: 0.8; }
+            100% { transform: translateY(100px) rotate(-90deg) scale(0.5); opacity: 0; }
+        }
+
+        .knight-dying {
+            animation: knightCollapse 1.5s forwards ease-in-out;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #9f1239;
+            border-radius: 6px;
+        }
+
+        .glow-red {
+            box-shadow: 0 0 30px rgba(225, 29, 72, 0.6);
+        }
+
+        .glow-purple {
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.6);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between p-2 sm:p-4 min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-purple-950 to-black">
+
+    <!-- HEADER TITLE & GAME STATS -->
+    <header class="w-full max-w-3xl flex items-center justify-between bg-stone-950/80 border-2 border-rose-900/60 backdrop-blur-md rounded-2xl px-4 py-3 shadow-2xl my-1">
+        <div class="flex items-center space-x-3">
+            <span class="text-3xl animate-pulse">🍷</span>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-purple-400 to-amber-300 cinzel-font">
+                    마왕의 독 포션 공방
+                </h1>
+                <p class="text-xs text-rose-300">"어리석은 기사들에게 치명적인 독 약수를 선사하라!" 👿</p>
+            </div>
+        </div>
+
+        <!-- DEFEATED KNIGHTS SCORE BADGE -->
+        <div class="flex items-center space-x-3 bg-black/60 px-3 py-1.5 rounded-xl border border-rose-500/30">
+            <div class="text-right">
+                <div class="text-[10px] text-slate-400 font-bold">처단한 기사 수</div>
+                <div id="score-display" class="text-lg font-black text-amber-400">0 명</div>
+            </div>
+            <span class="text-2xl">💀</span>
+        </div>
+    </header>
+
+    <!-- MAIN INTERACTIVE STAGE -->
+    <main class="w-full max-w-3xl flex-1 flex flex-col items-center justify-between my-2 space-y-3 relative">
+        
+        <!-- TOP DISPLAY: CASTLE THRONE & KNIGHT ENCOUNTER AREA -->
+        <div class="w-full bg-slate-950/90 border-2 border-purple-900/60 rounded-3xl p-4 shadow-2xl relative overflow-hidden min-h-[220px] flex items-center justify-between">
+            
+            <!-- BACKGROUND CASTLE AMBIENCE -->
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-rose-950/20 via-transparent to-black pointer-events-none"></div>
+
+            <!-- LEFT SIDE: KNIGHT CHARACTER (WHEN PRESENT) -->
+            <div class="relative z-10 w-1/2 flex flex-col items-center justify-center min-h-[180px]">
+                
+                <!-- KNIGHT SPEECH BUBBLE -->
+                <div id="knight-bubble" class="opacity-0 transition-all duration-300 bg-slate-100 text-slate-900 px-3 py-2 rounded-2xl border-2 border-amber-500 shadow-xl font-bold text-xs sm:text-sm mb-2 max-w-[200px] text-center relative">
+                    <span id="knight-dialogue">"포션을 주시오!"</span>
+                    <!-- Speech Tail -->
+                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-slate-100"></div>
+                </div>
+
+                <!-- KNIGHT CHARACTER CONTAINER -->
+                <div id="knight-box" class="relative hidden flex-col items-center">
+                    <div id="knight-avatar" class="text-6xl sm:text-7xl transition-all duration-300">
+                        🛡️
+                    </div>
+                    <div id="knight-name-badge" class="mt-1 bg-amber-950/90 border border-amber-500/50 text-amber-300 text-[11px] font-black px-2.5 py-0.5 rounded-full shadow">
+                        성기사 로랜드
+                    </div>
+                </div>
+
+                <!-- WAITING STATE (WHEN NO KNIGHT) -->
+                <div id="no-knight-box" class="flex flex-col items-center justify-center text-slate-500 space-y-2 py-6">
+                    <span class="text-4xl animate-bounce">🏰</span>
+                    <span class="text-xs font-bold text-slate-400">어리석은 기사가 마왕성에 다가오는 중...</span>
+                    <button id="btn-summon-knight" onclick="summonKnight()" class="mt-1 bg-rose-900/80 hover:bg-rose-800 text-rose-200 border border-rose-500 text-xs font-black px-3 py-1.5 rounded-xl shadow-lg transition active:scale-95">
+                        ⚔️ 기사 즉시 유인하기
+                    </button>
+                </div>
+            </div>
+
+            <!-- RIGHT SIDE: DEMON KING (CONDITION: ONLY APPEARS WHEN KNIGHT IS PRESENT!) -->
+            <div class="relative z-10 w-1/2 flex flex-col items-center justify-center min-h-[180px] border-l border-purple-900/40 pl-2">
+                
+                <!-- DEMON KING SPEECH BUBBLE -->
+                <div id="demon-bubble" class="opacity-0 transition-all duration-300 bg-rose-950 text-rose-100 border-2 border-rose-500 px-3 py-2 rounded-2xl shadow-2xl font-black text-xs sm:text-sm mb-2 max-w-[210px] text-center relative">
+                    <span id="demon-dialogue">"크하하! 어서 오거라!"</span>
+                    <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-rose-950"></div>
+                </div>
+
+                <!-- DEMON KING AVATAR CONTAINER (HIDDEN UNTIL KNIGHT APPEARS!) -->
+                <div id="demon-king-container" class="opacity-0 pointer-events-none transition-all duration-500 flex flex-col items-center transform scale-90">
+                    
+                    <!-- DEMON KING AVATAR WITH RED AURA -->
+                    <div class="relative flex items-center justify-center">
+                        <!-- RED AURA BACKLIGHT -->
+                        <div class="absolute w-24 h-24 bg-rose-600/40 rounded-full blur-xl animate-pulse"></div>
+                        
+                        <!-- AVATAR ICON -->
+                        <div class="text-7xl sm:text-8xl relative z-10 demon-active">
+                            👿
+                        </div>
+                        
+                        <!-- FLOATING DARK MAGIC PARTICLES -->
+                        <span class="absolute -top-2 -right-2 text-xl animate-bounce">⚡</span>
+                        <span class="absolute -bottom-1 -left-2 text-xl animate-spin">🔥</span>
+                    </div>
+
+                    <div class="mt-1 bg-rose-950 border border-rose-500 text-rose-200 text-xs font-black px-3 py-0.5 rounded-full shadow-lg flex items-center space-x-1">
+                        <span class="text-red-500">👑</span>
+                        <span>책 속 주인공: 마왕</span>
+                    </div>
+                </div>
+
+                <!-- SHADOW THRONE WHEN DEMON KING IS NOT PRESENT -->
+                <div id="demon-shadow-throne" class="flex flex-col items-center justify-center text-slate-700 py-6">
+                    <span class="text-5xl opacity-30">🪑</span>
+                    <span class="text-[11px] font-bold text-slate-600 mt-1">기사가 오면 마왕이 강림합니다</span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- BOTTOM DISPLAY: POISON BREWING CAULDRON & INGREDIENT WORKSHOP -->
+        <div class="w-full bg-stone-950/90 border-2 border-rose-950 rounded-3xl p-3 sm:p-4 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            
+            <!-- LEFT: BUBBLING CAULDRON VISUAL -->
+            <div class="flex flex-col items-center justify-center relative w-full sm:w-1/2">
+                <div class="text-xs font-black text-rose-400 mb-1 flex items-center space-x-1">
+                    <span>🧪 연금술 독 가마솥</span>
+                    <span id="cauldron-status" class="text-amber-300 text-[10px] bg-rose-950/80 px-2 py-0.5 rounded-full border border-rose-800">재료를 넣으세요</span>
+                </div>
+
+                <!-- DYNAMIC CAULDRON GRAPHIC CONTAINER -->
+                <div class="relative w-44 h-44 sm:w-48 sm:h-48 flex items-center justify-center">
+                    
+                    <!-- CAULDRON OUTER BODY -->
+                    <div class="relative w-full h-full rounded-full border-8 border-stone-800 bg-stone-900 shadow-2xl flex items-center justify-center overflow-hidden glow-red">
+                        
+                        <!-- LIQUID SURFACE -->
+                        <div id="cauldron-liquid" class="absolute inset-2 rounded-full transition-all duration-700 flex flex-col items-center justify-center overflow-hidden" style="background: radial-gradient(circle, #059669 0%, #064e3b 70%, #022c22 100%);">
+                            
+                            <!-- BUBBLES LAYER -->
+                            <div id="cauldron-bubbles" class="absolute inset-0 pointer-events-none"></div>
+
+                            <!-- CRAFTED POTION PREVIEW (IF READY) -->
+                            <div id="potion-preview" class="z-10 transition-all duration-300 transform scale-0 flex flex-col items-center">
+                                <span id="potion-emoji" class="text-5xl drop-shadow-lg">🧪</span>
+                                <span id="potion-name" class="text-[10px] font-black text-white bg-black/70 px-2 py-0.5 rounded-full mt-1 border border-white/20">완성된 독 포션</span>
+                            </div>
+
+                            <!-- INGREDIENTS LIST BADGES IN CAULDRON -->
+                            <div id="mix-ingredients-badges" class="z-10 flex flex-wrap items-center justify-center gap-1 p-2">
+                                <!-- Dynamic ingredient icons float here -->
+                            </div>
+                        </div>
+
+                        <!-- CAULDRON HANDLES -->
+                        <div class="absolute -left-3 top-1/2 -translate-y-1/2 w-4 h-10 bg-stone-700 border border-stone-500 rounded-l-lg"></div>
+                        <div class="absolute -right-3 top-1/2 -translate-y-1/2 w-4 h-10 bg-stone-700 border border-stone-500 rounded-r-lg"></div>
+                    </div>
+                </div>
+
+                <!-- POISON STATS BAR -->
+                <div class="w-full max-w-[200px] mt-2 space-y-1">
+                    <div class="flex justify-between text-[10px] font-bold">
+                        <span class="text-rose-400">치명적 독성 (Toxicity):</span>
+                        <span id="toxicity-val" class="text-amber-300 font-black">0 %</span>
+                    </div>
+                    <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-rose-900">
+                        <div id="toxicity-bar" class="bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 h-full w-0 transition-all duration-500"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: INGREDIENT BUTTONS & ACTION CONTROLS -->
+            <div class="w-full sm:w-1/2 flex flex-col justify-between space-y-2">
+                
+                <div class="text-xs font-black text-slate-300 flex items-center justify-between border-b border-rose-900/50 pb-1">
+                    <span>🍄 독성 연금술 재료 선택:</span>
+                    <button onclick="resetCauldron()" class="text-[10px] text-rose-400 hover:text-rose-200 underline">초기화</button>
+                </div>
+
+                <!-- INGREDIENT SELECTION GRID -->
+                <div class="grid grid-cols-2 gap-1.5">
+                    <button onclick="addIngredient('snake')" class="bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/60 p-2 rounded-xl flex items-center space-x-2 transition active:scale-95 text-left">
+                        <span class="text-2xl">🐍</span>
+                        <div>
+                            <div class="text-xs font-black text-emerald-300">독사 독액</div>
+                            <div class="text-[9px] text-emerald-400/80">초록빛 치명 독성</div>
+                        </div>
+                    </button>
+
+                    <button onclick="addIngredient('shroom')" class="bg-rose-950/80 hover:bg-rose-900 border border-rose-500/60 p-2 rounded-xl flex items-center space-x-2 transition active:scale-95 text-left">
+                        <span class="text-2xl">🍄</span>
+                        <div>
+                            <div class="text-xs font-black text-rose-300">환각 버섯</div>
+                            <div class="text-[9px] text-rose-400/80">붉은 환광 작용</div>
+                        </div>
+                    </button>
+
+                    <button onclick="addIngredient('spider')" class="bg-purple-950/80 hover:bg-purple-900 border border-purple-500/60 p-2 rounded-xl flex items-center space-x-2 transition active:scale-95 text-left">
+                        <span class="text-2xl">🕷️</span>
+                        <div>
+                            <div class="text-xs font-black text-purple-300">거미 고름</div>
+                            <div class="text-[9px] text-purple-400/80">보랏빛 마비 성분</div>
+                        </div>
+                    </button>
+
+                    <button onclick="addIngredient('dragon')" class="bg-amber-950/80 hover:bg-amber-900 border border-amber-500/60 p-2 rounded-xl flex items-center space-x-2 transition active:scale-95 text-left">
+                        <span class="text-2xl">🐉</span>
+                        <div>
+                            <div class="text-xs font-black text-amber-300">용의 멸망 재</div>
+                            <div class="text-[9px] text-amber-400/80">황금빛 폭발독</div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- HAND OVER POISON TO KNIGHT BUTTON -->
+                <div class="pt-2">
+                    <button id="btn-give-potion" onclick="handOverPotion()" class="w-full bg-gradient-to-r from-rose-700 via-purple-700 to-amber-600 hover:from-rose-600 hover:to-amber-500 text-white font-black text-sm py-3 rounded-2xl border-2 border-amber-300 shadow-2xl active:scale-95 transition flex items-center justify-center space-x-2">
+                        <span class="text-xl">🍷</span>
+                        <span>기사에게 독 포션 대접하기!</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // WEB AUDIO API SYNTHESIZER FOR SOUND EFFECTS
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'bubble') {
+                // Plop / Bubble sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200 + Math.random() * 300, now);
+                osc.frequency.exponentialRampToValueAtTime(600 + Math.random() * 200, now + 0.1);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'demon_appear') {
+                // Dark Demon Manifestation Sound (Low Gong + Risers)
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc1.type = 'sawtooth';
+                osc2.type = 'sine';
+
+                osc1.frequency.setValueAtTime(80, now);
+                osc1.frequency.exponentialRampToValueAtTime(220, now + 0.4);
+
+                osc2.frequency.setValueAtTime(160, now);
+                osc2.frequency.exponentialRampToValueAtTime(55, now + 0.5);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.6);
+                osc2.stop(now + 0.6);
+            } else if (type === 'gulp') {
+                // Knight Gulping Sound
+                [300, 450, 250].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.1);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.12);
+                    osc.stop(now + idx * 0.12 + 0.1);
+                });
+            } else if (type === 'knight_die') {
+                // Dramatic Defeat Sound Effect
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(60, now + 0.8);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.8);
+            }
+        }
+
+        // KNIGHT DATABASE (Target Request Colors & Dialogue)
+        const KNIGHT_TYPES = [
+            {
+                name: '성기사 로랜드',
+                avatar: '🛡️',
+                requestColor: 'red',
+                requestText: '"성스러운 체력 회복 붉은 포션을 다오!"',
+                colorDesc: '🔴 붉은색 포션 위장 필요',
+                demonGreeting: '"크하하! 어서 오거라, 어리석은 성기사여! 네 소원대로 붉은 보약을 주마!"'
+            },
+            {
+                name: '용기사 지크프리트',
+                avatar: '⚔️',
+                requestColor: 'blue',
+                requestText: '"드래곤의 불길을 막을 푸른 저항 포션을 주시오!"',
+                colorDesc: '🔵 푸른색 포션 위장 필요',
+                demonGreeting: '"용기사놈아! 내 특제 푸른 엘릭서로 뼈까지 녹여주마!"'
+            },
+            {
+                name: '마법기사 멀린',
+                avatar: '🧙‍♂️',
+                requestColor: 'purple',
+                requestText: '"마력을 증폭시킬 신비한 보랏빛 포션이 필요하오!"',
+                colorDesc: '🟣 보랏빛 포션 위장 필요',
+                demonGreeting: '"크하하! 건방진 마법사 기사로구나! 보랏빛 독주를 맛보거라!"'
+            },
+            {
+                name: '암흑 사냥꾼 기사',
+                avatar: '🏹',
+                requestColor: 'green',
+                requestText: '"민첩함을 올려줄 에메랄드빛 녹색 포션을 바쳐라!"',
+                colorDesc: '🟢 녹색 포션 위장 필요',
+                demonGreeting: '"감히 마왕성을 넘보다니! 이 녹색 맹독으로 사지를 마비시켜주마!"'
+            }
+        ];
+
+        // GAME STATE
+        let score = 0;
+        let isKnightPresent = false;
+        let currentKnight = null;
+        let addedIngredients = [];
+        let currentToxicity = 0;
+        let currentPotionColor = 'green'; // 'green', 'red', 'blue', 'purple'
+
+        // INGREDIENT DEFINITIONS
+        const INGREDIENTS_DB = {
+            snake: { name: '독사 독액', color: 'green', emoji: '🐍', tox: 25 },
+            shroom: { name: '환각 버섯', color: 'red', emoji: '🍄', tox: 25 },
+            spider: { name: '거미 고름', color: 'purple', emoji: '🕷️', tox: 25 },
+            dragon: { name: '용의 멸망 재', color: 'blue', emoji: '🐉', tox: 25 }
+        };
+
+        // SUMMON KNIGHT TO CASTLE GATE
+        function summonKnight() {
+            if (isKnightPresent) return;
+
+            // Pick Random Knight
+            currentKnight = KNIGHT_TYPES[Math.floor(Math.random() * KNIGHT_TYPES.length)];
+            isKnightPresent = true;
+
+            // 1. Hide "No Knight" waiting box
+            document.getElementById('no-knight-box').classList.add('hidden');
+
+            // 2. Display Knight Box with entrance animation
+            const knightBox = document.getElementById('knight-box');
+            knightBox.classList.remove('hidden');
+            knightBox.className = 'relative flex flex-col items-center knight-enter';
+
+            document.getElementById('knight-avatar').innerText = currentKnight.avatar;
+            document.getElementById('knight-avatar').className = 'text-6xl sm:text-7xl transition-all duration-300';
+            document.getElementById('knight-name-badge').innerText = currentKnight.name;
+
+            // Knight speech
+            const knightBubble = document.getElementById('knight-bubble');
+            document.getElementById('knight-dialogue').innerText = currentKnight.requestText;
+            knightBubble.classList.remove('opacity-0');
+
+            // 3. MANDATORY CONDITION REQUIREMENT:
+            // MANIFEST THE DEMON KING ONLY WHEN THE KNIGHT IS PRESENT!
+            manifestDemonKing();
+        }
+
+        // MANIFEST DEMON KING (DEMON KING APPEARS ONLY WHEN KNIGHT ARRIVES)
+        function manifestDemonKing() {
+            playSound('demon_appear');
+
+            // Hide Shadow Throne
+            document.getElementById('demon-shadow-throne').classList.add('hidden');
+
+            // Show Demon King Container
+            const demonContainer = document.getElementById('demon-king-container');
+            demonContainer.classList.remove('opacity-0', 'pointer-events-none');
+            demonContainer.classList.add('opacity-100', 'scale-100');
+
+            // Show Demon Speech Bubble
+            const demonBubble = document.getElementById('demon-bubble');
+            document.getElementById('demon-dialogue').innerText = currentKnight.demonGreeting;
+            demonBubble.classList.remove('opacity-0');
+        }
+
+        // HIDE DEMON KING WHEN NO KNIGHT IS PRESENT
+        function hideDemonKing() {
+            const demonContainer = document.getElementById('demon-king-container');
+            demonContainer.classList.add('opacity-0', 'pointer-events-none');
+            demonContainer.classList.remove('opacity-100', 'scale-100');
+
+            document.getElementById('demon-bubble').classList.add('opacity-0');
+            document.getElementById('demon-shadow-throne').classList.remove('hidden');
+        }
+
+        // ADD INGREDIENT TO CAULDRON
+        function addIngredient(type) {
+            playSound('bubble');
+            const item = INGREDIENTS_DB[type];
+            if (!item) return;
+
+            addedIngredients.push(item);
+            currentToxicity = Math.min(100, currentToxicity + item.tox);
+
+            updateCauldronUI();
+        }
+
+        // UPDATE CAULDRON LIQUID COLOR & BUBBLES
+        function updateCauldronUI() {
+            const liquid = document.getElementById('cauldron-liquid');
+            const badgesBox = document.getElementById('mix-ingredients-badges');
+            
+            // Calculate Dominant Color based on last added ingredient
+            if (addedIngredients.length > 0) {
+                const lastItem = addedIngredients[addedIngredients.length - 1];
+                currentPotionColor = lastItem.color;
+            } else {
+                currentPotionColor = 'green';
+            }
+
+            // Set Liquid Radial Gradient
+            const colorGradients = {
+                green: 'radial-gradient(circle, #059669 0%, #064e3b 70%, #022c22 100%)',
+                red: 'radial-gradient(circle, #e11d48 0%, #9f1239 70%, #4c0519 100%)',
+                blue: 'radial-gradient(circle, #0284c7 0%, #1e3a8a 70%, #0f172a 100%)',
+                purple: 'radial-gradient(circle, #9333ea 0%, #581c87 70%, #2e1065 100%)'
+            };
+
+            liquid.style.background = colorGradients[currentPotionColor] || colorGradients.green;
+
+            // Update Toxicity Bar
+            document.getElementById('toxicity-val').innerText = `${currentToxicity} %`;
+            document.getElementById('toxicity-bar').style.width = `${currentToxicity}%`;
+
+            // Render Badges
+            badgesBox.innerHTML = '';
+            addedIngredients.forEach(ing => {
+                const badge = document.createElement('span');
+                badge.className = 'text-xs bg-black/60 px-1.5 py-0.5 rounded-full border border-white/20 animate-bounce';
+                badge.innerText = ing.emoji;
+                badgesBox.appendChild(badge);
+            });
+
+            // Bubbles animation
+            createCauldronBubbles();
+        }
+
+        function createCauldronBubbles() {
+            const container = document.getElementById('cauldron-bubbles');
+            container.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const b = document.createElement('div');
+                b.className = 'cauldron-bubble';
+                const size = 6 + Math.random() * 12;
+                b.style.width = `${size}px`;
+                b.style.height = `${size}px`;
+                b.style.left = `${15 + Math.random() * 70}%`;
+                b.style.top = `${20 + Math.random() * 60}%`;
+                b.style.animationDelay = `${Math.random() * 1.5}s`;
+                container.appendChild(b);
+            }
+        }
+
+        function resetCauldron() {
+            playSound('bubble');
+            addedIngredients = [];
+            currentToxicity = 0;
+            currentPotionColor = 'green';
+            updateCauldronUI();
+        }
+
+        // HAND OVER POISON TO KNIGHT
+        function handOverPotion() {
+            if (!isKnightPresent) {
+                alert("현재 성에 기사가 없습니다! '기사 유인하기' 버튼을 눌러주세요!");
+                return;
+            }
+
+            if (currentToxicity < 25) {
+                alert("독성이 너무 약합니다! 연금술 재료를 더 넣어 치명적인 독 포션을 만드세요!");
+                return;
+            }
+
+            // Gulp sound
+            playSound('gulp');
+
+            // Knight reaction
+            const knightAvatar = document.getElementById('knight-avatar');
+            const knightDialogue = document.getElementById('knight-dialogue');
+            
+            knightDialogue.innerText = '"벌컥... 벌컥... 어? 포션 맛이 왜 이리... 으악-!!"';
+
+            // Demon King triumphant dialogue
+            document.getElementById('demon-dialogue').innerText = '"크하하하! 어리석은 기사놈, 마왕의 독약에 완벽히 당했구나!!"';
+
+            // Defeat animation
+            setTimeout(() => {
+                playSound('knight_die');
+                knightAvatar.className = 'text-6xl sm:text-7xl knight-dying';
+                
+                setTimeout(() => {
+                    // Update score
+                    score++;
+                    document.getElementById('score-display').innerText = `${score} 명`;
+
+                    // Reset Knight state
+                    isKnightPresent = false;
+                    currentKnight = null;
+
+                    document.getElementById('knight-box').classList.add('hidden');
+                    document.getElementById('knight-bubble').classList.add('opacity-0');
+
+                    // MANDATORY CONDITION REQUIREMENT:
+                    // HIDE DEMON KING WHEN KNIGHT IS DEFEATED & LEAVES!
+                    hideDemonKing();
+
+                    // Reset Cauldron
+                    resetCauldron();
+
+                    // Auto-summon next knight after short delay
+                    setTimeout(() => {
+                        summonKnight();
+                    }, 2000);
+
+                }, 1400);
+
+            }, 800);
+        }
+
+        // INITIALIZE GAME ON LOAD
+        window.onload = function() {
+            createCauldronBubbles();
+            // Start with a knight approaching after 1.5 seconds
+            setTimeout(() => {
+                summonKnight();
+            }, 1200);
+        };
+    </script>
+</body>
+</html>

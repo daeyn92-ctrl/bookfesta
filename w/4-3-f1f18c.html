@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>악기 연주 - 나의 비밀 연주실</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Gowun Batang, Jua, Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f0c1b;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        .font-jua {
+            font-family: 'Jua', sans-serif;
+        }
+
+        /* Acoustic Studio Foam Wall Pattern */
+        .studio-wall {
+            background-color: #181226;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.08) 0%, transparent 60%),
+                linear-gradient(45deg, #130e1e 25%, transparent 25%), 
+                linear-gradient(-45deg, #130e1e 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #130e1e 75%), 
+                linear-gradient(-45deg, transparent 75%, #130e1e 75%);
+            background-size: 100% 100%, 20px 20px, 20px 20px, 20px 20px, 20px 20px;
+            background-position: 0 0, 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        /* Wood Floor Gradient */
+        .wood-floor {
+            background: linear-gradient(180deg, rgba(20, 15, 30, 0.9) 0%, #3e2112 30%, #291408 100%);
+            border-top: 3px solid #854d0e;
+        }
+
+        /* Studio Spotlight Effects */
+        .spotlight {
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 320px;
+            height: 450px;
+            background: radial-gradient(ellipse at top, rgba(251, 191, 36, 0.25) 0%, rgba(245, 158, 11, 0.05) 50%, transparent 80%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Glassmorphism Panel */
+        .glass-panel {
+            background: rgba(28, 22, 45, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        /* Piano Key Styling */
+        .piano-key-white {
+            background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 85%, #cbd5e1 100%);
+            box-shadow: inset 0 -5px 0 #94a3b8, 0 4px 10px rgba(0,0,0,0.5);
+            border-radius: 0 0 8px 8px;
+            transition: all 0.05s ease;
+        }
+        .piano-key-white.active, .piano-key-white:active {
+            background: linear-gradient(180deg, #e2e8f0 0%, #38bdf8 100%);
+            transform: translateY(4px);
+            box-shadow: inset 0 -2px 0 #0284c7, 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .piano-key-black {
+            background: linear-gradient(180deg, #334155 0%, #0f172a 80%, #020617 100%);
+            box-shadow: inset 0 -3px 0 #000000, 0 5px 8px rgba(0,0,0,0.8);
+            border-radius: 0 0 5px 5px;
+            transition: all 0.05s ease;
+        }
+        .piano-key-black.active, .piano-key-black:active {
+            background: linear-gradient(180deg, #1e293b 0%, #0284c7 100%);
+            transform: translateY(3px);
+        }
+
+        /* Drum Pad Glow */
+        .drum-pad {
+            transition: transform 0.08s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.08s ease;
+        }
+        .drum-pad:active, .drum-pad.active {
+            transform: scale(0.92);
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.8);
+        }
+
+        /* Floating Sound Note Particle */
+        .floating-note {
+            position: absolute;
+            pointer-events: none;
+            animation: floatUpNote 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+            font-size: 24px;
+            z-index: 40;
+        }
+        @keyframes floatUpNote {
+            0% { opacity: 1; transform: translateY(0) scale(0.6) rotate(0deg); }
+            50% { opacity: 0.9; transform: translateY(-60px) scale(1.3) rotate(15deg); }
+            100% { opacity: 0; transform: translateY(-120px) scale(1) rotate(-20deg); }
+        }
+
+        /* VU Meter Needle */
+        .vu-needle {
+            transform-origin: bottom center;
+            transition: transform 0.1s ease-out;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen studio-wall flex flex-col justify-between relative overflow-hidden select-none">
+
+    <!-- Spotlight Background Effect -->
+    <div class="spotlight"></div>
+
+    <!-- Floating Canvas Particle Layer -->
+    <canvas id="noteCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-30"></canvas>
+
+    <!-- Top Header: Practice Room Studio Bar -->
+    <header class="w-full z-20 px-3 py-2.5 glass-panel flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-purple-500/20">
+        <!-- Studio Logo & Room Info -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white text-xl shadow-lg border border-amber-300/40">
+                <i class="fa-solid fa-music"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-base font-jua text-amber-300 leading-tight">우리반 방음 연주실</h1>
+                    <span class="text-[10px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded-full animate-pulse flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE ON
+                    </span>
+                </div>
+                <p class="text-[11px] text-gray-300">나만의 비밀 음악 연습 공간 · 악기 연주</p>
+            </div>
+        </div>
+
+        <!-- Studio Audio Control Bar (Volume, Backing Track Loop, Song Guide) -->
+        <div class="flex items-center gap-2.5 flex-wrap justify-center font-jua text-xs">
+            <!-- Beat Loop Backing Player -->
+            <div class="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-amber-500/30">
+                <i class="fa-solid fa-drum text-amber-400"></i>
+                <span class="text-gray-300">합주 비트:</span>
+                <select id="bgBeatSelect" class="bg-slate-800 text-amber-300 rounded px-1.5 py-0.5 border border-slate-700 focus:outline-none">
+                    <option value="none">비트 꺼짐</option>
+                    <option value="pop">8비트 팝 (100 BPM)</option>
+                    <option value="rock">파워 록 (120 BPM)</option>
+                    <option value="hiphop">치키 힙합 (90 BPM)</option>
+                    <option value="jazz">재즈 스윙 (110 BPM)</option>
+                </select>
+                <button id="btnToggleBeat" class="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-[11px]">
+                    재생
+                </button>
+            </div>
+
+            <!-- Song Practice Guide Modal Button -->
+            <button id="btnSongGuide" class="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl shadow border border-purple-400/40 flex items-center gap-1.5">
+                <i class="fa-solid fa-book-open"></i>
+                <span>연습곡 가이드</span>
+            </button>
+
+            <!-- Master Volume Control -->
+            <div class="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1.5 rounded-xl border border-purple-500/30">
+                <i class="fa-solid fa-volume-high text-cyan-400"></i>
+                <input id="masterVolume" type="range" min="0" max="1" step="0.05" value="0.8" class="w-16 accent-cyan-400 cursor-pointer">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Practice Studio Main Stage Area -->
+    <main class="flex-1 relative w-full h-full flex flex-col justify-between overflow-hidden p-2 sm:p-4">
+        
+        <!-- Practice Room Studio Visual Decor (Speakers, Acoustic Foams, Analog VU Meters) -->
+        <div class="w-full flex justify-between items-center px-4 py-1 pointer-events-none z-10 opacity-80 sm:opacity-100">
+            <!-- Left Monitor Speaker & Studio VU Meter -->
+            <div class="hidden sm:flex items-center gap-3">
+                <div class="w-12 h-20 bg-slate-900 rounded-lg border-2 border-slate-700 flex flex-col items-center justify-around p-1 shadow-2xl">
+                    <div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center">
+                        <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center">
+                        <div class="w-4 h-4 rounded-full bg-amber-600"></div>
+                    </div>
+                </div>
+                
+                <!-- Analog VU Sound Meter -->
+                <div class="w-20 h-12 bg-amber-950/80 rounded-lg border border-amber-600/50 p-1 flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
+                    <div class="text-[8px] font-mono text-amber-400 tracking-tighter">VU METER</div>
+                    <div class="w-16 h-6 border-b border-amber-700/60 relative flex justify-center">
+                        <div id="vuNeedleLeft" class="vu-needle w-0.5 h-6 bg-amber-400 transform -rotate-45"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Central Practice Studio Status Screen -->
+            <div class="glass-panel px-4 py-1.5 rounded-2xl border border-amber-400/30 text-center flex items-center gap-3 shadow-lg">
+                <div class="text-2xl" id="currentInstEmoji">🎹</div>
+                <div>
+                    <div id="currentInstTitle" class="text-sm font-jua text-amber-300">어쿠스틱 피아노 연주 중</div>
+                    <div id="instGuideTip" class="text-[10px] text-gray-300">키보드 [A,S,D,F,G,H,J,K] 키를 누르거나 마우스/터치로 연주하세요.</div>
+                </div>
+            </div>
+
+            <!-- Right Monitor Speaker & Studio VU Meter -->
+            <div class="hidden sm:flex items-center gap-3">
+                <!-- Analog VU Sound Meter -->
+                <div class="w-20 h-12 bg-amber-950/80 rounded-lg border border-amber-600/50 p-1 flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
+                    <div class="text-[8px] font-mono text-amber-400 tracking-tighter">VU METER</div>
+                    <div class="w-16 h-6 border-b border-amber-700/60 relative flex justify-center">
+                        <div id="vuNeedleRight" class="vu-needle w-0.5 h-6 bg-amber-400 transform rotate-12"></div>
+                    </div>
+                </div>
+
+                <div class="w-12 h-20 bg-slate-900 rounded-lg border-2 border-slate-700 flex flex-col items-center justify-around p-1 shadow-2xl">
+                    <div class="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center">
+                        <div class="w-2 h-2 rounded-full bg-amber-500"></div>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center">
+                        <div class="w-4 h-4 rounded-full bg-amber-600"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DYNAMIC INSTRUMENT INTERACTION SURFACES CONTAINER -->
+        <div id="instrumentStage" class="flex-1 my-auto flex items-center justify-center relative z-10 w-full max-w-5xl mx-auto">
+            
+            <!-- 1. PIANO VIEW -->
+            <div id="instViewPiano" class="w-full flex flex-col items-center justify-center">
+                <!-- Octave Control Bar -->
+                <div class="flex items-center gap-3 mb-3 bg-slate-900/90 px-4 py-1.5 rounded-full border border-amber-500/30 font-jua text-xs">
+                    <button id="btnPianoOctDown" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg border border-slate-600">
+                        <i class="fa-solid fa-minus"></i> 옥타브 낮춤
+                    </button>
+                    <span id="pianoOctaveLabel" class="text-amber-400 font-bold">옥타브: 4 (보통)</span>
+                    <button id="btnPianoOctUp" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded-lg border border-slate-600">
+                        옥타브 높임 <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+
+                <!-- Piano Keyboard Component -->
+                <div class="relative w-full max-w-3xl h-52 sm:h-64 glass-panel p-2.5 rounded-2xl border-2 border-amber-500/30 flex justify-center shadow-2xl bg-slate-950/80">
+                    <div id="pianoKeysContainer" class="relative w-full h-full flex justify-between">
+                        <!-- Keys rendered dynamically by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. DRUM KIT VIEW -->
+            <div id="instViewDrums" class="hidden w-full max-w-2xl grid grid-cols-3 gap-3 sm:gap-4 p-2">
+                <!-- Drum Pads -->
+                <div data-drum="crash" class="drum-pad aspect-square glass-panel rounded-3xl border-2 border-amber-400/50 flex flex-col items-center justify-center cursor-pointer bg-gradient-to-br from-amber-500/20 to-slate-900">
+                    <span class="text-3xl sm:text-4xl">💥</span>
+                    <span class="text-xs font-jua text-amber-300 mt-1">크래시 심벌</span>
+                    <span class="text-[10px] text-gray-400 font-mono">[Q]</span>
+                </div>
+                <div data-drum="hihat" class="drum-pad aspect-square glass-panel rounded-3xl border-2 border-yellow-400/50 flex flex-col items-center justify-center cursor-pointer bg-gradient-to-br from-yellow-500/20 to-slate-900">
+                    <span class="text-3xl sm:text-4xl">🔔</span>
+                    <span class="text-xs font-jua text-yellow-300 mt-1">하이햇 (Hi-Hat)</span>
+                    <span class="text-[10px] text-gray-400 font-mono">[W]</span>
+                </div>
+                <div data-drum="ride" class="drum-pad aspect-square glass-panel rounded-3xl border-2 border-amber-400/50 flex flex-col items-center justify-center cursor-pointer bg-gradient-to-br from-amber-500/20 to-slate-900">
+                    <span class="text-3xl sm:text-4xl">📀</span>
+                    <span class="text-xs font-jua text-amber-300 mt-1">라이드 심벌</span>
+                    <span class="text-[10px] text-gray-400 font-mono">[E]</span>
+                </div>
+                <div data-drum="snare" class="drum-pad aspect-square glass-panel rounded-3xl border-2 border-red-500/50 flex flex-col items-center justify-center cursor-pointer bg-gradient-to-br from-red-600/30 to-slate-900">
+                    <span class="text-3xl sm:text-4xl">🥁</span>
+                    <span class="text-xs font-jua text-red-300 mt-1">스네어 (Snare)</span>
+                    <span class="text-[10px] text-gray-400 font-mono">[A]</span>
+                </div>
+                <div data-drum="kick" class="drum-pad aspect-square glass-panel rounded-3xl border-2 border-purple-500/60 flex flex-col items-center justify-center cursor-pointer bg-gradient-to-br from-purple-600/40 to-slate-900">
+                    <span class="text-3xl sm:text-4xl">🦶</span>
+                    <span class="text-sm font-jua text-purple-300 font-black mt-1">베이스 킥 (Kick)</span>
+                    <span class="text-[10px] text-gray-400 font-mono">[Space]</span>
+                </div>
+                <div data-drum="tom" class="drum-pad aspect-square glass-panel rounded-3xl border-2 border-cyan-500/50 flex flex-col items-center justify-center cursor-pointer bg-gradient-to-br from-cyan-600/30 to-slate-900">
+                    <span class="text-3xl sm:text-4xl">🪘</span>
+                    <span class="text-xs font-jua text-cyan-300 mt-1">탐탐 (Tom-Tom)</span>
+                    <span class="text-[10px] text-gray-400 font-mono">[D]</span>
+                </div>
+            </div>
+
+            <!-- 3. XYLOPHONE / MARIMBA VIEW -->
+            <div id="instViewXylophone" class="hidden w-full max-w-2xl h-60 sm:h-72 glass-panel p-4 rounded-3xl border-2 border-cyan-400/40 flex items-center justify-around gap-1.5 sm:gap-2 bg-slate-950/80 shadow-2xl">
+                <!-- Dynamic Colorful Xylophone Bars -->
+            </div>
+
+            <!-- 4. SYNTH GUITAR VIEW -->
+            <div id="instViewGuitar" class="hidden w-full max-w-2xl flex flex-col gap-2 p-2">
+                <div class="text-center text-xs font-jua text-pink-300 mb-1">🎸 일렉 신스 기타 - 줄을 터치하거나 키보드를 누르세요!</div>
+                <div id="guitarStringsContainer" class="flex flex-col gap-3">
+                    <!-- Dynamic Strings -->
+                </div>
+            </div>
+
+            <!-- 5. SAXOPHONE BRASS VIEW -->
+            <div id="instViewBrass" class="hidden w-full max-w-xl grid grid-cols-4 gap-3 p-3">
+                <!-- Brass Pads -->
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation Bar: Instrument Switcher -->
+    <nav class="w-full z-30 wood-floor px-2 py-2 flex justify-around items-center text-center border-t border-amber-600/40 shadow-2xl">
+        <button data-inst="piano" class="inst-nav-btn flex-1 py-1 text-amber-400 flex flex-col items-center gap-0.5 font-jua text-xs transition active:scale-95">
+            <span class="text-xl">🎹</span>
+            <span>피아노</span>
+        </button>
+        <button data-inst="drums" class="inst-nav-btn flex-1 text-gray-400 hover:text-amber-300 flex flex-col items-center gap-0.5 font-jua text-xs transition active:scale-95">
+            <span class="text-xl">🥁</span>
+            <span>드럼 세트</span>
+        </button>
+        <button data-inst="xylophone" class="inst-nav-btn flex-1 text-gray-400 hover:text-amber-300 flex flex-col items-center gap-0.5 font-jua text-xs transition active:scale-95">
+            <span class="text-xl">🪵</span>
+            <span>실로폰</span>
+        </button>
+        <button data-inst="guitar" class="inst-nav-btn flex-1 text-gray-400 hover:text-amber-300 flex flex-col items-center gap-0.5 font-jua text-xs transition active:scale-95">
+            <span class="text-xl">🎸</span>
+            <span>신스 기타</span>
+        </button>
+        <button data-inst="brass" class="inst-nav-btn flex-1 text-gray-400 hover:text-amber-300 flex flex-col items-center gap-0.5 font-jua text-xs transition active:scale-95">
+            <span class="text-xl">🎷</span>
+            <span>섹소폰/브라스</span>
+        </button>
+    </nav>
+
+    <!-- SONG GUIDE MODAL POPUP -->
+    <div id="songModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-4">
+        <div class="glass-panel p-5 rounded-3xl border border-amber-400/50 w-full max-w-md text-center relative">
+            <button id="btnCloseSongModal" class="absolute top-3 right-3 text-gray-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-4xl mb-2">🎼</div>
+            <h2 class="text-xl font-jua text-amber-300 neon-gold">연습곡 선택 (가이드 모드)</h2>
+            <p class="text-xs text-gray-300 mt-1 mb-4">원하는 곡을 선택하면 피아노 건반 가이드 불빛이 안내됩니다!</p>
+
+            <div class="flex flex-col gap-2 max-h-60 overflow-y-auto p-1">
+                <button data-song="star" class="song-select-btn p-3 bg-slate-800/90 hover:bg-purple-900/60 rounded-xl border border-purple-500/30 text-left flex justify-between items-center font-jua text-xs">
+                    <div>
+                        <div class="text-amber-300 text-sm">⭐ 반짝반짝 작은 별</div>
+                        <div class="text-gray-400 font-mono mt-0.5">도-도-솔-솔-라-라-솔</div>
+                    </div>
+                    <span class="px-2 py-1 bg-amber-500 text-slate-950 rounded text-[10px] font-bold">연습 시작</span>
+                </button>
+                <button data-song="school" class="song-select-btn p-3 bg-slate-800/90 hover:bg-purple-900/60 rounded-xl border border-purple-500/30 text-left flex justify-between items-center font-jua text-xs">
+                    <div>
+                        <div class="text-amber-300 text-sm">🔔 학교종이 땡땡땡</div>
+                        <div class="text-gray-400 font-mono mt-0.5">솔-솔-라-라-솔-솔-미</div>
+                    </div>
+                    <span class="px-2 py-1 bg-amber-500 text-slate-950 rounded text-[10px] font-bold">연습 시작</span>
+                </button>
+                <button data-song="elise" class="song-select-btn p-3 bg-slate-800/90 hover:bg-purple-900/60 rounded-xl border border-purple-500/30 text-left flex justify-between items-center font-jua text-xs">
+                    <div>
+                        <div class="text-amber-300 text-sm">🎹 엘리제를 위하여</div>
+                        <div class="text-gray-400 font-mono mt-0.5">미-레#-미-레#-미-시-레-도-라</div>
+                    </div>
+                    <span class="px-2 py-1 bg-amber-500 text-slate-950 rounded text-[10px] font-bold">연습 시작</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Popup -->
+    <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 glass-panel border border-amber-400/60 px-4 py-2 rounded-2xl shadow-2xl font-jua text-xs text-amber-200 flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 translate-y-[-20px]">
+        <span id="toastIcon" class="text-lg">🎵</span>
+        <span id="toastMsg">연주실에 오신 것을 환영합니다!</span>
+    </div>
+
+    <!-- JAVASCRIPT: WEB AUDIO SYNTHESIZER & INTERACTION ENGINE -->
+    <script>
+        /* ====================================================================
+           1. WEB AUDIO SYNTHESIZER AUDIO ENGINE
+           ==================================================================== */
+        class StudioAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.masterGain = null;
+                this.currentOctave = 4;
+                this.beatTimer = null;
+                this.isBeatPlaying = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                    this.masterGain = this.ctx.createGain();
+                    this.masterGain.gain.value = 0.8;
+                    this.masterGain.connect(this.ctx.destination);
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            setMasterVolume(val) {
+                if (this.masterGain) {
+                    this.masterGain.gain.value = val;
+                }
+            }
+
+            // Note Frequency Calculation
+            getFreq(note, octave = this.currentOctave) {
+                const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                const keyIndex = notes.indexOf(note);
+                if (keyIndex === -1) return 440;
+                // A4 is 440Hz
+                return 440 * Math.pow(2, (keyIndex - 9 + (octave - 4) * 12) / 12);
+            }
+
+            // --- 1. PIANO SYNTHESIS ---
+            playPianoNote(noteStr, octave = this.currentOctave) {
+                this.init();
+                const freq = this.getFreq(noteStr, octave);
+                const now = this.ctx.currentTime;
+
+                const osc1 = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc1.type = 'triangle';
+                osc2.type = 'sine';
+
+                osc1.frequency.setValueAtTime(freq, now);
+                osc2.frequency.setValueAtTime(freq * 2, now); // Harmonic overtone
+
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(this.masterGain);
+
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 1.2);
+                osc2.stop(now + 1.2);
+
+                triggerVUMeter();
+            }
+
+            // --- 2. DRUM SYNTHESIS ---
+            playDrum(type) {
+                this.init();
+                const now = this.ctx.currentTime;
+
+                if (type === 'kick') {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.frequency.setValueAtTime(130, now);
+                    osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    gain.gain.setValueAtTime(1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'snare') {
+                    // White Noise + Snap
+                    const bufferSize = this.ctx.sampleRate * 0.2;
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const whiteNoise = this.ctx.createBufferSource();
+                    whiteNoise.buffer = buffer;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.value = 1000;
+
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.7, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+                    whiteNoise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.masterGain);
+
+                    whiteNoise.start(now);
+                } else if (type === 'hihat') {
+                    const bufferSize = this.ctx.sampleRate * 0.05;
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const whiteNoise = this.ctx.createBufferSource();
+                    whiteNoise.buffer = buffer;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.value = 7000;
+
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+
+                    whiteNoise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.masterGain);
+
+                    whiteNoise.start(now);
+                } else if (type === 'crash' || type === 'ride') {
+                    const bufferSize = this.ctx.sampleRate * 0.8;
+                    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    const whiteNoise = this.ctx.createBufferSource();
+                    whiteNoise.buffer = buffer;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'highpass';
+                    filter.frequency.value = 4000;
+
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0.6, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+
+                    whiteNoise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.masterGain);
+
+                    whiteNoise.start(now);
+                } else if (type === 'tom') {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+                    gain.gain.setValueAtTime(0.8, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+
+                triggerVUMeter();
+            }
+
+            // --- 3. XYLOPHONE / MARIMBA SYNTHESIS ---
+            playXylophone(noteStr, octave = 5) {
+                this.init();
+                const freq = this.getFreq(noteStr, octave);
+                const now = this.ctx.currentTime;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now);
+
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+
+                osc.start(now);
+                osc.stop(now + 0.6);
+
+                triggerVUMeter();
+            }
+
+            // --- 4. SYNTH GUITAR SYNTHESIS ---
+            playGuitar(noteStr, octave = 4) {
+                this.init();
+                const freq = this.getFreq(noteStr, octave);
+                const now = this.ctx.currentTime;
+
+                const osc = this.ctx.createOscillator();
+                const filter = this.ctx.createBiquadFilter();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(freq, now);
+
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(2500, now);
+                filter.frequency.exponentialRampToValueAtTime(300, now + 0.5);
+
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+
+                osc.start(now);
+                osc.stop(now + 0.7);
+
+                triggerVUMeter();
+            }
+
+            // --- 5. SAXOPHONE BRASS SYNTHESIS ---
+            playBrass(noteStr, octave = 4) {
+                this.init();
+                const freq = this.getFreq(noteStr, octave);
+                const now = this.ctx.currentTime;
+
+                const osc = this.ctx.createOscillator();
+                const filter = this.ctx.createBiquadFilter();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(freq, now);
+
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1200, now);
+                filter.frequency.linearRampToValueAtTime(2200, now + 0.1);
+                filter.frequency.exponentialRampToValueAtTime(600, now + 0.8);
+
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.9);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+
+                osc.start(now);
+                osc.stop(now + 0.9);
+
+                triggerVUMeter();
+            }
+
+            // Backing Rhythm Loop Generator
+            startBeatLoop(style) {
+                this.stopBeatLoop();
+                if (style === 'none') return;
+
+                this.isBeatPlaying = true;
+                let step = 0;
+                const bpm = style === 'pop' ? 100 : style === 'rock' ? 120 : style === 'hiphop' ? 90 : 110;
+                const interval = (60 / bpm / 4) * 1000; // 16th notes
+
+                this.beatTimer = setInterval(() => {
+                    if (!this.isBeatPlaying) return;
+
+                    if (style === 'pop') {
+                        if (step % 8 === 0 || step % 8 === 6) this.playDrum('kick');
+                        if (step % 8 === 4) this.playDrum('snare');
+                        if (step % 2 === 0) this.playDrum('hihat');
+                    } else if (style === 'rock') {
+                        if (step % 4 === 0) this.playDrum('kick');
+                        if (step % 4 === 2) this.playDrum('snare');
+                        this.playDrum('hihat');
+                    } else if (style === 'hiphop') {
+                        if (step % 8 === 0 || step % 8 === 3) this.playDrum('kick');
+                        if (step % 8 === 4) this.playDrum('snare');
+                        if (step % 2 === 0) this.playDrum('hihat');
+                    } else if (style === 'jazz') {
+                        if (step % 8 === 0) this.playDrum('kick');
+                        if (step % 8 === 4) this.playDrum('snare');
+                        if (step % 3 === 0) this.playDrum('ride');
+                    }
+
+                    step = (step + 1) % 16;
+                }, interval);
+            }
+
+            stopBeatLoop() {
+                this.isBeatPlaying = false;
+                if (this.beatTimer) {
+                    clearInterval(this.beatTimer);
+                    this.beatTimer = null;
+                }
+            }
+        }
+
+        const audio = new StudioAudioEngine();
+
+        /* ====================================================================
+           2. UI & INSTRUMENT DATA & RENDERERS
+           ==================================================================== */
+        const PIANO_NOTES = [
+            { note: 'C', key: 'a', isBlack: false },
+            { note: 'C#', key: 'w', isBlack: true },
+            { note: 'D', key: 's', isBlack: false },
+            { note: 'D#', key: 'e', isBlack: true },
+            { note: 'E', key: 'd', isBlack: false },
+            { note: 'F', key: 'f', isBlack: false },
+            { note: 'F#', key: 't', isBlack: true },
+            { note: 'G', key: 'g', isBlack: false },
+            { note: 'G#', key: 'y', isBlack: true },
+            { note: 'A', key: 'h', isBlack: false },
+            { note: 'A#', key: 'u', isBlack: true },
+            { note: 'B', key: 'j', isBlack: false },
+            { note: 'C', key: 'k', isBlack: false, nextOctave: true }
+        ];
+
+        const XYLOPHONE_BARS = [
+            { note: 'C', color: 'bg-red-500', name: '도', key: '1' },
+            { note: 'D', color: 'bg-orange-500', name: '레', key: '2' },
+            { note: 'E', color: 'bg-yellow-500', name: '미', key: '3' },
+            { note: 'F', color: 'bg-green-500', name: '파', key: '4' },
+            { note: 'G', color: 'bg-teal-500', name: '솔', key: '5' },
+            { note: 'A', color: 'bg-blue-500', name: '라', key: '6' },
+            { note: 'B', color: 'bg-indigo-500', name: '시', key: '7' },
+            { note: 'C', color: 'bg-purple-500', name: '높은도', key: '8', nextOctave: true }
+        ];
+
+        let activeInstrument = 'piano';
+
+        window.onload = () => {
+            renderPianoKeys();
+            renderXylophone();
+            renderGuitar();
+            renderBrass();
+            setupEventListeners();
+            initNoteCanvas();
+            showToast("🎹 연주실에 오신 것을 환영합니다! 악기를 선택해 보세요.");
+        };
+
+        // Render Piano Keyboard HTML
+        function renderPianoKeys() {
+            const container = document.getElementById('pianoKeysContainer');
+            container.innerHTML = '';
+
+            PIANO_NOTES.forEach((item, idx) => {
+                const keyEl = document.createElement('div');
+                if (item.isBlack) {
+                    keyEl.className = `piano-key-black absolute w-8 sm:w-10 h-32 sm:h-36 z-20 cursor-pointer flex flex-col justify-end items-center pb-2 text-[10px] text-gray-300 font-mono`;
+                    // Position black key relative to previous white key index
+                    const whiteIndex = PIANO_NOTES.slice(0, idx).filter(x => !x.isBlack).length;
+                    keyEl.style.left = `calc(${whiteIndex * 14.28}% - 1rem)`;
+                } else {
+                    keyEl.className = `piano-key-white relative flex-1 h-full cursor-pointer flex flex-col justify-end items-center pb-3 text-xs font-bold text-slate-800 font-jua`;
+                }
+
+                keyEl.dataset.note = item.note;
+                keyEl.dataset.nextOctave = item.nextOctave ? 'true' : 'false';
+                keyEl.innerHTML = `<span>${item.note}</span><span class="text-[9px] text-gray-400 font-mono">[${item.key.toUpperCase()}]</span>`;
+
+                keyEl.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    triggerPianoKey(item, keyEl);
+                });
+                keyEl.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    triggerPianoKey(item, keyEl);
+                });
+
+                container.appendChild(keyEl);
+            });
+        }
+
+        function triggerPianoKey(item, keyEl) {
+            const oct = item.nextOctave ? audio.currentOctave + 1 : audio.currentOctave;
+            audio.playPianoNote(item.note, oct);
+            keyEl.classList.add('active');
+            setTimeout(() => keyEl.classList.remove('active'), 150);
+            spawnNoteParticle(item.note);
+        }
+
+        // Render Xylophone HTML
+        function renderXylophone() {
+            const container = document.getElementById('instViewXylophone');
+            container.innerHTML = '';
+
+            XYLOPHONE_BARS.forEach((bar, i) => {
+                const heightPct = 100 - (i * 7); // Gradually shorter for higher pitch
+                const el = document.createElement('div');
+                el.className = `h-full flex flex-col justify-center items-center`;
+                el.style.height = `${heightPct}%`;
+                el.innerHTML = `
+                    <div class="w-12 sm:w-16 h-full ${bar.color} rounded-2xl shadow-xl flex flex-col justify-between items-center py-3 cursor-pointer transform transition active:scale-95 border-2 border-white/30">
+                        <div class="w-3 h-3 rounded-full bg-slate-900/60 border border-white/30"></div>
+                        <div class="text-center font-jua text-white">
+                            <div class="text-sm font-black">${bar.name}</div>
+                            <div class="text-[10px] text-white/80 font-mono">[${bar.key}]</div>
+                        </div>
+                        <div class="w-3 h-3 rounded-full bg-slate-900/60 border border-white/30"></div>
+                    </div>
+                `;
+
+                const trigger = () => {
+                    const oct = bar.nextOctave ? 6 : 5;
+                    audio.playXylophone(bar.note, oct);
+                    spawnNoteParticle(bar.name);
+                };
+
+                el.addEventListener('mousedown', trigger);
+                el.addEventListener('touchstart', (e) => { e.preventDefault(); trigger(); });
+                container.appendChild(el);
+            });
+        }
+
+        // Render Synth Guitar Strings
+        function renderGuitar() {
+            const container = document.getElementById('guitarStringsContainer');
+            container.innerHTML = '';
+
+            const strings = [
+                { name: '1번줄 (E)', note: 'E', oct: 4, key: '1' },
+                { name: '2번줄 (B)', note: 'B', oct: 3, key: '2' },
+                { name: '3번줄 (G)', note: 'G', oct: 3, key: '3' },
+                { name: '4번줄 (D)', note: 'D', oct: 3, key: '4' },
+                { name: '5번줄 (A)', note: 'A', oct: 2, key: '5' },
+                { name: '6번줄 (E)', note: 'E', oct: 2, key: '6' }
+            ];
+
+            strings.forEach(s => {
+                const el = document.createElement('div');
+                el.className = "glass-panel p-3 rounded-2xl border border-pink-500/30 flex items-center justify-between cursor-pointer hover:border-pink-400 active:scale-98 transition";
+                el.innerHTML = `
+                    <span class="font-jua text-xs text-pink-300 w-24">${s.name}</span>
+                    <div class="flex-1 h-1 bg-gradient-to-r from-pink-500 via-amber-300 to-pink-500 rounded-full my-auto shadow-lg"></div>
+                    <span class="text-xs font-mono text-gray-400 ml-3">[Key ${s.key}]</span>
+                `;
+                const trigger = () => {
+                    audio.playGuitar(s.note, s.oct);
+                    spawnNoteParticle(`🎸 ${s.note}`);
+                };
+                el.addEventListener('mousedown', trigger);
+                el.addEventListener('touchstart', (e) => { e.preventDefault(); trigger(); });
+                container.appendChild(el);
+            });
+        }
+
+        // Render Saxophone / Brass Pads
+        function renderBrass() {
+            const container = document.getElementById('instViewBrass');
+            container.innerHTML = '';
+
+            const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C2'];
+            notes.forEach((n, i) => {
+                const el = document.createElement('div');
+                el.className = "aspect-square glass-panel rounded-2xl border-2 border-amber-500/40 flex flex-col items-center justify-center cursor-pointer hover:border-amber-300 active:scale-95 transition bg-gradient-to-br from-amber-600/30 to-slate-900";
+                el.innerHTML = `
+                    <span class="text-2xl">🎷</span>
+                    <span class="text-xs font-jua text-amber-300 mt-1">${n}</span>
+                `;
+                const trigger = () => {
+                    const oct = n === 'C2' ? 5 : 4;
+                    const cleanNote = n.replace('2', '');
+                    audio.playBrass(cleanNote, oct);
+                    spawnNoteParticle(`🎷 ${cleanNote}`);
+                };
+                el.addEventListener('mousedown', trigger);
+                el.addEventListener('touchstart', (e) => { e.preventDefault(); trigger(); });
+                container.appendChild(el);
+            });
+        }
+
+        /* ====================================================================
+           3. EVENT LISTENERS & KEYBOARD MAPPINGS
+           ==================================================================== */
+        function setupEventListeners() {
+            // Instrument Switcher Buttons
+            document.querySelectorAll('.inst-nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const inst = btn.dataset.inst;
+                    switchInstrument(inst);
+                });
+            });
+
+            // Master Volume
+            document.getElementById('masterVolume').addEventListener('input', (e) => {
+                audio.setMasterVolume(parseFloat(e.target.value));
+            });
+
+            // Beat Loop Controls
+            document.getElementById('btnToggleBeat').addEventListener('click', () => {
+                const select = document.getElementById('bgBeatSelect');
+                const btn = document.getElementById('btnToggleBeat');
+
+                if (audio.isBeatPlaying) {
+                    audio.stopBeatLoop();
+                    btn.innerText = '재생';
+                    btn.className = 'px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-[11px]';
+                } else {
+                    audio.startBeatLoop(select.value);
+                    if (select.value !== 'none') {
+                        btn.innerText = '정지';
+                        btn.className = 'px-2 py-0.5 bg-red-500 hover:bg-red-400 text-white font-bold rounded text-[11px]';
+                    }
+                }
+            });
+
+            // Piano Octave Controls
+            document.getElementById('btnPianoOctDown').addEventListener('click', () => {
+                if (audio.currentOctave > 2) {
+                    audio.currentOctave--;
+                    updateOctaveLabel();
+                }
+            });
+            document.getElementById('btnPianoOctUp').addEventListener('click', () => {
+                if (audio.currentOctave < 6) {
+                    audio.currentOctave++;
+                    updateOctaveLabel();
+                }
+            });
+
+            // Drum Pads Click
+            document.querySelectorAll('.drum-pad').forEach(pad => {
+                const trigger = () => {
+                    const type = pad.dataset.drum;
+                    audio.playDrum(type);
+                    pad.classList.add('active');
+                    setTimeout(() => pad.classList.remove('active'), 120);
+                    spawnNoteParticle('🥁');
+                };
+                pad.addEventListener('mousedown', trigger);
+                pad.addEventListener('touchstart', (e) => { e.preventDefault(); trigger(); });
+            });
+
+            // Song Guide Modal
+            document.getElementById('btnSongGuide').addEventListener('click', () => {
+                document.getElementById('songModal').classList.remove('hidden');
+            });
+            document.getElementById('btnCloseSongModal').addEventListener('click', () => {
+                document.getElementById('songModal').classList.add('hidden');
+            });
+
+            document.querySelectorAll('.song-select-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const songKey = btn.dataset.song;
+                    document.getElementById('songModal').classList.add('hidden');
+                    switchInstrument('piano');
+                    showToast("🎹 피아노 건반을 연주해 곡을 완성해 보세요!");
+                });
+            });
+
+            // Keyboard Listeners
+            window.addEventListener('keydown', handleKeyboardInput);
+        }
+
+        function switchInstrument(inst) {
+            activeInstrument = inst;
+
+            // Nav Button Styling
+            document.querySelectorAll('.inst-nav-btn').forEach(b => {
+                if (b.dataset.inst === inst) {
+                    b.classList.remove('text-gray-400');
+                    b.classList.add('text-amber-400');
+                } else {
+                    b.classList.remove('text-amber-400');
+                    b.classList.add('text-gray-400');
+                }
+            });
+
+            // Views Toggle
+            ['instViewPiano', 'instViewDrums', 'instViewXylophone', 'instViewGuitar', 'instViewBrass'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+
+            const titles = {
+                piano: { title: '어쿠스틱 피아노 연주 중', emoji: '🎹', tip: '키보드 [A,S,D,F,G,H,J,K] 키나 터치로 연주하세요.', view: 'instViewPiano' },
+                drums: { title: '리얼 드럼 세트 연주 중', emoji: '🥁', tip: '키보드 [Q,W,E,A,Space,D] 키로 비트를 맞추세요.', view: 'instViewDrums' },
+                xylophone: { title: '알록달록 실로폰 연주 중', emoji: '🪵', tip: '숫자키 [1~8] 키나 바를 직접 터치하세요.', view: 'instViewXylophone' },
+                guitar: { title: '신스 일렉 기타 연주 중', emoji: '🎸', tip: '기타 줄을 터치하거나 숫자키 [1~6]을 누르세요.', view: 'instViewGuitar' },
+                brass: { title: '섹소폰 / 브라스 연주 중', emoji: '🎷', tip: '패드를 터치하여 감미로운 관악기 소리를 내보세요.', view: 'instViewBrass' }
+            };
+
+            const info = titles[inst];
+            document.getElementById('currentInstTitle').innerText = info.title;
+            document.getElementById('currentInstEmoji').innerText = info.emoji;
+            document.getElementById('instGuideTip').innerText = info.tip;
+            document.getElementById(info.view).classList.remove('hidden');
+        }
+
+        function updateOctaveLabel() {
+            document.getElementById('pianoOctaveLabel').innerText = `옥타브: ${audio.currentOctave} (${audio.currentOctave === 4 ? '보통' : audio.currentOctave < 4 ? '낮음' : '높음'})`;
+        }
+
+        function handleKeyboardInput(e) {
+            if (e.repeat) return; // Prevent hold trigger spamming
+            const key = e.key.toLowerCase();
+
+            if (activeInstrument === 'piano') {
+                const found = PIANO_NOTES.find(x => x.key === key);
+                if (found) {
+                    const oct = found.nextOctave ? audio.currentOctave + 1 : audio.currentOctave;
+                    audio.playPianoNote(found.note, oct);
+                    spawnNoteParticle(found.note);
+                }
+            } else if (activeInstrument === 'drums') {
+                const drumKeys = { 'q': 'crash', 'w': 'hihat', 'e': 'ride', 'a': 'snare', ' ': 'kick', 'd': 'tom' };
+                if (drumKeys[key]) {
+                    audio.playDrum(drumKeys[key]);
+                    spawnNoteParticle('🥁');
+                }
+            } else if (activeInstrument === 'xylophone') {
+                const num = parseInt(key);
+                if (num >= 1 && num <= 8) {
+                    const bar = XYLOPHONE_BARS[num - 1];
+                    const oct = bar.nextOctave ? 6 : 5;
+                    audio.playXylophone(bar.note, oct);
+                    spawnNoteParticle(bar.name);
+                }
+            } else if (activeInstrument === 'guitar') {
+                const strings = ['E', 'B', 'G', 'D', 'A', 'E'];
+                const octs = [4, 3, 3, 3, 2, 2];
+                const idx = parseInt(key) - 1;
+                if (idx >= 0 && idx < 6) {
+                    audio.playGuitar(strings[idx], octs[idx]);
+                    spawnNoteParticle(`🎸 ${strings[idx]}`);
+                }
+            }
+        }
+
+        /* ====================================================================
+           4. VISUAL EFFECTS, CANVAS & VU METER
+           ==================================================================== */
+        function triggerVUMeter() {
+            const left = document.getElementById('vuNeedleLeft');
+            const right = document.getElementById('vuNeedleRight');
+            if (!left || !right) return;
+
+            const angleL = -20 + Math.random() * 55;
+            const angleR = -10 + Math.random() * 55;
+
+            left.style.transform = `rotate(${angleL}deg)`;
+            right.style.transform = `rotate(${angleR}deg)`;
+
+            setTimeout(() => {
+                left.style.transform = `rotate(-45deg)`;
+                right.style.transform = `rotate(-45deg)`;
+            }, 200);
+        }
+
+        function spawnNoteParticle(text) {
+            const symbols = ['🎵', '🎶', '🎼', '✨', '🎹', '🎷', '🎸'];
+            const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+            
+            const el = document.createElement('div');
+            el.className = 'floating-note';
+            el.innerText = `${randomSymbol} ${text}`;
+            el.style.left = `${30 + Math.random() * 40}%`;
+            el.style.top = `${50 + Math.random() * 20}%`;
+            el.style.color = `hsl(${Math.random() * 360}, 100%, 75%)`;
+
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1200);
+        }
+
+        let canvas, ctx;
+        function initNoteCanvas() {
+            canvas = document.getElementById('noteCanvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>

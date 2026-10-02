@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>복사 복사 - 신의 걸작 복사기</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Google Sacred Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Gowun+Batang:wght@700&family=Jua&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Jua', 'Gowun Batang', sans-serif;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            background: #080612;
+            color: #ffffff;
+        }
+
+        .cinzel-font {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Divine Background Animated Gradient */
+        .divine-bg {
+            background: radial-gradient(circle at 50% 20%, #2a1b4e 0%, #0d081a 60%, #030208 100%);
+        }
+
+        /* Golden Sacred Glass Panels */
+        .divine-card {
+            background: rgba(255, 215, 0, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1.5px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(255, 215, 0, 0.1);
+        }
+
+        .divine-btn {
+            background: linear-gradient(135deg, #ffd700 0%, #ffaa00 50%, #b8860b 100%);
+            color: #1a0c00;
+            font-weight: 900;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 4px 10px rgba(0,0,0,0.5);
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .divine-btn:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 0 35px rgba(255, 215, 0, 0.8), 0 8px 20px rgba(0,0,0,0.6);
+        }
+
+        .divine-btn:active {
+            transform: translateY(2px) scale(0.97);
+        }
+
+        /* Animated Rays for God Appearance */
+        @keyframes godRayRotate {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .god-rays {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 180vw;
+            height: 180vw;
+            background: repeating-conic-gradient(
+                from 0deg,
+                rgba(255, 223, 0, 0.25) 0deg 15deg,
+                transparent 15deg 30deg
+            );
+            border-radius: 50%;
+            animation: godRayRotate 25s linear infinite;
+            pointer-events: none;
+        }
+
+        /* God Float Animation */
+        @keyframes floatGod {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-18px) scale(1.02); }
+        }
+
+        .god-avatar {
+            animation: floatGod 4s ease-in-out infinite;
+            filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.9));
+        }
+
+        /* Duplication Beam Particle Overlay */
+        .sparkle-particle {
+            position: absolute;
+            pointer-events: none;
+            animation: popSparkle 0.8s ease-out forwards;
+        }
+
+        @keyframes popSparkle {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
+            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.8) rotate(180deg); }
+        }
+
+        /* Screen Shake FX on Divine Copy */
+        .shake-screen {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #080612;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ffd700;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="divine-bg min-h-screen relative flex flex-col justify-between items-center text-white pb-12">
+
+    <!-- Background Sparkle Canvas -->
+    <canvas id="star-canvas" class="fixed inset-0 z-0 pointer-events-none"></canvas>
+
+    <!-- TOP HEADER NAV -->
+    <header class="w-full max-w-5xl px-6 py-5 z-10 flex justify-between items-center border-b border-amber-500/20">
+        <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-100 flex items-center justify-center text-2xl text-black shadow-lg border-2 border-white/80">
+                ⚡
+            </div>
+            <div>
+                <h1 class="text-2xl font-black cinzel-font bg-gradient-to-r from-amber-200 via-amber-400 to-amber-100 bg-clip-text text-transparent tracking-widest">
+                    복사 복사
+                </h1>
+                <p class="text-xs text-amber-300/80 font-bold">전능한 신의 걸작 창조 복제소</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <!-- Divine Power Counter -->
+            <div class="divine-card px-4 py-2 rounded-2xl flex items-center space-x-2 border-amber-400/40">
+                <span class="text-xl">✨</span>
+                <div>
+                    <div class="text-[10px] text-amber-300/80 font-bold">복사한 걸작</div>
+                    <span id="copy-count" class="text-lg font-black text-amber-300">0 개</span>
+                </div>
+            </div>
+
+            <!-- Invoke God Button -->
+            <button id="invoke-god-btn" class="divine-btn px-4 py-2.5 rounded-2xl text-xs flex items-center space-x-1.5">
+                <i class="fa-solid fa-crown text-amber-950"></i>
+                <span>신 영접하기</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN INTERACTIVE ALTAR -->
+    <main class="w-full max-w-5xl px-4 mt-6 z-10 flex flex-col items-center">
+        
+        <!-- Altar Banner -->
+        <div class="text-center mb-6">
+            <span class="inline-block px-4 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 mb-2">
+                🏛️ 신성한 창조의 제단
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-black text-amber-100">
+                복사하고 싶은 걸작을 선택하거나 업로드하세요!
+            </h2>
+            <p class="text-sm text-purple-200/70 mt-1">
+                버튼을 누르는 순간, 전능한 신이 천상의 빛과 함께 직접 나타나 축하해 드립니다.
+            </p>
+        </div>
+
+        <!-- Masterpiece Selection & Duplicator Stage -->
+        <div class="w-full grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+            
+            <!-- Left: Masterpiece Presets Selector -->
+            <div class="md:col-span-5 divine-card p-5 rounded-3xl flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-base font-bold text-amber-300 flex items-center space-x-2">
+                            <i class="fa-solid fa-palette"></i>
+                            <span>세계적 명화 걸작선</span>
+                        </h3>
+                        <!-- Custom File Upload Button -->
+                        <label class="cursor-pointer text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 px-3 py-1.5 rounded-xl font-bold transition flex items-center space-x-1">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>내 걸작 업로드</span>
+                            <input type="file" id="image-upload" accept="image/*" class="hidden">
+                        </label>
+                    </div>
+
+                    <!-- Gallery Grid -->
+                    <div id="masterpiece-list" class="grid grid-cols-3 gap-2.5 max-h-[320px] overflow-y-auto pr-1">
+                        <!-- Dynamic Presets inserted by JS -->
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-amber-500/20 text-center">
+                    <span id="selected-title" class="text-xs text-amber-200/80 font-bold block">
+                        현재 선택: 모나리자 (레오나르도 다 빈치)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Right: The Divine Duplication Chamber Stage -->
+            <div class="md:col-span-7 divine-card p-6 rounded-3xl flex flex-col items-center justify-between relative overflow-hidden">
+                <div class="text-center w-full mb-3">
+                    <span class="text-xs text-amber-400 font-extrabold tracking-widest uppercase">DIVINE DUPLICATION CHAMBER</span>
+                </div>
+
+                <!-- Dual Display: Original -> Copied Duplicate -->
+                <div class="flex items-center justify-center space-x-3 sm:space-x-6 my-2 w-full">
+                    
+                    <!-- Original Masterpiece Frame -->
+                    <div class="flex flex-col items-center">
+                        <span class="text-[11px] text-amber-300 font-bold mb-1">원본 걸작</span>
+                        <div class="w-28 h-36 sm:w-36 sm:h-48 rounded-2xl border-4 border-amber-400/60 shadow-xl overflow-hidden bg-black/40 relative group flex items-center justify-center">
+                            <img id="stage-original-img" src="" alt="Masterpiece Original" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+
+                    <!-- Divine Duplication Arrow -->
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-amber-400/20 border border-amber-300 flex items-center justify-center text-amber-300 text-lg animate-pulse">
+                            ⚡
+                        </div>
+                        <span class="text-[10px] text-amber-400 font-bold mt-1">신성 복사</span>
+                    </div>
+
+                    <!-- Copied Masterpiece Preview Frame -->
+                    <div class="flex flex-col items-center">
+                        <span class="text-[11px] text-amber-300 font-bold mb-1">복사된 걸작</span>
+                        <div id="copied-target-frame" class="w-28 h-36 sm:w-36 sm:h-48 rounded-2xl border-4 border-amber-500/30 shadow-xl overflow-hidden bg-black/40 relative flex items-center justify-center">
+                            <img id="stage-copied-img" src="" alt="Masterpiece Copy" class="w-full h-full object-cover opacity-0 transition-opacity duration-700">
+                            <div id="copy-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-amber-400/40 p-2 text-center">
+                                <i class="fa-solid fa-wand-magic-sparkles text-3xl mb-1"></i>
+                                <span class="text-[10px] font-bold">복사 대기 중</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MAIN DIVINE COPY BUTTON -->
+                <button id="copy-masterpiece-btn" class="divine-btn w-full py-4 rounded-2xl text-lg sm:text-xl tracking-wider flex items-center justify-center space-x-3 mt-4">
+                    <i class="fa-solid fa-bolt text-2xl"></i>
+                    <span>⚡ 걸작 복사 수행하기! ⚡</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- COPIED MASTERPIECES VAULT -->
+        <section class="w-full mt-10">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-black text-amber-300 flex items-center space-x-2">
+                    <i class="fa-solid fa-vault text-amber-400"></i>
+                    <span>신의 축복을 받은 황금 보관소</span>
+                </h3>
+                <span class="text-xs text-amber-200/60">복사된 걸작을 누르면 다운로드 가능합니다</span>
+            </div>
+
+            <!-- Vault List -->
+            <div id="vault-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <!-- Dynamic Vault Cards Added Here -->
+            </div>
+            
+            <div id="empty-vault-msg" class="divine-card p-8 text-center rounded-3xl text-amber-200/50">
+                <i class="fa-solid fa-hands-praying text-4xl mb-2 text-amber-400/40"></i>
+                <p class="font-bold">아직 복사된 걸작이 없습니다. 신의 복사 주문을 외쳐보세요!</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- GOD APPEARANCE SCENE OVERLAY (MODAL) -->
+    <div id="god-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-500">
+        <!-- Rotating Celestial Rays -->
+        <div class="god-rays"></div>
+
+        <!-- Divine Scene Box -->
+        <div class="relative z-10 w-full max-w-lg mx-4 p-6 sm:p-8 divine-card rounded-3xl border-2 border-amber-300/80 text-center flex flex-col items-center">
+            
+            <!-- GOD AVATAR GRAPHIC -->
+            <div class="relative mb-4">
+                <div class="w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-gradient-to-tr from-amber-300 via-amber-100 to-white flex items-center justify-center text-7xl sm:text-8xl shadow-2xl god-avatar border-4 border-amber-200">
+                    👑
+                </div>
+                <!-- Glowing Halo Ring -->
+                <div class="absolute -inset-3 rounded-full border-2 border-amber-300/60 animate-ping pointer-events-none"></div>
+                <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-black font-black text-[10px] px-3 py-0.5 rounded-full shadow-lg border border-white">
+                    전능한 창조신
+                </div>
+            </div>
+
+            <!-- God Title -->
+            <h2 id="god-heading" class="text-2xl sm:text-3xl font-black cinzel-font text-amber-200 tracking-wider">
+                "경배하라! 신의 축복이로다!"
+            </h2>
+
+            <!-- God Dialogue Speech Bubble -->
+            <div class="my-4 p-4 rounded-2xl bg-amber-950/60 border border-amber-400/50 text-amber-100 text-sm sm:text-base font-bold leading-relaxed shadow-inner">
+                <p id="god-speech">
+                    "보아라, 인간이여! 네가 갈망하는 인류 위대한 걸작을 나의 권능으로 온전히 복사하여 세상에 하나 더 내리었느니라! 축하하노라!"
+                </p>
+            </div>
+
+            <!-- Action Dismiss Button -->
+            <button id="god-dismiss-btn" class="divine-btn px-8 py-3 rounded-2xl text-base font-black flex items-center space-x-2">
+                <i class="fa-solid fa-hands-praying"></i>
+                <span>감사히 축복 받기</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Safe, clean SVG generator using encodeURIComponent to prevent URL/String syntax errors
+        function buildSvgUrl(xmlString) {
+            return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xmlString);
+        }
+
+        const SVG_RAW_DATA = {
+            monalisa: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b2e1e"/><stop offset="50%" stop-color="#1a261c"/><stop offset="100%" stop-color="#0c0803"/></linearGradient><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffd700"/><stop offset="100%" stop-color="#b8860b"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#bg)"/><rect x="12" y="12" width="376" height="476" fill="none" stroke="url(#gold)" stroke-width="6" rx="16"/><circle cx="200" cy="175" r="68" fill="#d2a679"/><path d="M140,210 C160,110 240,110 260,210 C270,360 250,420 250,420 L150,420 C150,420 130,360 140,210 Z" fill="#2d2013"/><path d="M170,188 Q200,202 230,188" stroke="#4a2e1b" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="180" cy="165" rx="7" ry="4" fill="#3b2219"/><ellipse cx="220" cy="165" rx="7" ry="4" fill="#3b2219"/><path d="M170,150 Q180,145 190,150" stroke="#3b2219" stroke-width="2" fill="none"/><path d="M210,150 Q220,145 230,150" stroke="#3b2219" stroke-width="2" fill="none"/><text x="200" y="445" font-family="sans-serif" font-size="22" font-weight="900" fill="#ffd700" text-anchor="middle">모나리자</text><text x="200" y="470" font-family="sans-serif" font-size="14" fill="#e6c280" text-anchor="middle">레오나르도 다 빈치</text></svg>`,
+            
+            scream: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff4500"/><stop offset="50%" stop-color="#ff8c00"/><stop offset="100%" stop-color="#4b0082"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#sky)"/><path d="M0,250 C100,200 300,300 400,220 L400,500 L0,500 Z" fill="#191970"/><path d="M0,320 L250,500 L200,500 L0,360 Z" fill="#8b4513"/><ellipse cx="200" cy="280" rx="35" ry="55" fill="#f5f5dc"/><ellipse cx="188" cy="265" rx="8" ry="12" fill="#111"/><ellipse cx="212" cy="265" rx="8" ry="12" fill="#111"/><ellipse cx="200" cy="305" rx="14" ry="22" fill="#111"/><path d="M160,310 Q140,270 170,250" stroke="#f5f5dc" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M240,310 Q260,270 230,250" stroke="#f5f5dc" stroke-width="12" fill="none" stroke-linecap="round"/><text x="200" y="445" font-family="sans-serif" font-size="22" font-weight="900" fill="#ffd700" text-anchor="middle">절규</text><text x="200" y="470" font-family="sans-serif" font-size="14" fill="#ffffff" text-anchor="middle">에드바르 뭉크</text></svg>`,
+            
+            starrynight: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><defs><linearGradient id="night" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#000066"/><stop offset="50%" stop-color="#191970"/><stop offset="100%" stop-color="#000022"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#night)"/><circle cx="320" cy="90" r="35" fill="#ffeb3b"/><circle cx="100" cy="120" r="20" fill="#fff" opacity="0.8"/><circle cx="220" cy="70" r="15" fill="#fff" opacity="0.9"/><path d="M50,150 Q150,80 250,150 T380,120" stroke="#87ceeb" stroke-width="18" fill="none" opacity="0.6"/><path d="M60,350 Q160,320 260,350 T400,330 L400,500 L0,500 Z" fill="#0d2b45"/><path d="M30,500 L80,220 L130,500 Z" fill="#112211"/><text x="200" y="445" font-family="sans-serif" font-size="22" font-weight="900" fill="#ffd700" text-anchor="middle">별이 빛나는 밤</text><text x="200" y="470" font-family="sans-serif" font-size="14" fill="#ffffff" text-anchor="middle">빈센트 반 고흐</text></svg>`,
+            
+            creation: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><defs><linearGradient id="cloud" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8b0000"/><stop offset="100%" stop-color="#2f4f4f"/></linearGradient></defs><rect width="100%" height="100%" fill="#d3b88c"/><path d="M200,100 C300,50 400,150 380,350 C300,400 220,350 200,100 Z" fill="url(#cloud)"/><path d="M0,300 Q100,280 180,320 L180,500 L0,500 Z" fill="#708090"/><path d="M0,310 L195,310" stroke="#ffdbac" stroke-width="16" stroke-linecap="round"/><path d="M380,220 L205,310" stroke="#ffdbac" stroke-width="16" stroke-linecap="round"/><circle cx="200" cy="310" r="6" fill="#ffd700"/><text x="200" y="445" font-family="sans-serif" font-size="22" font-weight="900" fill="#ffd700" text-anchor="middle">아담의 창조</text><text x="200" y="470" font-family="sans-serif" font-size="14" fill="#222222" text-anchor="middle">미켈란젤로</text></svg>`,
+            
+            girlpearl: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><rect width="100%" height="100%" fill="#0b0d12"/><path d="M120,160 Q200,80 280,180 Z" fill="#1e90ff"/><path d="M220,180 Q270,200 260,320 Z" fill="#ffd700"/><ellipse cx="200" cy="220" rx="45" ry="55" fill="#ffdbac"/><circle cx="225" cy="250" r="9" fill="#ffffff"/><circle cx="225" cy="250" r="9" fill="#dcdcdc" stroke="#aaa" stroke-width="1"/><ellipse cx="215" cy="215" rx="6" ry="4" fill="#222"/><text x="200" y="445" font-family="sans-serif" font-size="20" font-weight="900" fill="#ffd700" text-anchor="middle">진주 귀걸이를 한 소녀</text><text x="200" y="470" font-family="sans-serif" font-size="14" fill="#cccccc" text-anchor="middle">요하네스 페르메이르</text></svg>`,
+            
+            wave: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500"><rect width="100%" height="100%" fill="#f4f0ea"/><path d="M0,320 C100,280 200,380 400,260 L400,500 L0,500 Z" fill="#1034a6"/><path d="M0,280 Q150,150 280,240 Q380,100 400,180 L400,500 L0,500 Z" fill="#002266"/><polygon points="200,280 180,340 220,340" fill="#ffffff" stroke="#000" stroke-width="2"/><text x="200" y="445" font-family="sans-serif" font-size="20" font-weight="900" fill="#1034a6" text-anchor="middle">가나가와 해변의 높은 파도</text><text x="200" y="470" font-family="sans-serif" font-size="14" fill="#333333" text-anchor="middle">가쓰시카 호쿠사이</text></svg>`
+        };
+
+        const SVG_ARTWORKS = {
+            monalisa: buildSvgUrl(SVG_RAW_DATA.monalisa),
+            scream: buildSvgUrl(SVG_RAW_DATA.scream),
+            starrynight: buildSvgUrl(SVG_RAW_DATA.starrynight),
+            creation: buildSvgUrl(SVG_RAW_DATA.creation),
+            girlpearl: buildSvgUrl(SVG_RAW_DATA.girlpearl),
+            wave: buildSvgUrl(SVG_RAW_DATA.wave)
+        };
+
+        const MASTERPIECES = [
+            {
+                id: 'monalisa',
+                title: '모나리자',
+                artist: '레오나르도 다 빈치',
+                year: '1503',
+                img: SVG_ARTWORKS.monalisa
+            },
+            {
+                id: 'scream',
+                title: '절규',
+                artist: '에드바르 뭉크',
+                year: '1893',
+                img: SVG_ARTWORKS.scream
+            },
+            {
+                id: 'starrynight',
+                title: '별이 빛나는 밤',
+                artist: '빈센트 반 고흐',
+                year: '1889',
+                img: SVG_ARTWORKS.starrynight
+            },
+            {
+                id: 'creation',
+                title: '아담의 창조',
+                artist: '미켈란젤로',
+                year: '1512',
+                img: SVG_ARTWORKS.creation
+            },
+            {
+                id: 'girlpearl',
+                title: '진주 귀걸이를 한 소녀',
+                artist: '요하네스 페르메이르',
+                year: '1665',
+                img: SVG_ARTWORKS.girlpearl
+            },
+            {
+                id: 'wave',
+                title: '가나가와 해변의 파도',
+                artist: '가쓰시카 호쿠사이',
+                year: '1831',
+                img: SVG_ARTWORKS.wave
+            }
+        ];
+
+        const GOD_SPEECHES = [
+            "보아라, 인간이여! 네가 갈망하는 인류 위대한 걸작을 나의 권능으로 온전히 복사하여 세상에 하나 더 내리었느니라! 축하하노라!",
+            "오 신성하여라! 완벽한 미의 결집체가 하나 더 세상에 탄생했도다! 내 축복으로 이 복사본은 영원히 빛나리라!",
+            "너의 높은 미적 안목에 감복하였느라! 신의 손길로 똑같은 걸작을 하나 더 내리니 널리 기뻐하라!",
+            "하늘이 갈라지고 황금빛이 내리나니! 네가 원하던 위대한 걸작의 복사가 완벽하게 성공하였느니라!"
+        ];
+
+        // APP STATE
+        let selectedMasterpiece = MASTERPIECES[0];
+        let copyCount = 0;
+        let vaultList = [];
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Play Celestial Choir Fanfare for God's Appearance
+        function playDivineFanfare() {
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+
+            // Angelic Synth Chords (Heavenly sound)
+            const freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C Major Arpeggio
+            freqs.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+                gain.gain.setValueAtTime(0, now + idx * 0.08);
+                gain.gain.linearRampToValueAtTime(0.12, now + idx * 0.08 + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 2.5);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now + idx * 0.08);
+                osc.stop(now + idx * 0.08 + 2.6);
+            });
+
+            // Deep Divine Thunder Drone
+            const bassOsc = audioCtx.createOscillator();
+            const bassGain = audioCtx.createGain();
+            bassOsc.type = 'triangle';
+            bassOsc.frequency.setValueAtTime(130.81, now);
+            bassOsc.frequency.exponentialRampToValueAtTime(65.41, now + 2.0);
+
+            bassGain.gain.setValueAtTime(0.25, now);
+            bassGain.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+
+            bassOsc.connect(bassGain);
+            bassGain.connect(audioCtx.destination);
+            bassOsc.start(now);
+            bassOsc.stop(now + 2.3);
+        }
+
+        const canvas = document.getElementById('star-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        for (let i = 0; i < 90; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2 + 0.5,
+                alpha: Math.random(),
+                speed: Math.random() * 0.02 + 0.005
+            });
+        }
+
+        function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(s => {
+                s.alpha += s.speed;
+                if (s.alpha > 1 || s.alpha < 0) s.speed = -s.speed;
+                ctx.fillStyle = `rgba(255, 215, 0, ${Math.abs(s.alpha)})`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            requestAnimationFrame(animateStars);
+        }
+        animateStars();
+
+        function getSafeImg(item) {
+            return SVG_ARTWORKS[item.id] || item.img || SVG_ARTWORKS['monalisa'];
+        }
+
+        function renderPresets() {
+            const container = document.getElementById('masterpiece-list');
+            container.innerHTML = '';
+
+            MASTERPIECES.forEach(m => {
+                const card = document.createElement('div');
+                const isSelected = m.id === selectedMasterpiece.id;
+                card.className = `cursor-pointer rounded-xl overflow-hidden border-2 transition-all p-1 flex flex-col items-center bg-black/30 ${
+                    isSelected ? 'border-amber-400 scale-105 shadow-lg shadow-amber-500/30' : 'border-amber-500/20 hover:border-amber-400/60 opacity-70 hover:opacity-100'
+                }`;
+
+                const safeSrc = getSafeImg(m);
+
+                card.innerHTML = `
+                    <div class="w-full h-20 rounded-lg overflow-hidden mb-1 flex items-center justify-center bg-black/50">
+                        <img src="${m.img}" alt="${m.title}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='${safeSrc}';">
+                    </div>
+                    <span class="text-[11px] font-extrabold text-amber-200 truncate w-full text-center">${m.title}</span>
+                `;
+
+                card.addEventListener('click', () => {
+                    selectedMasterpiece = m;
+                    updateStage();
+                    renderPresets();
+                });
+
+                container.appendChild(card);
+            });
+        }
+
+        function updateStage() {
+            const origImg = document.getElementById('stage-original-img');
+            const safeSrc = getSafeImg(selectedMasterpiece);
+            
+            origImg.onerror = function() {
+                this.onerror = null;
+                this.src = safeSrc;
+            };
+            origImg.src = selectedMasterpiece.img;
+
+            document.getElementById('selected-title').innerText = `현재 선택: ${selectedMasterpiece.title} (${selectedMasterpiece.artist || '사용자 작품'})`;
+            
+            // Reset Copy Preview State
+            const copyImg = document.getElementById('stage-copied-img');
+            copyImg.classList.add('opacity-0');
+            document.getElementById('copy-placeholder').style.display = 'flex';
+            document.getElementById('copied-target-frame').className = "w-28 h-36 sm:w-36 sm:h-48 rounded-2xl border-4 border-amber-500/30 shadow-xl overflow-hidden bg-black/40 relative flex items-center justify-center";
+        }
+
+        function performDivineCopy() {
+            playDivineFanfare();
+
+            // Screen Shake Effect
+            document.body.classList.add('shake-screen');
+            setTimeout(() => document.body.classList.remove('shake-screen'), 500);
+
+            // Visual Copy Particle Explosion
+            spawnSparklesAroundButton();
+
+            // Reveal Copied Artwork in Stage
+            const copyImg = document.getElementById('stage-copied-img');
+            const safeSrc = getSafeImg(selectedMasterpiece);
+            
+            copyImg.onerror = function() {
+                this.onerror = null;
+                this.src = safeSrc;
+            };
+            copyImg.src = selectedMasterpiece.img;
+            copyImg.classList.remove('opacity-0');
+            document.getElementById('copy-placeholder').style.display = 'none';
+            document.getElementById('copied-target-frame').className = "w-28 h-36 sm:w-36 sm:h-48 rounded-2xl border-4 border-amber-400 shadow-2xl shadow-amber-400/60 overflow-hidden bg-black/40 relative flex items-center justify-center animate-pulse";
+
+            // Update Statistics
+            copyCount++;
+            document.getElementById('copy-count').innerText = `${copyCount} 개`;
+
+            // Add to Vault
+            vaultList.unshift({
+                ...selectedMasterpiece,
+                copyId: Date.now(),
+                copyDate: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            });
+            renderVault();
+
+            // TRIGGER GOD APPEARANCE OVERLAY!
+            setTimeout(() => {
+                showGodAppearance();
+            }, 400);
+        }
+
+        function showGodAppearance(customSpeech = null) {
+            const modal = document.getElementById('god-overlay');
+            const speechBox = document.getElementById('god-speech');
+            
+            const randomSpeech = customSpeech || GOD_SPEECHES[Math.floor(Math.random() * GOD_SPEECHES.length)];
+            speechBox.innerText = `"${randomSpeech}"`;
+
+            modal.classList.remove('pointer-events-none', 'opacity-0');
+            modal.classList.add('opacity-100');
+        }
+
+        function hideGodAppearance() {
+            const modal = document.getElementById('god-overlay');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.classList.remove('opacity-100');
+        }
+
+        function renderVault() {
+            const vaultGrid = document.getElementById('vault-grid');
+            const emptyMsg = document.getElementById('empty-vault-msg');
+
+            if (vaultList.length === 0) {
+                emptyMsg.style.display = 'block';
+                vaultGrid.innerHTML = '';
+                return;
+            }
+
+            emptyMsg.style.display = 'none';
+            vaultGrid.innerHTML = '';
+
+            vaultList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "divine-card p-3 rounded-2xl flex flex-col items-center border border-amber-400/50 hover:border-amber-300 transition shadow-lg relative group";
+                const safeSrc = getSafeImg(item);
+
+                card.innerHTML = `
+                    <div class="absolute top-2 right-2 bg-amber-400 text-black text-[9px] font-black px-2 py-0.5 rounded-full shadow z-10">
+                        ✨ 신성 복사본
+                    </div>
+                    <div class="w-full h-36 rounded-xl overflow-hidden mb-2 border border-amber-300/30 bg-black/40 flex items-center justify-center">
+                        <img src="${item.img}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" onerror="this.onerror=null; this.src='${safeSrc}';">
+                    </div>
+                    <h4 class="text-xs font-black text-amber-200 truncate w-full text-center">${item.title}</h4>
+                    <span class="text-[10px] text-amber-300/70 block">${item.copyDate} 복사됨</span>
+                    <button class="mt-2 w-full py-1 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-400/50 rounded-lg text-[10px] font-bold text-amber-200 transition">
+                        <i class="fa-solid fa-download mr-1"></i> 걸작 보관하기
+                    </button>
+                `;
+
+                // Download / Inspect click handler
+                card.addEventListener('click', () => {
+                    const a = document.createElement('a');
+                    a.href = item.img || safeSrc;
+                    a.download = `Divine_Copy_${item.title}.png`;
+                    a.click();
+                });
+
+                vaultGrid.appendChild(card);
+            });
+        }
+
+        function spawnSparklesAroundButton() {
+            const btn = document.getElementById('copy-masterpiece-btn');
+            const rect = btn.getBoundingClientRect();
+
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'sparkle-particle text-xl text-amber-300';
+                particle.innerText = ['✨', '⚡', '👑', '🌟', '💥'][Math.floor(Math.random() * 5)];
+                particle.style.left = `${rect.left + rect.width / 2}px`;
+                particle.style.top = `${rect.top + rect.height / 2}px`;
+
+                const dx = (Math.random() - 0.5) * 250;
+                const dy = (Math.random() - 0.5) * 250;
+                particle.style.setProperty('--dx', `${dx}px`);
+                particle.style.setProperty('--dy', `${dy}px`);
+
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 800);
+            }
+        }
+
+        document.getElementById('image-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const customMasterpiece = {
+                        id: 'custom_' + Date.now(),
+                        title: file.name.split('.')[0] || '사용자 걸작',
+                        artist: '나의 작품',
+                        year: '2026',
+                        img: evt.target.result
+                    };
+                    MASTERPIECES.unshift(customMasterpiece);
+                    selectedMasterpiece = customMasterpiece;
+                    renderPresets();
+                    updateStage();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Setup Event Listeners
+        document.getElementById('copy-masterpiece-btn').addEventListener('click', performDivineCopy);
+        document.getElementById('god-dismiss-btn').addEventListener('click', hideGodAppearance);
+        document.getElementById('invoke-god-btn').addEventListener('click', () => {
+            playDivineFanfare();
+            showGodAppearance("신을 직접 영접하러 왔느냐! 무슨 걸작이든 가져오거라, 내 능히 배로 복사해주마!");
+        });
+
+        // Initial Initialization
+        window.onload = function() {
+            renderPresets();
+            updateStage();
+            renderVault();
+        };
+    </script>
+</body>
+</html>

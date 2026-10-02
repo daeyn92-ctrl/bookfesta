@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>나의 보호막 - 도깨비 방어 수호 결계</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Gowun Batang / Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;500;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .font-traditional {
+            font-family: 'Gowun Batang', serif;
+        }
+        body {
+            background-color: #05050d;
+            background-image: 
+                radial-gradient(at 20% 20%, rgba(88, 28, 135, 0.3) 0px, transparent 50%),
+                radial-gradient(at 80% 80%, rgba(15, 23, 42, 0.8) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(124, 58, 237, 0.15) 0px, transparent 70%);
+        }
+        .btn-active:active {
+            transform: scale(0.94);
+        }
+        @keyframes pulse-aura {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.6)); }
+            50% { filter: drop-shadow(0 0 35px rgba(236, 72, 153, 0.9)); }
+        }
+        .aura-glow {
+            animation: pulse-aura 3s infinite ease-in-out;
+        }
+        @keyframes float-gentle {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(1deg); }
+        }
+        .floating-element {
+            animation: float-gentle 4s ease-in-out infinite;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #4c1d95; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 overflow-x-hidden">
+
+    <!-- Main Outer Container -->
+    <div class="relative w-full max-w-md min-h-[90vh] max-h-[920px] flex flex-col justify-between bg-slate-950/80 backdrop-blur-xl border border-purple-900/50 rounded-3xl shadow-2xl overflow-hidden p-4 sm:p-5 my-auto">
+        
+        <!-- Header Section -->
+        <header class="flex flex-col gap-2 z-10">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-purple-600 flex items-center justify-center text-xs font-bold shadow-lg shadow-purple-500/30">
+                        <i class="fa-solid fa-shield-halved text-slate-950"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-traditional text-2xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-purple-300 to-pink-300">
+                            나의 보호막
+                        </h1>
+                        <p class="text-[10px] text-purple-300/70">도깨비 기 흡수 완벽 차단 결계 시스템</p>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="flex items-center gap-2">
+                    <button id="soundToggleBtn" class="w-9 h-9 rounded-full bg-purple-950/60 hover:bg-purple-900/80 border border-purple-700/50 flex items-center justify-center text-amber-300 transition shadow">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <button id="infoBtn" class="w-9 h-9 rounded-full bg-purple-950/60 hover:bg-purple-900/80 border border-purple-700/50 flex items-center justify-center text-purple-300 transition shadow">
+                        <i class="fa-solid fa-scroll"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats / Defense Meter Bar -->
+            <div class="grid grid-cols-2 gap-2 mt-1">
+                <div class="bg-purple-950/40 border border-purple-800/40 rounded-xl p-2.5 flex items-center gap-3">
+                    <div class="text-amber-400 text-lg"><i class="fa-solid fa-bolt"></i></div>
+                    <div>
+                        <div class="text-[10px] text-purple-300 uppercase font-bold">도깨비 퇴치 횟수</div>
+                        <div id="defendCount" class="font-bold text-lg text-amber-300">0회</div>
+                    </div>
+                </div>
+                <div class="bg-purple-950/40 border border-purple-800/40 rounded-xl p-2.5 flex items-center gap-3">
+                    <div class="text-pink-400 text-lg"><i class="fa-solid fa-shield-virus"></i></div>
+                    <div>
+                        <div class="text-[10px] text-purple-300 uppercase font-bold">기(氣) 방어 출력</div>
+                        <div id="powerLevel" class="font-bold text-lg text-pink-300">100%</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Center Canvas Area -->
+        <div class="relative w-full aspect-square my-auto flex items-center justify-center">
+            <!-- Background Aura Glow -->
+            <div id="auraBg" class="absolute inset-2 rounded-full blur-3xl opacity-40 bg-gradient-to-tr from-purple-600 via-amber-500 to-pink-600 transition-all duration-700"></div>
+
+            <!-- Dynamic Shield Canvas -->
+            <canvas id="shieldCanvas" class="relative z-10 w-full h-full cursor-pointer aura-glow floating-element"></canvas>
+
+            <!-- Dokkaebi Reaction Speech Bubble -->
+            <div id="dokkaebiBubble" class="absolute top-2 left-1/2 -translate-x-1/2 z-20 bg-slate-900/90 border-2 border-amber-400/80 text-amber-200 px-4 py-2 rounded-2xl shadow-2xl text-xs font-bold text-center max-w-[85%] transition-all duration-300 transform scale-100">
+                <span class="text-rose-400 mr-1"><i class="fa-solid fa-ghost"></i> 도깨비:</span>
+                <span id="dokkaebiText">"히히! 기를 뺏으러 왔다... 어? 이게 무슨 빛이지?!"</span>
+            </div>
+
+            <!-- Touch Hint Overlay -->
+            <div class="absolute bottom-2 text-center z-10 pointer-events-none">
+                <span class="text-[11px] text-purple-300/60 bg-slate-950/70 px-3 py-1 rounded-full border border-purple-900/40">
+                    <i class="fa-solid fa-hand-pointer animate-bounce mr-1"></i> 보호막을 터치하여 형상 변형
+                </span>
+            </div>
+        </div>
+
+        <!-- Shield Info & Incantation Section -->
+        <div class="z-10 flex flex-col gap-2 my-1">
+            <div class="bg-gradient-to-r from-purple-950/60 via-slate-900/80 to-purple-950/60 border border-purple-800/50 rounded-2xl p-3 text-center backdrop-blur-md">
+                <div class="flex items-center justify-center gap-2 mb-1">
+                    <span id="shieldElementBadge" class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/40 font-bold">
+                        [금빛 오행결계]
+                    </span>
+                    <span id="shieldName" class="font-traditional font-bold text-amber-200 text-base">
+                        삼태극 영혼의 방어막
+                    </span>
+                </div>
+                <p id="incantationText" class="font-traditional text-xs text-purple-200 italic font-medium leading-relaxed">
+                    "음양과 오행의 기운이 모여 도깨비의 손길을 반사하노라!"
+                </p>
+            </div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <footer class="z-10 flex flex-col gap-2.5">
+            <button id="morphBtn" class="btn-active w-full py-4 bg-gradient-to-r from-amber-500 via-purple-600 to-pink-600 hover:from-amber-400 hover:to-pink-500 text-slate-950 font-extrabold text-lg rounded-2xl shadow-xl shadow-purple-900/40 flex items-center justify-center gap-2 border-b-4 border-purple-950 transition">
+                <i class="fa-solid fa-wand-magic-sparkles text-xl animate-spin" style="animation-duration: 6s;"></i>
+                <span>무작위 보호막 변형하기</span>
+            </button>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button id="purifyBtn" class="btn-active py-2.5 bg-purple-950/80 hover:bg-purple-900/90 border border-purple-700/60 text-purple-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-spa text-emerald-400"></i>
+                    <span>기(氣) 정화 발동</span>
+                </button>
+                <button id="spellBtn" class="btn-active py-2.5 bg-purple-950/80 hover:bg-purple-900/90 border border-purple-700/60 text-amber-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-om text-amber-400"></i>
+                    <span>수호 주문 낭송</span>
+                </button>
+            </div>
+        </footer>
+
+        <!-- Info Modal -->
+        <div id="infoModal" class="absolute inset-0 z-30 bg-slate-950/95 backdrop-blur-lg hidden flex-col items-center justify-center p-6 text-slate-200 text-left">
+            <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center text-2xl border border-amber-500/40 mb-3">
+                <i class="fa-solid fa-shield-cat"></i>
+            </div>
+            <h2 class="font-traditional text-2xl font-bold text-amber-300 mb-2">나의 보호막 안내서</h2>
+            <div class="text-xs leading-relaxed space-y-3 max-h-[60vh] overflow-y-auto pr-1 text-purple-100">
+                <p><strong>도깨비의 기 흡수 차단 원리:</strong></p>
+                <p>도깨비는 일정한 패턴의 사람의 마음과 기운에 접근하여 기를 빨아들입니다. '나의 보호막' 앱은 버튼을 누를 때마다 예측할 수 없는 **무작위 기하학 만다라 수호 결계**를 형성하여 도깨비를 혼란에 빠뜨립니다.</p>
+                
+                <div class="bg-purple-900/30 p-3 rounded-xl border border-purple-700/40 space-y-1">
+                    <div class="text-amber-300 font-bold"><i class="fa-solid fa-check text-xs"></i> 무작위 형상 변형</div>
+                    <div>보호막을 터치하거나 버튼을 누르면 빛, 방위, 음양오행, 결계 수호 문양이 실시간으로 재조합됩니다.</div>
+                </div>
+
+                <div class="bg-purple-900/30 p-3 rounded-xl border border-purple-700/40 space-y-1">
+                    <div class="text-pink-300 font-bold"><i class="fa-solid fa-check text-xs"></i> 도깨비 반응 확인</div>
+                    <div>결계가 바뀔 때마다 당황한 도깨비들의 유쾌한 비명과 대사를 확인할 수 있습니다.</div>
+                </div>
+            </div>
+            <button id="closeInfoBtn" class="mt-5 w-full py-3 bg-gradient-to-r from-purple-600 to-amber-500 font-bold text-slate-950 rounded-xl">
+                확인 및 결계 유지
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Web Audio Synthesizer for Mystical Chimes & Shields
+        class ShieldSoundEngine {
+            constructor() {
+                this.audioCtx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.audioCtx = new AudioContext();
+                }
+            }
+
+            playShieldShiftSound() {
+                if (!this.enabled || !this.audioCtx) return;
+                
+                const now = this.audioCtx.currentTime;
+                
+                // Oscillator 1: High Crystal Chime
+                const osc1 = this.audioCtx.createOscillator();
+                const gain1 = this.audioCtx.createGain();
+                osc1.type = 'sine';
+                const baseFreq = 440 + Math.random() * 440;
+                osc1.frequency.setValueAtTime(baseFreq, now);
+                osc1.frequency.exponentialRampToValueAtTime(baseFreq * 2, now + 0.3);
+                
+                gain1.gain.setValueAtTime(0.15, now);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                osc1.connect(gain1);
+                gain1.connect(this.audioCtx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.4);
+
+                // Oscillator 2: Sacred Bass Resonance Wave
+                const osc2 = this.audioCtx.createOscillator();
+                const gain2 = this.audioCtx.createGain();
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(120, now);
+                osc2.frequency.exponentialRampToValueAtTime(60, now + 0.5);
+
+                gain2.gain.setValueAtTime(0.25, now);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+                osc2.connect(gain2);
+                gain2.connect(this.audioCtx.destination);
+                osc2.start(now);
+                osc2.stop(now + 0.5);
+            }
+
+            playZapDokkaebi() {
+                if (!this.enabled || !this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.2);
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        const soundEngine = new ShieldSoundEngine();
+        const canvas = document.getElementById('shieldCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI DOM References
+        const defendCountEl = document.getElementById('defendCount');
+        const powerLevelEl = document.getElementById('powerLevel');
+        const shieldNameEl = document.getElementById('shieldName');
+        const shieldElementBadgeEl = document.getElementById('shieldElementBadge');
+        const incantationTextEl = document.getElementById('incantationText');
+        const dokkaebiTextEl = document.getElementById('dokkaebiText');
+        const auraBgEl = document.getElementById('auraBg');
+
+        // App State
+        let defendCount = 0;
+        let rotationAngle = 0;
+        let particleList = [];
+
+        // Current Active Shield Configuration State
+        let currentShield = {
+            shapeType: 'mandala', // 'mandala', 'taegeuk', 'starburst', 'lotus', 'trigram', 'polygon', 'vortex', 'crystal'
+            petals: 8,
+            rings: 3,
+            primaryColor: '#f59e0b',
+            secondaryColor: '#ec4899',
+            accentColor: '#a855f7',
+            glowColor: 'rgba(245, 158, 11, 0.6)',
+            rotationSpeed: 0.008,
+            innerSymbol: '☯',
+            name: '삼태극 영혼의 방어막',
+            badge: '[금빛 오행결계]',
+            incantation: '"음양과 오행의 기운이 모여 도깨비의 손길을 반사하노라!"'
+        };
+
+        const dokkaebiDialogues = [
+            '"으악! 눈이 부셔! 무슨 결계가 이렇게 화려해?!"',
+            '"히익! 기를 빨려다가 오히려 내 도깨비불이 식어버리겠네!"',
+            '"어라? 이번엔 어떤 문양이지? 도무지 뚫을 수가 없다!"',
+            '"앗 날카로운 기운! 덤비다간 내 방망이도 부러지겠어!"',
+            '"주문이 너무 강해! 36계 줄랑랑이다!"',
+            '"이 기운은... 청룡 백호 신선의 수호막인가?!"',
+            '"기가 빨아지긴 커녕 내 도깨비 기운이 정화되고 있어!"',
+            '"쉿! 보호막 모양이 또 바뀌었다! 도망치자!"'
+        ];
+
+        const shieldPresets = [
+            {
+                name: '삼태극 영혼 수호막',
+                badge: '[오행 금빛결계]',
+                symbol: '☯',
+                colors: ['#f59e0b', '#ef4444', '#3b82f6'],
+                incantation: '"음양의 조화로 도깨비의 삼라만상 심술을 튕겨낸다!"'
+            },
+            {
+                name: '청룡 백호 사신수 결계',
+                badge: '[신선 수호막]',
+                symbol: '🐉',
+                colors: ['#10b981', '#38bdf8', '#a855f7'],
+                incantation: '"동서남북 사방 신수의 기운이 벽을 이루어 침범을 불허한다!"'
+            },
+            {
+                name: '황금 연꽃 정화 결계',
+                badge: '[불가침 정화막]',
+                symbol: '🪷',
+                colors: ['#facc15', '#f43f5e', '#ec4899'],
+                incantation: '"맑고 고결한 연꽃의 정기가 마음의 침식을 완벽히 씻어낸다!"'
+            },
+            {
+                name: '팔괘 하늘거울 차단막',
+                badge: '[반사 차단막]',
+                symbol: '☰',
+                colors: ['#a855f7', '#6366f1', '#38bdf8'],
+                incantation: '"하늘과 땅의 팔괘가 거울이 되어 도깨비의 기 탐욕을 반사한다!"'
+            },
+            {
+                name: '우주 별빛 다이아몬드 방패',
+                badge: '[성좌 결계]',
+                symbol: '✦',
+                colors: ['#06b6d4', '#e0e7ff', '#f472b6'],
+                incantation: '"북두칠성과 별들의 결속이 다이아몬드보다 견고한 벽을 세운다!"'
+            },
+            {
+                name: '불꽃 오행 방어 진법',
+                badge: '[화염 결계]',
+                symbol: '🔥',
+                colors: ['#f97316', '#dc2626', '#facc15'],
+                incantation: '"타오르는 정의의 정화불길로 도깨비의 음기를 태워버린다!"'
+            }
+        ];
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * (window.devicePixelRatio || 1);
+            canvas.height = rect.height * (window.devicePixelRatio || 1);
+            ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function createSparkParticles(cx, cy) {
+            for (let i = 0; i < 25; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 1;
+                particleList.push({
+                    x: cx,
+                    y: cy,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: Math.random() * 3 + 1.5,
+                    color: Math.random() > 0.5 ? currentShield.primaryColor : currentShield.secondaryColor,
+                    alpha: 1,
+                    life: 30
+                });
+            }
+        }
+
+        function drawShieldPattern(timestamp) {
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+            const cx = width / 2;
+            const cy = height / 2;
+            const baseRadius = Math.min(width, height) * 0.38;
+
+            ctx.clearRect(0, 0, width, height);
+
+            rotationAngle += currentShield.rotationSpeed;
+
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            // 1. Draw Background Pulsing Radial Glow
+            const pulseScale = 1 + Math.sin(timestamp * 0.003) * 0.04;
+            ctx.scale(pulseScale, pulseScale);
+
+            const bgGlow = ctx.createRadialGradient(0, 0, baseRadius * 0.2, 0, 0, baseRadius * 1.1);
+            bgGlow.addColorStop(0, currentShield.glowColor);
+            bgGlow.addColorStop(1, 'transparent');
+            ctx.fillStyle = bgGlow;
+            ctx.beginPath();
+            ctx.arc(0, 0, baseRadius * 1.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Draw Outer Rotating Magic Rings
+            ctx.rotate(rotationAngle);
+            ctx.strokeStyle = currentShield.primaryColor;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, baseRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Dotted outer boundary
+            ctx.save();
+            ctx.setLineDash([6, 8]);
+            ctx.strokeStyle = currentShield.secondaryColor;
+            ctx.beginPath();
+            ctx.arc(0, 0, baseRadius + 10, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+
+            // 3. Draw Dynamic Geometric Petals / Mandala Rays
+            const petals = currentShield.petals;
+            ctx.strokeStyle = currentShield.secondaryColor;
+            ctx.fillStyle = currentShield.primaryColor + '22'; // translucent fill
+            ctx.lineWidth = 2;
+
+            if (currentShield.shapeType === 'mandala' || currentShield.shapeType === 'lotus') {
+                for (let i = 0; i < petals; i++) {
+                    const angle = (Math.PI * 2 / petals) * i;
+                    ctx.save();
+                    ctx.rotate(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.quadraticCurveTo(baseRadius * 0.5, baseRadius * 0.8, 0, baseRadius);
+                    ctx.quadraticCurveTo(-baseRadius * 0.5, baseRadius * 0.8, 0, 0);
+                    ctx.stroke();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            } else if (currentShield.shapeType === 'starburst' || currentShield.shapeType === 'crystal') {
+                ctx.beginPath();
+                for (let i = 0; i < petals * 2; i++) {
+                    const r = (i % 2 === 0) ? baseRadius : baseRadius * 0.45;
+                    const angle = (Math.PI / petals) * i;
+                    const x = Math.cos(angle) * r;
+                    const y = Math.sin(angle) * r;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+                ctx.fill();
+            } else {
+                // Polygon / Concentric Trigram Circles
+                ctx.beginPath();
+                for (let i = 0; i < petals; i++) {
+                    const angle = (Math.PI * 2 / petals) * i;
+                    const x = Math.cos(angle) * baseRadius;
+                    const y = Math.sin(angle) * baseRadius;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+                ctx.fill();
+            }
+
+            // 4. Counter-rotating Inner Rings
+            ctx.rotate(-rotationAngle * 2.2);
+            ctx.strokeStyle = currentShield.accentColor;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, baseRadius * 0.55, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 5. Draw Central Core Emblem & Mystical Symbol
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(0, 0, baseRadius * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = currentShield.primaryColor;
+            ctx.stroke();
+
+            ctx.fillStyle = currentShield.primaryColor;
+            ctx.font = `bold ${baseRadius * 0.3}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(currentShield.innerSymbol, 0, 0);
+
+            ctx.restore();
+
+            // 6. Particle Rendering
+            for (let i = particleList.length - 1; i >= 0; i--) {
+                const p = particleList[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.03;
+                p.life--;
+
+                if (p.life <= 0 || p.alpha <= 0) {
+                    particleList.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            requestAnimationFrame(drawShieldPattern);
+        }
+
+        function morphShieldRandomly() {
+            soundEngine.init();
+            soundEngine.playShieldShiftSound();
+
+            defendCount++;
+            defendCountEl.textContent = `${defendCount}회`;
+            powerLevelEl.textContent = `${100 + defendCount * 5}%`;
+
+            // Randomize Colors & Geometry
+            const colorPalettes = [
+                ['#f59e0b', '#ec4899', '#8b5cf6'],
+                ['#10b981', '#06b6d4', '#3b82f6'],
+                ['#f43f5e', '#fb923c', '#facc15'],
+                ['#a855f7', '#38bdf8', '#e0e7ff'],
+                ['#e11d48', '#f59e0b', '#10b981']
+            ];
+            const palette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+            const shapeTypes = ['mandala', 'starburst', 'lotus', 'polygon', 'crystal'];
+            const preset = shieldPresets[Math.floor(Math.random() * shieldPresets.length)];
+
+            currentShield.shapeType = shapeTypes[Math.floor(Math.random() * shapeTypes.length)];
+            currentShield.petals = Math.floor(Math.random() * 7) + 5; // 5 to 11
+            currentShield.primaryColor = palette[0];
+            currentShield.secondaryColor = palette[1];
+            currentShield.accentColor = palette[2];
+            currentShield.glowColor = palette[0] + '88';
+            currentShield.rotationSpeed = (Math.random() > 0.5 ? 1 : -1) * (0.005 + Math.random() * 0.012);
+            currentShield.innerSymbol = preset.symbol;
+            currentShield.name = preset.name;
+            currentShield.badge = preset.badge;
+            currentShield.incantation = preset.incantation;
+
+            // Update UI Card Text
+            shieldNameEl.textContent = currentShield.name;
+            shieldElementBadgeEl.textContent = currentShield.badge;
+            incantationTextEl.textContent = currentShield.incantation;
+
+            // Random Dokkaebi Reaction
+            const dialogue = dokkaebiDialogues[Math.floor(Math.random() * dokkaebiDialogues.length)];
+            dokkaebiTextEl.textContent = dialogue;
+
+            // Update Background Glow
+            auraBgEl.style.background = `radial-gradient(circle, ${palette[0]} 0%, ${palette[1]} 50%, transparent 70%)`;
+
+            // Particle Burst
+            const rect = canvas.getBoundingClientRect();
+            createSparkParticles(rect.width / 2, rect.height / 2);
+        }
+
+        // Interactive Elements Event Listeners
+        document.getElementById('morphBtn').addEventListener('click', morphShieldRandomly);
+        canvas.addEventListener('click', morphShieldRandomly);
+
+        document.getElementById('purifyBtn').addEventListener('click', () => {
+            soundEngine.init();
+            soundEngine.playShieldShiftSound();
+            dokkaebiTextEl.textContent = '"쿠구구... 맑은 정기가 모여 도깨비의 흑심이 스러진다!"';
+            const rect = canvas.getBoundingClientRect();
+            createSparkParticles(rect.width / 2, rect.height / 2);
+        });
+
+        document.getElementById('spellBtn').addEventListener('click', () => {
+            soundEngine.init();
+            soundEngine.playZapDokkaebi();
+            dokkaebiTextEl.textContent = '"으악! 이 강렬한 수호 주문 소리는 너무 고통스러워!"';
+        });
+
+        // Sound Toggle
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        soundToggleBtn.addEventListener('click', () => {
+            soundEngine.enabled = !soundEngine.enabled;
+            soundToggleBtn.innerHTML = soundEngine.enabled ? 
+                '<i class="fa-solid fa-volume-high"></i>' : 
+                '<i class="fa-solid fa-volume-xmark"></i>';
+        });
+
+        // Info Modal Toggle
+        const infoModal = document.getElementById('infoModal');
+        document.getElementById('infoBtn').addEventListener('click', () => {
+            infoModal.classList.remove('hidden');
+            infoModal.classList.add('flex');
+        });
+        document.getElementById('closeInfoBtn').addEventListener('click', () => {
+            infoModal.classList.add('hidden');
+            infoModal.classList.remove('flex');
+        });
+
+        window.onload = function() {
+            resizeCanvas();
+            requestAnimationFrame(drawShieldPattern);
+        };
+    </script>
+</body>
+</html>

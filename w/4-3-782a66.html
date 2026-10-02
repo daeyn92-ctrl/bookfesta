@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>솜솜 인형 공방 - 나만의 핸드메이드 인형 만들기</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Gowun Batang, Noto Sans KR) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cozy: {
+                            bg: '#fbf8f3',
+                            card: '#ffffff',
+                            primary: '#e88d72',
+                            secondary: '#f3c5b4',
+                            accent: '#f7d070',
+                            text: '#4a3f35',
+                            sub: '#8c7b6c',
+                            thread: '#a8624c'
+                        }
+                    },
+                    fontFamily: {
+                        hand: ['Gowun Batang', 'serif'],
+                        sans: ['Noto Sans KR', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #fbf8f3;
+            color: #4a3f35;
+            background-image: radial-gradient(#e5dec9 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        .font-handwriting {
+            font-family: 'Gowun Batang', serif;
+        }
+
+        /* Custom Soft Shadow & Border */
+        .cozy-shadow {
+            box-shadow: 0 10px 30px -5px rgba(140, 123, 108, 0.12), 0 4px 12px -2px rgba(140, 123, 108, 0.08);
+        }
+
+        .cozy-card {
+            background: #ffffff;
+            border: 2px solid #f0e8dc;
+            border-radius: 1.5rem;
+        }
+
+        /* Thread Stitch Visual */
+        .stitched-border {
+            border: 2px dashed #d6c5b3;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f5efe6;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d6beaa;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #bd9f87;
+        }
+
+        /* Cotton Pulse Animation */
+        @keyframes puffCotton {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+        .animate-puff {
+            animation: puffCotton 2.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-12">
+
+    <!-- App Header -->
+    <header class="bg-white/90 backdrop-blur-md border-b-2 border-amber-100 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('workshop')">
+                <div class="w-12 h-12 rounded-2xl bg-amber-100 border-2 border-amber-200 flex items-center justify-center text-cozy-primary text-2xl shadow-inner">
+                    🧵
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold font-handwriting text-cozy-text flex items-center gap-2">
+                        솜솜 인형 공방
+                        <span class="text-xs font-sans font-normal bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">Somsom Studio</span>
+                    </h1>
+                    <p class="text-xs text-cozy-sub">따뜻한 원단과 색실로 완성하는 한 땀 한 땀 나만의 인형</p>
+                </div>
+            </div>
+
+            <!-- Top Header Right Controls -->
+            <div class="flex items-center space-x-2">
+                <button id="btn-sound-toggle" onclick="toggleSound()" class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-xs font-bold text-cozy-text transition flex items-center gap-1.5">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-amber-600"></i>
+                    <span id="sound-text" class="hidden sm:inline">공방 효과음 켬</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="bg-amber-50/60 border-t border-amber-100 px-2">
+            <div class="max-w-6xl mx-auto flex space-x-2 text-xs sm:text-sm font-bold py-1.5 overflow-x-auto">
+                <button onclick="switchTab('workshop')" id="nav-workshop" class="tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 bg-cozy-primary text-white shadow-sm">
+                    <i class="fa-solid fa-scissors"></i>
+                    <span>인형 제작대</span>
+                </button>
+                <button onclick="switchTab('gallery')" id="nav-gallery" class="tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 text-cozy-sub hover:text-cozy-text hover:bg-amber-100/50">
+                    <i class="fa-solid fa-box-archive"></i>
+                    <span>완성된 인형 도감 (<span id="gallery-count">0</span>)</span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Dynamic Content -->
+    <main class="max-w-6xl w-full mx-auto p-4 flex-1">
+
+        <!-- TAB 1: DOLL WORKSHOP -->
+        <section id="tab-workshop" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                <!-- Left Column: Interactive Doll Studio Viewport (5 cols) -->
+                <div class="lg:col-span-5 space-y-4 lg:sticky lg:top-24">
+                    <div class="cozy-card p-6 cozy-shadow flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-b from-amber-50/50 to-white min-h-[420px]">
+                        
+                        <!-- Workshop Badge -->
+                        <div class="absolute top-4 left-4 bg-white/80 backdrop-blur border border-amber-200 px-3 py-1 rounded-full text-xs font-bold text-cozy-sub flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-needle text-cozy-primary"></i>
+                            <span id="current-step-label">나만의 인형 디자인</span>
+                        </div>
+
+                        <!-- Cotton Softness Indicator -->
+                        <div class="absolute top-4 right-4 bg-white/80 backdrop-blur border border-amber-200 px-3 py-1 rounded-full text-xs font-bold text-cozy-sub flex items-center gap-1.5 shadow-sm">
+                            <span>☁️ 솜 충전도:</span>
+                            <span id="cotton-level-text" class="text-cozy-primary font-bold">100% (푹신함)</span>
+                        </div>
+
+                        <!-- SVG Doll Render Canvas -->
+                        <div id="doll-canvas-container" class="w-64 h-64 sm:w-72 sm:h-72 my-4 relative flex items-center justify-center transition-all duration-300">
+                            <svg id="doll-svg" viewBox="0 0 200 200" class="w-full h-full drop-shadow-md">
+                                <!-- SVG Content Dynamically Updated via JS -->
+                            </svg>
+                        </div>
+
+                        <!-- Doll Name & Title Tag -->
+                        <div class="text-center space-y-1">
+                            <h2 id="doll-title-display" class="text-xl font-bold font-handwriting text-cozy-text">포근한 곰돌이 인형</h2>
+                            <p id="doll-summary-display" class="text-xs text-cozy-sub">파스텔 피치 원단 · 딸기 핑크 자수실</p>
+                        </div>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="flex gap-2">
+                        <button onclick="randomizeDoll()" class="flex-1 py-3 bg-amber-100 hover:bg-amber-200 text-cozy-text font-bold text-xs sm:text-sm rounded-2xl border border-amber-200 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-dice text-amber-600"></i>
+                            <span>랜덤 디자인</span>
+                        </button>
+                        <button onclick="openBirthModal()" class="flex-1 py-3 bg-cozy-primary hover:bg-red-400 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-ribbon"></i>
+                            <span>완성 및 출생신고</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Workshop Tool options (7 cols) -->
+                <div class="lg:col-span-7 space-y-5">
+
+                    <!-- Customizer Category Nav -->
+                    <div class="flex space-x-1 border-b-2 border-amber-100 pb-2 overflow-x-auto text-xs font-bold">
+                        <button onclick="switchCategory('type')" id="cat-type" class="cat-tab px-3.5 py-2 rounded-xl bg-cozy-primary text-white shrink-0 transition">
+                            🐻 1. 인형 모양
+                        </button>
+                        <button onclick="switchCategory('fabric')" id="cat-fabric" class="cat-tab px-3.5 py-2 rounded-xl bg-white text-cozy-sub hover:bg-amber-50 shrink-0 border border-amber-100 transition">
+                            🎨 2. 원단 색상
+                        </button>
+                        <button onclick="switchCategory('thread')" id="cat-thread" class="cat-tab px-3.5 py-2 rounded-xl bg-white text-cozy-sub hover:bg-amber-50 shrink-0 border border-amber-100 transition">
+                            🪡 3. 실 & 바느질
+                        </button>
+                        <button onclick="switchCategory('face')" id="cat-face" class="cat-tab px-3.5 py-2 rounded-xl bg-white text-cozy-sub hover:bg-amber-50 shrink-0 border border-amber-100 transition">
+                            👀 4. 이목구비
+                        </button>
+                        <button onclick="switchCategory('decor')" id="cat-decor" class="cat-tab px-3.5 py-2 rounded-xl bg-white text-cozy-sub hover:bg-amber-50 shrink-0 border border-amber-100 transition">
+                            🎀 5. 장식 & 옷
+                        </button>
+                    </div>
+
+                    <!-- Option Group 1: Doll Type (Base Shape) -->
+                    <div id="panel-type" class="cat-panel cozy-card p-5 space-y-4">
+                        <div class="flex justify-between items-center border-b border-amber-100 pb-2">
+                            <h3 class="font-bold text-sm text-cozy-text flex items-center gap-2">
+                                <i class="fa-solid fa-shapes text-cozy-primary"></i>
+                                <span>인형 캐릭터 형태 선택</span>
+                            </h3>
+                            <span class="text-xs text-cozy-sub">원하는 인형의 종류를 고르세요</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                            <button onclick="setDollShape('bear')" class="shape-btn cozy-card p-3 flex flex-col items-center gap-2 hover:border-cozy-primary transition border-2 border-cozy-primary bg-amber-50/50">
+                                <span class="text-3xl">🐻</span>
+                                <span class="font-bold text-cozy-text">곰돌이</span>
+                            </button>
+                            <button onclick="setDollShape('rabbit')" class="shape-btn cozy-card p-3 flex flex-col items-center gap-2 hover:border-cozy-primary transition border-2 border-transparent">
+                                <span class="text-3xl">🐰</span>
+                                <span class="font-bold text-cozy-text">토끼</span>
+                            </button>
+                            <button onclick="setDollShape('cat')" class="shape-btn cozy-card p-3 flex flex-col items-center gap-2 hover:border-cozy-primary transition border-2 border-transparent">
+                                <span class="text-3xl">🐱</span>
+                                <span class="font-bold text-cozy-text">아기 고양이</span>
+                            </button>
+                            <button onclick="setDollShape('chick')" class="shape-btn cozy-card p-3 flex flex-col items-center gap-2 hover:border-cozy-primary transition border-2 border-transparent">
+                                <span class="text-3xl">🐥</span>
+                                <span class="font-bold text-cozy-text">병아리</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Option Group 2: Fabric Colors & Texture -->
+                    <div id="panel-fabric" class="cat-panel cozy-card p-5 space-y-4 hidden">
+                        <div class="flex justify-between items-center border-b border-amber-100 pb-2">
+                            <h3 class="font-bold text-sm text-cozy-text flex items-center gap-2">
+                                <i class="fa-solid fa-palette text-amber-600"></i>
+                                <span>원단 색상 및 질감 팔레트 (16가지)</span>
+                            </h3>
+                            <span id="selected-fabric-name" class="text-xs font-bold text-cozy-primary">파스텔 피치</span>
+                        </div>
+
+                        <!-- Fabric Color Palette Swatches -->
+                        <div class="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
+                            <button onclick="setFabricColor('#f9d5c5', '파스텔 피치')" class="w-10 h-10 rounded-2xl border-2 border-amber-300 shadow-sm flex items-center justify-center text-xs" style="background-color: #f9d5c5;">✓</button>
+                            <button onclick="setFabricColor('#fde2e4', '크림 핑크')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #fde2e4;"></button>
+                            <button onclick="setFabricColor('#fff1e6', '바닐라 크림')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #fff1e6;"></button>
+                            <button onclick="setFabricColor('#e2ece9', '민트 솜사탕')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #e2ece9;"></button>
+                            <button onclick="setFabricColor('#dfe7fd', '파스텔 블루')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #dfe7fd;"></button>
+                            <button onclick="setFabricColor('#f0efe6', '포근한 오프화이트')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #f0efe6;"></button>
+                            <button onclick="setFabricColor('#d7c0ae', '밀크티 브라운')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #d7c0ae;"></button>
+                            <button onclick="setFabricColor('#967e76', '초코 테디')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #967e76;"></button>
+                            
+                            <button onclick="setFabricColor('#e8dff5', '은은한 라벤더')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #e8dff5;"></button>
+                            <button onclick="setFabricColor('#fce1e4', '딸기 우유')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #fce1e4;"></button>
+                            <button onclick="setFabricColor('#fcf4dd', '레몬 버터')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #fcf4dd;"></button>
+                            <button onclick="setFabricColor('#ddedf4', '하늘 솜구름')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #ddedf4;"></button>
+                            <button onclick="setFabricColor('#c7ddcc', '세이지 그린')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #c7ddcc;"></button>
+                            <button onclick="setFabricColor('#b5e2fa', '소다 젤리')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #b5e2fa;"></button>
+                            <button onclick="setFabricColor('#edc9af', '따스한 가죽/펠트')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #edc9af;"></button>
+                            <button onclick="setFabricColor('#5c5470', '밤하늘 스모키')" class="w-10 h-10 rounded-2xl border-2 border-white shadow-sm hover:scale-105 transition" style="background-color: #5c5470;"></button>
+                        </div>
+
+                        <!-- Fabric Texture Preset -->
+                        <div class="pt-2">
+                            <label class="block text-xs font-bold text-cozy-sub mb-2">원단 질감 표현</label>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <button onclick="setFabricTexture('smooth')" class="p-2 border rounded-xl font-bold border-cozy-primary bg-amber-50">Smooth (부드러운 면)</button>
+                                <button onclick="setFabricTexture('fluffy')" class="p-2 border rounded-xl font-bold border-amber-200">Fluffy (복슬복슬 털)</button>
+                                <button onclick="setFabricTexture('felt')" class="p-2 border rounded-xl font-bold border-amber-200">Felt (따스한 펠트)</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Option Group 3: Thread & Needle Stitching -->
+                    <div id="panel-thread" class="cat-panel cozy-card p-5 space-y-4 hidden">
+                        <div class="flex justify-between items-center border-b border-amber-100 pb-2">
+                            <h3 class="font-bold text-sm text-cozy-text flex items-center gap-2">
+                                <i class="fa-solid fa-needle text-rose-500"></i>
+                                <span>실 색상 및 바느질 스티치 옵션</span>
+                            </h3>
+                            <span id="selected-thread-name" class="text-xs font-bold text-rose-500">딸기 핑크 실</span>
+                        </div>
+
+                        <!-- Thread Color Selection -->
+                        <div class="space-y-2">
+                            <label class="block text-xs font-bold text-cozy-sub">자수실 색상 (12가지 선택)</label>
+                            <div class="grid grid-cols-6 sm:grid-cols-12 gap-2">
+                                <button onclick="setThreadColor('#e63946', '체리 레드')" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background-color: #e63946;"></button>
+                                <button onclick="setThreadColor('#ffb703', '개나리 노랑')" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background-color: #ffb703;"></button>
+                                <button onclick="setThreadColor('#fb6f92', '딸기 핑크')" class="w-8 h-8 rounded-full border-2 border-amber-400 shadow-sm" style="background-color: #fb6f92;"></button>
+                                <button onclick="setThreadColor('#52b788', '포레스트 그린')" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background-color: #52b788;"></button>
+                                <button onclick="setThreadColor('#00b4d8', '코발트 블루')" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background-color: #00b4d8;"></button>
+                                <button onclick="setThreadColor('#7209b7', '보라 바이올렛')" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background-color: #7209b7;"></button>
+                                <button onclick="setThreadColor('#6c584c', '다크 브라운')" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background-color: #6c584c;"></button>
+                                <button onclick="setThreadColor('#212529', '차콜 블랙')" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background-color: #212529;"></button>
+                                <button onclick="setThreadColor('#ffffff', '순백 스노우')" class="w-8 h-8 rounded-full border-2 border-amber-200 shadow-sm" style="background-color: #ffffff;"></button>
+                                <button onclick="setThreadColor('#ffb5a7', '살구 실')" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background-color: #ffb5a7;"></button>
+                                <button onclick="setThreadColor('#d8e2dc', '실버 그레이')" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background-color: #d8e2dc;"></button>
+                                <button onclick="setThreadColor('#f4a261', '오렌지 코랄')" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background-color: #f4a261;"></button>
+                            </div>
+                        </div>
+
+                        <!-- Stitch Style Selection -->
+                        <div class="space-y-2 pt-2">
+                            <label class="block text-xs font-bold text-cozy-sub">바느질 스티치 모양</label>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <button onclick="setStitchStyle('dashed')" class="p-2.5 cozy-card border-2 border-cozy-primary font-bold flex items-center justify-center gap-2">
+                                    <span>- - - -</span>
+                                    <span>기본 땀</span>
+                                </button>
+                                <button onclick="setStitchStyle('cross')" class="p-2.5 cozy-card border-2 border-transparent font-bold flex items-center justify-center gap-2">
+                                    <span>x x x x</span>
+                                    <span>십자수</span>
+                                </button>
+                                <button onclick="setStitchStyle('solid')" class="p-2.5 cozy-card border-2 border-transparent font-bold flex items-center justify-center gap-2">
+                                    <span>────</span>
+                                    <span>아웃라인</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Option Group 4: Eyes, Nose, Blush (Face) -->
+                    <div id="panel-face" class="cat-panel cozy-card p-5 space-y-4 hidden">
+                        <div class="flex justify-between items-center border-b border-amber-100 pb-2">
+                            <h3 class="font-bold text-sm text-cozy-text flex items-center gap-2">
+                                <i class="fa-solid fa-face-smile text-amber-500"></i>
+                                <span>얼굴 이목구비 커스텀</span>
+                            </h3>
+                            <span class="text-xs text-cozy-sub">단추 눈과 오물조물 입</span>
+                        </div>
+
+                        <!-- Eyes Selection -->
+                        <div>
+                            <label class="block text-xs font-bold text-cozy-sub mb-2">눈 모양 선택</label>
+                            <div class="grid grid-cols-4 gap-2 text-xs">
+                                <button onclick="setEyes('button')" class="p-2.5 cozy-card border-2 border-cozy-primary font-bold text-center">⚫ ⚫ 단추 눈</button>
+                                <button onclick="setEyes('sparkle')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">✨ ✨ 초롱 눈</button>
+                                <button onclick="setEyes('happy')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">^ ^ 웃음 눈</button>
+                                <button onclick="setEyes('sleepy')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">u u 감은 눈</button>
+                            </div>
+                        </div>
+
+                        <!-- Mouth Selection -->
+                        <div>
+                            <label class="block text-xs font-bold text-cozy-sub mb-2">입 및 코 모양</label>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <button onclick="setMouth('w')" class="p-2.5 cozy-card border-2 border-cozy-primary font-bold text-center">ω (오물조물)</button>
+                                <button onclick="setMouth('v')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">v (앙증입)</button>
+                                <button onclick="setMouth('smile')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">◡ (미소)</button>
+                            </div>
+                        </div>
+
+                        <!-- Cheek Blush Toggle -->
+                        <div class="flex items-center justify-between pt-1">
+                            <span class="text-xs font-bold text-cozy-sub">발그레 볼터치 추가</span>
+                            <button id="btn-blush-toggle" onclick="toggleBlush()" class="px-4 py-2 bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200">
+                                😊 볼터치 켬
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Option Group 5: Accessories & Dress Up -->
+                    <div id="panel-decor" class="cat-panel cozy-card p-5 space-y-4 hidden">
+                        <div class="flex justify-between items-center border-b border-amber-100 pb-2">
+                            <h3 class="font-bold text-sm text-cozy-text flex items-center gap-2">
+                                <i class="fa-solid fa-gift text-purple-500"></i>
+                                <span>인형 장식 & 액세서리</span>
+                            </h3>
+                            <span class="text-xs text-cozy-sub">리본과 포인트 부자재</span>
+                        </div>
+
+                        <!-- Ribbon & Bow -->
+                        <div>
+                            <label class="block text-xs font-bold text-cozy-sub mb-2">리본 & 목도리</label>
+                            <div class="grid grid-cols-4 gap-2 text-xs">
+                                <button onclick="setAccessory('none')" class="p-2.5 cozy-card border-2 border-cozy-primary font-bold text-center">없음</button>
+                                <button onclick="setAccessory('red_ribbon')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">🎀 빨간 리본</button>
+                                <button onclick="setAccessory('scarf')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">🧣 포근 스카프</button>
+                                <button onclick="setAccessory('glasses')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">👓 둥근 안경</button>
+                            </div>
+                        </div>
+
+                        <!-- Heart Patch / Button Badge -->
+                        <div>
+                            <label class="block text-xs font-bold text-cozy-sub mb-2">가슴 배치 자수 패치</label>
+                            <div class="grid grid-cols-4 gap-2 text-xs">
+                                <button onclick="setChestPatch('none')" class="p-2.5 cozy-card border-2 border-cozy-primary font-bold text-center">없음</button>
+                                <button onclick="setChestPatch('heart')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">❤️ 하트 자수</button>
+                                <button onclick="setChestPatch('star')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">⭐ 별빛 패치</button>
+                                <button onclick="setChestPatch('button')" class="p-2.5 cozy-card border-2 border-transparent font-bold text-center">🔘 장식 단추</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: DOLL GALLERY -->
+        <section id="tab-gallery" class="tab-content hidden space-y-6">
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold font-handwriting text-cozy-text">📦 완성된 인형 보관함</h2>
+                        <p class="text-xs text-cozy-sub">손끝에서 탄생한 나만의 소중한 인형 친구들입니다.</p>
+                    </div>
+                </div>
+
+                <!-- Gallery Cards Grid -->
+                <div id="gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- Dynamically Injected Saved Doll Cards -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Birth Certificate / Doll Completion Modal -->
+    <div id="birth-modal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="cozy-card p-6 max-w-md w-full bg-white space-y-5 cozy-shadow border-4 border-amber-200 relative animate-puff">
+            <button onclick="closeBirthModal()" class="absolute top-4 right-4 text-cozy-sub hover:text-cozy-text text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center space-y-1">
+                <span class="text-3xl">📜</span>
+                <h3 class="text-2xl font-bold font-handwriting text-cozy-text">인형 탄생 출생증명서</h3>
+                <p class="text-xs text-cozy-sub">공방에서 만들어진 새 인형의 이름을 부여해주세요.</p>
+            </div>
+
+            <!-- Preview SVG Thumbnail -->
+            <div class="w-40 h-40 mx-auto bg-amber-50/80 rounded-2xl border-2 border-dashed border-amber-200 p-2 flex items-center justify-center">
+                <svg id="modal-doll-svg" viewBox="0 0 200 200" class="w-full h-full drop-shadow-sm"></svg>
+            </div>
+
+            <!-- Form Inputs -->
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-cozy-text mb-1">인형 이름</label>
+                    <input type="text" id="input-doll-name" value="몽실이" placeholder="예: 퐁퐁이, 몽실이" class="w-full px-3 py-2 rounded-xl border border-amber-200 focus:outline-none focus:border-cozy-primary font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-cozy-text mb-1">제작자 이름</label>
+                    <input type="text" id="input-creator-name" value="솜솜 디자이너" placeholder="제작자 이름" class="w-full px-3 py-2 rounded-xl border border-amber-200 focus:outline-none focus:border-cozy-primary font-bold">
+                </div>
+                <div>
+                    <label class="block font-bold text-cozy-text mb-1">소중한 한마디 메모</label>
+                    <input type="text" id="input-doll-memo" value="따뜻한 마음을 담아 바느질한 인형" placeholder="메모를 입력하세요" class="w-full px-3 py-2 rounded-xl border border-amber-200 focus:outline-none focus:border-cozy-primary font-bold">
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeBirthModal()" class="flex-1 py-2.5 bg-amber-100 text-cozy-text font-bold text-xs rounded-xl hover:bg-amber-200 transition">취소</button>
+                <button onclick="saveDollToGallery()" class="flex-1 py-2.5 bg-cozy-primary text-white font-bold text-xs rounded-xl shadow hover:bg-red-400 transition">도감에 저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Message Notification -->
+    <div id="toast-message" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-800/90 text-white text-xs font-bold px-5 py-3 rounded-full shadow-lg border border-amber-200/20 backdrop-blur hidden transition-all duration-300">
+        <span id="toast-text">알림 메시지</span>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // State Management
+        let isSoundOn = true;
+        let audioCtx = null;
+
+        let currentDoll = {
+            shape: 'bear',
+            fabricColor: '#f9d5c5',
+            fabricName: '파스텔 피치',
+            fabricTexture: 'smooth',
+            threadColor: '#fb6f92',
+            threadName: '딸기 핑크',
+            stitchStyle: 'dashed',
+            eyes: 'button',
+            mouth: 'w',
+            hasBlush: true,
+            accessory: 'red_ribbon',
+            chestPatch: 'heart'
+        };
+
+        let savedDolls = [];
+
+        // Synthesized Web Audio Sound Engine
+        function playSound(type) {
+            if (!isSoundOn) return;
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+                if (type === 'stitch') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'complete') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else { // click
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                }
+            } catch(e) {}
+        }
+
+        function toggleSound() {
+            isSoundOn = !isSoundOn;
+            const icon = document.getElementById('sound-icon');
+            const text = document.getElementById('sound-text');
+            if (isSoundOn) {
+                icon.className = "fa-solid fa-volume-high text-amber-600";
+                text.innerText = "공방 효과음 켬";
+                playSound('click');
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-stone-400";
+                text.innerText = "공방 효과음 끎";
+            }
+        }
+
+        // Navigation Tabs
+        function switchTab(tabId) {
+            playSound('click');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = 'tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 text-cozy-sub hover:text-cozy-text hover:bg-amber-100/50 font-bold';
+            });
+
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.className = 'tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 bg-cozy-primary text-white shadow-sm font-bold';
+            }
+
+            if (tabId === 'gallery') {
+                renderGallery();
+            }
+        }
+
+        // Category Panel Navigation
+        function switchCategory(cat) {
+            playSound('click');
+            document.querySelectorAll('.cat-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(`panel-${cat}`).classList.remove('hidden');
+
+            document.querySelectorAll('.cat-tab').forEach(tab => {
+                tab.className = 'cat-tab px-3.5 py-2 rounded-xl bg-white text-cozy-sub hover:bg-amber-50 shrink-0 border border-amber-100 transition font-bold';
+            });
+
+            const activeTab = document.getElementById(`cat-${cat}`);
+            if (activeTab) {
+                activeTab.className = 'cat-tab px-3.5 py-2 rounded-xl bg-cozy-primary text-white shrink-0 transition font-bold shadow-sm';
+            }
+        }
+
+        // Render SVG Doll
+        function renderDoll(targetSvgId = 'doll-svg', cfg = currentDoll) {
+            const svg = document.getElementById(targetSvgId);
+            if (!svg) return;
+
+            const fColor = cfg.fabricColor;
+            const tColor = cfg.threadColor;
+            const dashAttr = cfg.stitchStyle === 'dashed' ? 'stroke-dasharray="3,3"' : (cfg.stitchStyle === 'cross' ? 'stroke-dasharray="1,4"' : '');
+
+            // Soft Depth Effects & Color Gradients
+            let defs = `
+                <defs>
+                    <filter id="soft-shadow-${targetSvgId}" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#735d4d" flood-opacity="0.15" />
+                    </filter>
+                    <radialGradient id="grad-blush-${targetSvgId}" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#ff99ac" stop-opacity="0.85"/>
+                        <stop offset="100%" stop-color="#ff99ac" stop-opacity="0"/>
+                    </radialGradient>
+                    <radialGradient id="grad-belly-${targetSvgId}" cx="50%" cy="40%" r="50%">
+                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+                        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+                    </radialGradient>
+                </defs>
+            `;
+
+            let earsSvg = '';
+            let bodySvg = '';
+            let whiskersSvg = '';
+
+            // 1. Cute Ears & Head Shapes
+            if (cfg.shape === 'bear') {
+                earsSvg = `
+                    <!-- Bear Ears -->
+                    <g filter="url(#soft-shadow-${targetSvgId})">
+                        <circle cx="58" cy="50" r="23" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" ${dashAttr} />
+                        <circle cx="58" cy="50" r="13" fill="#ffdde1" opacity="0.6" />
+                        <circle cx="58" cy="50" r="13" fill="none" stroke="${tColor}" stroke-width="1.5" stroke-dasharray="2,2" />
+
+                        <circle cx="142" cy="50" r="23" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" ${dashAttr} />
+                        <circle cx="142" cy="50" r="13" fill="#ffdde1" opacity="0.6" />
+                        <circle cx="142" cy="50" r="13" fill="none" stroke="${tColor}" stroke-width="1.5" stroke-dasharray="2,2" />
+                    </g>
+                `;
+            } else if (cfg.shape === 'rabbit') {
+                earsSvg = `
+                    <!-- Floppy Cute Rabbit Ears -->
+                    <g filter="url(#soft-shadow-${targetSvgId})">
+                        <path d="M 60 80 C 40 20, 75 10, 80 65 Z" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" ${dashAttr} />
+                        <path d="M 63 75 C 48 30, 73 22, 77 63 Z" fill="#ffccd5" opacity="0.7" />
+                        
+                        <path d="M 140 80 C 160 20, 125 10, 120 65 Z" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" ${dashAttr} />
+                        <path d="M 137 75 C 152 30, 127 22, 123 63 Z" fill="#ffccd5" opacity="0.7" />
+                    </g>
+                `;
+            } else if (cfg.shape === 'cat') {
+                earsSvg = `
+                    <!-- Kitten Ears -->
+                    <g filter="url(#soft-shadow-${targetSvgId})">
+                        <path d="M 46 72 Q 55 25 85 58 Z" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" ${dashAttr} />
+                        <path d="M 52 68 Q 58 35 78 58 Z" fill="#ffccd5" opacity="0.7" />
+
+                        <path d="M 154 72 Q 145 25 115 58 Z" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" ${dashAttr} />
+                        <path d="M 148 68 Q 142 35 122 58 Z" fill="#ffccd5" opacity="0.7" />
+                    </g>
+                `;
+                whiskersSvg = `
+                    <!-- Cute Cat Whiskers -->
+                    <path d="M 52 90 Q 66 91 74 93 M 50 97 Q 65 96 74 96" stroke="${tColor}" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.8" />
+                    <path d="M 148 90 Q 134 91 126 93 M 150 97 Q 135 96 126 96" stroke="${tColor}" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.8" />
+                `;
+            } else if (cfg.shape === 'chick') {
+                earsSvg = `
+                    <!-- Chick Feather Tuft -->
+                    <g>
+                        <path d="M 94 48 Q 97 30 100 46 Q 103 28 107 48" fill="none" stroke="${tColor}" stroke-width="3" stroke-linecap="round" />
+                        <circle cx="97" cy="30" r="3" fill="#ffd166" />
+                        <circle cx="103" cy="28" r="3" fill="#ffd166" />
+                    </g>
+                `;
+            }
+
+            // 2. Chubby Squishy Body, Paws & Head
+            bodySvg = `
+                <g filter="url(#soft-shadow-${targetSvgId})">
+                    <!-- Feet & Paw Pads -->
+                    <ellipse cx="72" cy="168" rx="16" ry="18" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" ${dashAttr} />
+                    <ellipse cx="72" cy="170" rx="9" ry="10" fill="#fff" opacity="0.4" />
+                    <ellipse cx="128" cy="168" rx="16" ry="18" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" ${dashAttr} />
+                    <ellipse cx="128" cy="170" rx="9" ry="10" fill="#fff" opacity="0.4" />
+
+                    <!-- Chubby Paws -->
+                    <ellipse cx="44" cy="136" rx="13" ry="20" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" transform="rotate(28 44 136)" ${dashAttr} />
+                    <circle cx="37" cy="144" r="5" fill="#fff" opacity="0.4" />
+
+                    <ellipse cx="156" cy="136" rx="13" ry="20" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" transform="rotate(-28 156 136)" ${dashAttr} />
+                    <circle cx="163" cy="144" r="5" fill="#fff" opacity="0.4" />
+
+                    <!-- Chubby Round Torso -->
+                    <ellipse cx="100" cy="138" rx="46" ry="38" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" ${dashAttr} />
+                    <!-- Soft Inner Belly Patch -->
+                    <ellipse cx="100" cy="138" rx="30" ry="24" fill="url(#grad-belly-${targetSvgId})" />
+
+                    <!-- Plush Brand Tag on Hip -->
+                    <rect x="138" y="152" width="12" height="8" rx="2" fill="#e88d72" stroke="${tColor}" stroke-width="1" />
+                    <text x="144" y="158" font-size="5" fill="#fff" font-weight="bold" text-anchor="middle">솜</text>
+
+                    <!-- Big Round Head -->
+                    <ellipse cx="100" cy="88" rx="47" ry="41" fill="${fColor}" stroke="${tColor}" stroke-width="2.5" ${dashAttr} />
+                </g>
+            `;
+
+            // 3. Eyes (Super Cute Glossy Options)
+            let eyesSvg = '';
+            if (cfg.eyes === 'button') {
+                eyesSvg = `
+                    <g>
+                        <!-- Left Button Eye -->
+                        <circle cx="81" cy="83" r="6.5" fill="#2d221e" />
+                        <circle cx="79" cy="80.5" r="2.5" fill="#ffffff" />
+                        <circle cx="83" cy="85" r="1.2" fill="#ffffff" />
+                        <line x1="81" y1="76.5" x2="81" y2="89.5" stroke="#111" stroke-width="0.8" opacity="0.3" />
+                        
+                        <!-- Right Button Eye -->
+                        <circle cx="119" cy="83" r="6.5" fill="#2d221e" />
+                        <circle cx="117" cy="80.5" r="2.5" fill="#ffffff" />
+                        <circle cx="121" cy="85" r="1.2" fill="#ffffff" />
+                        <line x1="119" y1="76.5" x2="119" y2="89.5" stroke="#111" stroke-width="0.8" opacity="0.3" />
+                    </g>
+                `;
+            } else if (cfg.eyes === 'sparkle') {
+                eyesSvg = `
+                    <g>
+                        <circle cx="81" cy="82" r="7.5" fill="#22181c" />
+                        <circle cx="78.5" cy="79.5" r="3" fill="#ffffff" />
+                        <polygon points="83,84 84,86 82,85.5 83.5,87" fill="#ffffff" />
+                        <path d="M 74 76 Q 81 73 87 77" fill="none" stroke="#22181c" stroke-width="1.2" stroke-linecap="round" />
+
+                        <circle cx="119" cy="82" r="7.5" fill="#22181c" />
+                        <circle cx="116.5" cy="79.5" r="3" fill="#ffffff" />
+                        <polygon points="121,84 122,86 120,85.5 121.5,87" fill="#ffffff" />
+                        <path d="M 113 77 Q 119 73 126 76" fill="none" stroke="#22181c" stroke-width="1.2" stroke-linecap="round" />
+                    </g>
+                `;
+            } else if (cfg.eyes === 'happy') {
+                eyesSvg = `
+                    <g>
+                        <path d="M 75 84 Q 81 74 87 84" fill="none" stroke="#2b1e1a" stroke-width="3.5" stroke-linecap="round" />
+                        <path d="M 113 84 Q 119 74 125 84" fill="none" stroke="#2b1e1a" stroke-width="3.5" stroke-linecap="round" />
+                        <path d="M 73 80 L 76 82 M 127 80 L 124 82" stroke="#2b1e1a" stroke-width="1.5" stroke-linecap="round" />
+                    </g>
+                `;
+            } else if (cfg.eyes === 'sleepy') {
+                eyesSvg = `
+                    <g>
+                        <path d="M 75 81 Q 81 88 87 81" fill="none" stroke="#2b1e1a" stroke-width="3" stroke-linecap="round" />
+                        <path d="M 113 81 Q 119 88 125 81" fill="none" stroke="#2b1e1a" stroke-width="3" stroke-linecap="round" />
+                        <path d="M 86 83 L 89 86 M 76 83 L 73 86 M 124 83 L 127 86 M 114 83 L 111 86" stroke="#2b1e1a" stroke-width="1.5" stroke-linecap="round" />
+                    </g>
+                `;
+            }
+
+            // 4. Muzzle & Embroidered Mouth
+            let mouthSvg = '';
+            if (cfg.shape === 'chick') {
+                mouthSvg = `
+                    <g>
+                        <ellipse cx="100" cy="91" rx="8" ry="6" fill="#f4a261" stroke="#e76f51" stroke-width="1.5" />
+                        <path d="M 93 91 Q 100 95 107 91 Z" fill="#e76f51" />
+                        <circle cx="100" cy="89" r="1" fill="#fff" opacity="0.6" />
+                    </g>
+                `;
+            } else {
+                let mouthPath = "M 94 94 Q 100 99 100 94 Q 100 99 106 94"; // 'w'
+                if (cfg.mouth === 'v') mouthPath = "M 95 93 L 100 98 L 105 93";
+                if (cfg.mouth === 'smile') mouthPath = "M 93 93 Q 100 102 107 93";
+
+                mouthSvg = `
+                    <g>
+                        <!-- Soft White Muzzle Pad -->
+                        <ellipse cx="100" cy="92" rx="12" ry="8.5" fill="#ffffff" opacity="0.85" />
+                        <ellipse cx="100" cy="92" rx="12" ry="8.5" fill="none" stroke="${tColor}" stroke-width="1" stroke-dasharray="2,2" />
+                        <!-- Nose -->
+                        <path d="M 96 87 C 96 85, 104 85, 104 87 C 104 90, 100 92, 100 92 C 100 92, 96 90, 96 87 Z" fill="#e88d72" stroke="#b85b43" stroke-width="0.8" />
+                        <circle cx="98.5" cy="86.5" r="1" fill="#fff" />
+                        <!-- Mouth Line -->
+                        <path d="${mouthPath}" fill="none" stroke="#3d2c29" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                    </g>
+                `;
+            }
+
+            // 5. Blushing Cheeks & Sparkles Aura
+            let blushSvg = '';
+            if (cfg.hasBlush) {
+                blushSvg = `
+                    <g>
+                        <ellipse cx="69" cy="93" rx="8" ry="5" fill="url(#grad-blush-${targetSvgId})" />
+                        <ellipse cx="131" cy="93" rx="8" ry="5" fill="url(#grad-blush-${targetSvgId})" />
+                        <circle cx="67" cy="92" r="1.2" fill="#fff" />
+                        <circle cx="71" cy="94" r="0.8" fill="#fff" />
+                        <circle cx="129" cy="92" r="1.2" fill="#fff" />
+                        <circle cx="133" cy="94" r="0.8" fill="#fff" />
+                    </g>
+                `;
+            }
+
+            let auraSvg = `
+                <g opacity="0.6">
+                    <polygon points="35,45 37,50 42,52 37,54 35,59 33,54 28,52 33,50" fill="#f7d070" />
+                    <polygon points="168,40 169.5,44 174,45 169.5,46 168,50 166.5,46 162,45 166.5,44" fill="#f3c5b4" />
+                    <polygon points="165,115 166.5,118 170,119 166.5,120 165,123 163.5,120 160,119 163.5,118" fill="#f7d070" />
+                </g>
+            `;
+
+            // 6. Chest Patch
+            let patchSvg = '';
+            if (cfg.chestPatch === 'heart') {
+                patchSvg = `
+                    <g>
+                        <path d="M 100 131 C 100 125, 92 123, 92 130 C 92 136, 100 141, 100 143 C 100 141, 108 136, 108 130 C 108 123, 100 125, 100 131 Z" fill="#e63946" stroke="#ffffff" stroke-width="1.5" />
+                        <path d="M 95 127 Q 97 125 99 127" stroke="#fff" stroke-width="1" fill="none" opacity="0.8" />
+                    </g>
+                `;
+            } else if (cfg.chestPatch === 'star') {
+                patchSvg = `
+                    <g>
+                        <polygon points="100,124 102.5,129.5 108,130 104,133.5 105.5,139 100,136 94.5,139 96,133.5 92,130 97.5,129.5" fill="#ffb703" stroke="#fff" stroke-width="1.2" />
+                    </g>
+                `;
+            } else if (cfg.chestPatch === 'button') {
+                patchSvg = `
+                    <g>
+                        <circle cx="100" cy="133" r="6" fill="#8d99ae" stroke="#2b2d42" stroke-width="1.5" />
+                        <circle cx="100" cy="133" r="4.5" fill="none" stroke="#fff" stroke-width="0.8" stroke-dasharray="1,1" />
+                        <circle cx="98" cy="132" r="0.9" fill="#2b2d42" />
+                        <circle cx="102" cy="134" r="0.9" fill="#2b2d42" />
+                    </g>
+                `;
+            }
+
+            // 7. Accessories (Ribbon, Scarf, Glasses)
+            let accSvg = '';
+            if (cfg.accessory === 'red_ribbon') {
+                accSvg = `
+                    <g filter="url(#soft-shadow-${targetSvgId})">
+                        <path d="M 90 116 C 75 110, 75 128, 95 122 Z" fill="#ff4d6d" stroke="#c1121f" stroke-width="1.5" />
+                        <path d="M 110 116 C 125 110, 125 128, 105 122 Z" fill="#ff4d6d" stroke="#c1121f" stroke-width="1.5" />
+                        <path d="M 97 122 L 91 133 L 98 131 Z" fill="#c1121f" />
+                        <path d="M 103 122 L 109 133 L 102 131 Z" fill="#c1121f" />
+                        <circle cx="100" cy="119" r="4.5" fill="#ff758f" stroke="#c1121f" stroke-width="1.5" />
+                        <circle cx="99" cy="118" r="1.2" fill="#fff" />
+                    </g>
+                `;
+            } else if (cfg.accessory === 'scarf') {
+                accSvg = `
+                    <g filter="url(#soft-shadow-${targetSvgId})">
+                        <path d="M 68 110 Q 100 126 132 110 Q 100 131 68 110 Z" fill="#4ea8de" stroke="#0077b6" stroke-width="1.5" />
+                        <path d="M 72 112 Q 100 124 128 112" fill="none" stroke="#90e0ef" stroke-width="1.5" stroke-dasharray="3,2" />
+                        <path d="M 112 118 L 122 138 L 108 138 Z" fill="#4ea8de" stroke="#0077b6" stroke-width="1.5" />
+                        <line x1="110" y1="138" x2="110" y2="143" stroke="#90e0ef" stroke-width="2" />
+                        <line x1="114" y1="138" x2="114" y2="143" stroke="#90e0ef" stroke-width="2" />
+                        <line x1="118" y1="138" x2="118" y2="143" stroke="#90e0ef" stroke-width="2" />
+                        <line x1="121" y1="138" x2="121" y2="143" stroke="#90e0ef" stroke-width="2" />
+                    </g>
+                `;
+            } else if (cfg.accessory === 'glasses') {
+                accSvg = `
+                    <g>
+                        <circle cx="79" cy="83" r="12" fill="none" stroke="#e0a96d" stroke-width="2.5" />
+                        <circle cx="121" cy="83" r="12" fill="none" stroke="#e0a96d" stroke-width="2.5" />
+                        <line x1="91" y1="83" x2="109" y2="83" stroke="#e0a96d" stroke-width="2.5" />
+                        <path d="M 73 78 Q 80 73 85 78" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.8" />
+                        <path d="M 115 78 Q 122 73 127 78" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.8" />
+                    </g>
+                `;
+            }
+
+            svg.innerHTML = defs + auraSvg + earsSvg + bodySvg + whiskersSvg + eyesSvg + mouthSvg + blushSvg + patchSvg + accSvg;
+        }
+
+        // Customizer Event Handlers
+        function setDollShape(shape) {
+            playSound('stitch');
+            currentDoll.shape = shape;
+            const names = { bear: '곰돌이', rabbit: '토끼', cat: '아기 고양이', chick: '병아리' };
+            document.getElementById('doll-title-display').innerText = `포근한 ${names[shape]} 인형`;
+            renderDoll();
+        }
+
+        function setFabricColor(colorHex, colorName) {
+            playSound('stitch');
+            currentDoll.fabricColor = colorHex;
+            currentDoll.fabricName = colorName;
+            document.getElementById('selected-fabric-name').innerText = colorName;
+            updateSummaryText();
+            renderDoll();
+        }
+
+        function setFabricTexture(tex) {
+            playSound('stitch');
+            currentDoll.fabricTexture = tex;
+            showToast(`원단 질감이 '${tex}' 느낌으로 변경되었습니다.`);
+        }
+
+        function setThreadColor(colorHex, colorName) {
+            playSound('stitch');
+            currentDoll.threadColor = colorHex;
+            currentDoll.threadName = colorName;
+            document.getElementById('selected-thread-name').innerText = colorName;
+            updateSummaryText();
+            renderDoll();
+        }
+
+        function setStitchStyle(style) {
+            playSound('stitch');
+            currentDoll.stitchStyle = style;
+            renderDoll();
+        }
+
+        function setEyes(eyeStyle) {
+            playSound('stitch');
+            currentDoll.eyes = eyeStyle;
+            renderDoll();
+        }
+
+        function setMouth(mouthStyle) {
+            playSound('stitch');
+            currentDoll.mouth = mouthStyle;
+            renderDoll();
+        }
+
+        function toggleBlush() {
+            playSound('stitch');
+            currentDoll.hasBlush = !currentDoll.hasBlush;
+            const btn = document.getElementById('btn-blush-toggle');
+            btn.innerText = currentDoll.hasBlush ? "😊 볼터치 켬" : "😶 볼터치 끔";
+            renderDoll();
+        }
+
+        function setAccessory(acc) {
+            playSound('stitch');
+            currentDoll.accessory = acc;
+            renderDoll();
+        }
+
+        function setChestPatch(patch) {
+            playSound('stitch');
+            currentDoll.chestPatch = patch;
+            renderDoll();
+        }
+
+        function updateSummaryText() {
+            document.getElementById('doll-summary-display').innerText = `${currentDoll.fabricName} 원단 · ${currentDoll.threadName} 자수실`;
+        }
+
+        function randomizeDoll() {
+            playSound('complete');
+            const shapes = ['bear', 'rabbit', 'cat', 'chick'];
+            const fabrics = [
+                { hex: '#f9d5c5', name: '파스텔 피치' },
+                { hex: '#fde2e4', name: '크림 핑크' },
+                { hex: '#e2ece9', name: '민트 솜사탕' },
+                { hex: '#dfe7fd', name: '파스텔 블루' },
+                { hex: '#d7c0ae', name: '밀크티 브라운' },
+                { hex: '#fcf4dd', name: '레몬 버터' }
+            ];
+            const threads = [
+                { hex: '#fb6f92', name: '딸기 핑크' },
+                { hex: '#ffb703', name: '개나리 노랑' },
+                { hex: '#52b788', name: '포레스트 그린' },
+                { hex: '#6c584c', name: '다크 브라운' }
+            ];
+
+            const randShape = shapes[Math.floor(Math.random() * shapes.length)];
+            const randFabric = fabrics[Math.floor(Math.random() * fabrics.length)];
+            const randThread = threads[Math.floor(Math.random() * threads.length)];
+
+            currentDoll.shape = randShape;
+            currentDoll.fabricColor = randFabric.hex;
+            currentDoll.fabricName = randFabric.name;
+            currentDoll.threadColor = randThread.hex;
+            currentDoll.threadName = randThread.name;
+
+            currentDoll.eyes = ['button', 'sparkle', 'happy', 'sleepy'][Math.floor(Math.random() * 4)];
+            currentDoll.accessory = ['none', 'red_ribbon', 'scarf', 'glasses'][Math.floor(Math.random() * 4)];
+            currentDoll.chestPatch = ['none', 'heart', 'star', 'button'][Math.floor(Math.random() * 4)];
+
+            document.getElementById('selected-fabric-name').innerText = randFabric.name;
+            document.getElementById('selected-thread-name').innerText = randThread.name;
+
+            const names = { bear: '곰돌이', rabbit: '토끼', cat: '아기 고양이', chick: '병아리' };
+            document.getElementById('doll-title-display').innerText = `포근한 ${names[randShape]} 인형`;
+            updateSummaryText();
+
+            renderDoll();
+            showToast("🎲 독창적인 인형 디자인이 랜덤 생성되었습니다!");
+        }
+
+        // Birth Modal & Save logic
+        function openBirthModal() {
+            playSound('complete');
+            document.getElementById('birth-modal').classList.remove('hidden');
+            renderDoll('modal-doll-svg', currentDoll);
+        }
+
+        function closeBirthModal() {
+            playSound('click');
+            document.getElementById('birth-modal').classList.add('hidden');
+        }
+
+        function saveDollToGallery() {
+            const nameInput = document.getElementById('input-doll-name').value.trim() || '몽실이';
+            const creatorInput = document.getElementById('input-creator-name').value.trim() || '솜솜 디자이너';
+            const memoInput = document.getElementById('input-doll-memo').value.trim() || '사랑스러운 핸드메이드 인형';
+
+            const newDoll = {
+                id: Date.now(),
+                name: nameInput,
+                creator: creatorInput,
+                memo: memoInput,
+                date: new Date().toISOString().split('T')[0],
+                config: JSON.parse(JSON.stringify(currentDoll))
+            };
+
+            savedDolls.unshift(newDoll);
+            closeBirthModal();
+            playSound('complete');
+
+            showToast(`🎉 축하합니다! '${nameInput}' 인형이 도감에 등록되었습니다.`);
+            switchTab('gallery');
+        }
+
+        // Render Gallery List
+        function renderGallery() {
+            const container = document.getElementById('gallery-grid');
+            document.getElementById('gallery-count').innerText = savedDolls.length;
+
+            if (savedDolls.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full cozy-card p-12 text-center text-cozy-sub space-y-2">
+                        <span class="text-4xl">🧺</span>
+                        <p class="font-bold">아직 완성된 인형이 없습니다.</p>
+                        <p class="text-xs">제작대에서 당신만의 첫 인형을 만들어보세요!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = savedDolls.map(d => `
+                <div class="cozy-card p-5 space-y-3 cozy-shadow hover:border-cozy-primary transition relative group bg-white">
+                    <div class="w-full h-44 bg-amber-50/60 rounded-2xl border border-amber-100 p-2 flex items-center justify-center">
+                        <svg id="gallery-svg-${d.id}" viewBox="0 0 200 200" class="w-full h-full"></svg>
+                    </div>
+
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-bold font-handwriting text-lg text-cozy-text">${d.name}</h3>
+                            <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">${d.config.fabricName}</span>
+                        </div>
+                        <p class="text-xs text-cozy-sub">${d.memo}</p>
+                        <div class="text-[10px] text-amber-700/70 pt-1 flex justify-between font-mono border-t border-amber-50">
+                            <span>제작자: ${d.creator}</span>
+                            <span>${d.date}</span>
+                        </div>
+                    </div>
+
+                    <button onclick="deleteDoll(${d.id})" class="absolute top-3 right-3 text-amber-300 hover:text-red-500 p-1 transition opacity-0 group-hover:opacity-100">
+                        <i class="fa-solid fa-trash-can text-sm"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            // Render SVGs for gallery items
+            setTimeout(() => {
+                savedDolls.forEach(d => {
+                    renderDoll(`gallery-svg-${d.id}`, d.config);
+                });
+            }, 50);
+        }
+
+        function deleteDoll(id) {
+            playSound('click');
+            savedDolls = savedDolls.filter(d => d.id !== id);
+            renderGallery();
+            showToast("인형이 보관함에서 삭제되었습니다.");
+        }
+
+        // Toast Helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast-message');
+            document.getElementById('toast-text').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2600);
+        }
+
+        // Initial Load
+        window.onload = () => {
+            renderDoll();
+            renderGallery();
+        };
+    </script>
+</body>
+</html>

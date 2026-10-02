@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>라면이 계속 나오는 어플</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow-x: hidden;
+            background-color: #1a0f0a;
+        }
+        .font-jua {
+            font-family: 'Jua', sans-serif;
+        }
+        /* Custom animations */
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.6)); }
+            50% { filter: drop-shadow(0 0 30px rgba(245, 158, 11, 0.9)); }
+        }
+        .ramen-glow {
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+        @keyframes float-up {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-80px) scale(1.4); opacity: 0; }
+        }
+        .float-text {
+            position: absolute;
+            pointer-events: none;
+            animation: float-up 1s forwards ease-out;
+            font-family: 'Jua', sans-serif;
+        }
+        @keyframes steam-rise {
+            0% { transform: translateY(0) scaleX(1); opacity: 0.4; }
+            50% { transform: translateY(-30px) scaleX(1.3); opacity: 0.7; }
+            100% { transform: translateY(-60px) scaleX(1.6); opacity: 0; }
+        }
+        .steam-particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: steam-rise 2s infinite ease-out;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2a1a14;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ea580c;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex justify-center items-center min-h-screen p-0 sm:p-4">
+
+    <!-- App Container (Mobile Frame style on Desktop) -->
+    <div class="w-full max-w-md h-[100vh] sm:h-[92vh] sm:max-h-[850px] bg-gradient-to-b from-stone-900 via-stone-900 to-amber-950 sm:rounded-3xl shadow-2xl flex flex-col justify-between overflow-hidden border-0 sm:border-4 border-amber-600/30 relative">
+        
+        <!-- Header Bar -->
+        <header class="bg-gradient-to-r from-red-900 via-orange-900 to-amber-900 p-4 border-b border-amber-500/30 shadow-lg flex justify-between items-center z-20">
+            <div class="flex items-center gap-2">
+                <span class="text-3xl animate-bounce">🍜</span>
+                <div>
+                    <h1 class="text-xl font-black font-jua text-amber-300 tracking-wide drop-shadow">라면이 계속 나오는 어플</h1>
+                    <p class="text-xs text-amber-200/80 font-medium">무한 면발 생성기 v2.0</p>
+                </div>
+            </div>
+            <button id="soundToggleBtn" class="w-10 h-10 rounded-full bg-amber-950/60 border border-amber-500/40 text-amber-300 flex items-center justify-center hover:bg-amber-800 transition">
+                <i class="fa-solid fa-volume-high text-lg" id="soundIcon"></i>
+            </button>
+        </header>
+
+        <!-- Top Stats Bar -->
+        <div class="bg-black/40 backdrop-blur-md px-4 py-2 border-b border-white/5 flex justify-around items-center text-center z-10">
+            <div>
+                <p class="text-xs text-stone-400 font-bold">생성된 라면</p>
+                <p id="totalBowls" class="text-xl font-extrabold text-amber-400 font-jua">0 <span class="text-xs">그릇</span></p>
+            </div>
+            <div class="h-6 w-[1px] bg-stone-700"></div>
+            <div>
+                <p class="text-xs text-stone-400 font-bold">뽑아낸 면발</p>
+                <p id="noodleMeters" class="text-xl font-extrabold text-orange-400 font-jua">0 <span class="text-xs">미터</span></p>
+            </div>
+            <div class="h-6 w-[1px] bg-stone-700"></div>
+            <div>
+                <p class="text-xs text-stone-400 font-bold">초당 자동생성</p>
+                <p id="rpsDisplay" class="text-xl font-extrabold text-emerald-400 font-jua">0 <span class="text-xs">그릇/초</span></p>
+            </div>
+        </div>
+
+        <!-- Interactive Ramen Visual Area -->
+        <div class="relative flex-1 bg-stone-950 flex flex-col items-center justify-center overflow-hidden cursor-pointer group" id="ramenTapArea">
+            
+            <!-- Steam effect overlay -->
+            <div id="steamContainer" class="absolute inset-0 pointer-events-none z-10"></div>
+
+            <!-- Tap Floating Text Container -->
+            <div id="floatingTextContainer" class="absolute inset-0 pointer-events-none z-30"></div>
+
+            <!-- Canvas for Infinite Ramen Noodle Drawing & Soup Effects -->
+            <canvas id="ramenCanvas" class="w-full h-full absolute inset-0 z-0"></canvas>
+
+            <!-- On-Screen Action Overlay/Hint -->
+            <div id="tapHint" class="absolute bottom-4 bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-amber-500/40 text-amber-200 text-xs font-bold pointer-events-none z-20 shadow-lg animate-pulse flex items-center gap-2">
+                <i class="fa-solid fa-hand-pointer text-amber-400"></i>
+                <span>화면을 계속 누르거나 클릭하여 라면 뽑기!</span>
+            </div>
+
+            <!-- Frenzy Booster Indicator -->
+            <div id="frenzyBanner" class="hidden absolute top-4 bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500 text-white font-black font-jua text-lg px-6 py-1 rounded-full shadow-2xl z-20 animate-bounce border-2 border-yellow-200">
+                🔥 라면 무한 폭주 모드!! 🔥
+            </div>
+        </div>
+
+        <!-- Control Drawer / Navigation Tabs -->
+        <div class="bg-stone-900 border-t border-amber-700/40 z-20 flex flex-col">
+            
+            <!-- Tab Buttons -->
+            <div class="flex border-b border-stone-800 bg-stone-950/80">
+                <button id="tabUpgrades" class="flex-1 py-3 text-sm font-extrabold text-amber-400 border-b-2 border-amber-500 flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-utensils"></i> 자동 조리기
+                </button>
+                <button id="tabToppings" class="flex-1 py-3 text-sm font-extrabold text-stone-400 hover:text-amber-300 flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-egg"></i> 고명 & 육수
+                </button>
+                <button id="tabBook" class="flex-1 py-3 text-sm font-extrabold text-stone-400 hover:text-amber-300 flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-book-open"></i> 라면 도감
+                </button>
+            </div>
+
+            <!-- Tab Content Panel -->
+            <div class="h-56 overflow-y-auto p-3 space-y-2 bg-gradient-to-b from-stone-900 to-stone-950" id="panelContent">
+                <!-- Dynamic Content Rendered Here via JS -->
+            </div>
+            
+            <!-- Bottom Quick Frenzy Button -->
+            <div class="p-2 bg-stone-950 border-t border-stone-800 flex justify-between items-center px-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-fire text-orange-500 text-lg"></i>
+                    <span class="text-xs text-stone-300 font-bold">폭주 게이지</span>
+                </div>
+                <div class="w-1/2 bg-stone-800 h-3 rounded-full overflow-hidden p-0.5 border border-stone-700">
+                    <div id="frenzyBar" class="bg-gradient-to-r from-yellow-500 to-red-600 h-full rounded-full transition-all duration-200" style="width: 0%"></div>
+                </div>
+                <button id="frenzyBtn" disabled class="px-3 py-1 bg-stone-800 text-stone-500 font-jua text-xs rounded-lg shadow font-bold transition disabled:opacity-50">
+                    폭주 발동!
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Notification Toast Modal -->
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-stone-800 text-amber-300 border border-amber-500/50 px-6 py-3 rounded-2xl shadow-2xl font-jua text-sm flex items-center gap-3 transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px] z-50">
+        <span class="text-2xl" id="toastIcon">🎉</span>
+        <span id="toastMsg">라면 축제가 시작되었습니다!</span>
+    </div>
+
+    <script>
+        // Game State Variables
+        const state = {
+            bowls: 0,
+            noodleMeters: 0,
+            clickPower: 1,
+            rps: 0,
+            soundEnabled: true,
+            frenzyGauge: 0,
+            isFrenzy: false,
+            frenzyMultiplier: 5,
+            activeTab: 'upgrades',
+            
+            // Toppings state (Visuals)
+            toppings: {
+                egg: false,
+                scallion: false,
+                chashu: false,
+                cheese: false,
+                chili: false
+            },
+
+            // Auto Cookers / Upgrades
+            upgrades: [
+                { id: 'water', name: '초고속 정수기', rps: 1, cost: 15, count: 0, icon: 'fa-faucet-drip', desc: '따끈한 정수기로 라면을 더 빠르게!' },
+                { id: 'cooker', name: '자동 라면 조리기', rps: 8, cost: 100, count: 0, icon: 'fa-robot', desc: '한강 스타일 자동 조리 시스템' },
+                { id: 'auntie', name: '분식집 이모님 손맛', rps: 45, cost: 1100, count: 0, icon: 'fa-user-ninja', desc: '30년 장인의 기운으로 라면 속도 폭발' },
+                { id: 'factory', name: '24시 라면 공장', rps: 260, cost: 12000, count: 0, icon: 'fa-industry', desc: '끝없이 라면을 찍어내는 스마트 공장' },
+                { id: 'portal', name: '라면 시공간 차원문', rps: 1400, cost: 130000, count: 0, icon: 'fa-infinity', desc: '우주 너머에서 가져오는 라면 원천기술' }
+            ],
+
+            // Topping Upgrades
+            toppingUpgrades: [
+                { id: 'scallion', name: '파 송송 추가', clickBonus: 1, cost: 50, bought: false, icon: '🌱', desc: '클릭당 면발 +1미터' },
+                { id: 'egg', name: '계란 탁! 반숙란', clickBonus: 3, cost: 300, bought: false, icon: '🥚', desc: '클릭당 면발 +3미터' },
+                { id: 'cheese', name: '고소한 체다치즈', clickBonus: 10, cost: 2000, bought: false, icon: '🧀', desc: '클릭당 면발 +10미터' },
+                { id: 'chashu', name: '특제 차슈 3장', clickBonus: 35, cost: 15000, bought: false, icon: '🥩', desc: '클릭당 면발 +35미터' },
+                { id: 'chili', name: '지옥의 매운 고춧가루', clickBonus: 120, cost: 80000, bought: false, icon: '🌶️', desc: '클릭당 면발 +120미터 & 국물 붉어짐' }
+            ],
+
+            // Ramen Book Collection Unlocks
+            ramenBook: [
+                { id: 'classic', name: '추억의 순한맛 라면', reqBowls: 0, desc: '누구나 좋아하는 정통 한국 라면', color: '#eab308' },
+                { id: 'spicy', name: '얼큰 칼칼 매운 라면', reqBowls: 50, desc: '속이 뻥 뚫리는 해장 라면', color: '#dc2626' },
+                { id: 'black', name: '짜장 까만 라면', reqBowls: 300, desc: '달콤 짭조름한 별미 면요리', color: '#451a03' },
+                { id: 'seafood', name: '해물 가득 통통 라면', reqBowls: 2000, desc: '바다 향이 물씬 풍기는 특제 면', color: '#0284c7' },
+                { id: 'buldak', name: '화끈한 불닭 볶음면', reqBowls: 10000, desc: '눈물 콧물 쏙 빼는 무시무시한 맛', color: '#7f1d1d' },
+                { id: 'god', name: '전설의 신선 신라면', reqBowls: 50000, desc: '구름 위에서 먹는 천상의 라면', color: '#f59e0b' }
+            ]
+        };
+
+        // Audio Synthesizer via Web Audio API (No external sound assets needed)
+        class SoundEffects {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playSlurp() {
+                if (!state.soundEnabled) return;
+                this.init();
+                
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                // Slurp pitch swoop
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.15);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+
+            playBuy() {
+                if (!state.soundEnabled) return;
+                this.init();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            playFrenzy() {
+                if (!state.soundEnabled) return;
+                this.init();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(900, now + 0.4);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
+        const sfx = new SoundEffects();
+
+        // Canvas Noodle & Bowl Renderer
+        const canvas = document.getElementById('ramenCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let noodleAnimOffset = 0;
+        let isHolding = false;
+        let activeNoodleHeight = 0;
+
+        function drawRamenScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const bowlY = canvas.height * 0.72;
+            const bowlRadiusX = canvas.width * 0.38;
+            const bowlRadiusY = canvas.height * 0.18;
+
+            // 1. Draw Broth / Liquid Glow in Bowl
+            const brothGradient = ctx.createRadialGradient(
+                centerX, bowlY - 10, 10,
+                centerX, bowlY, bowlRadiusX
+            );
+
+            // Broth color adjusts if chili topping is bought
+            if (state.toppings.chili) {
+                brothGradient.addColorStop(0, '#ef4444');
+                brothGradient.addColorStop(0.7, '#991b1b');
+                brothGradient.addColorStop(1, '#450a0a');
+            } else {
+                brothGradient.addColorStop(0, '#f59e0b');
+                brothGradient.addColorStop(0.7, '#d97706');
+                brothGradient.addColorStop(1, '#78350f');
+            }
+
+            // Broth base
+            ctx.beginPath();
+            ctx.ellipse(centerX, bowlY - 10, bowlRadiusX * 0.92, bowlRadiusY * 0.85, 0, 0, Math.PI * 2);
+            ctx.fillStyle = brothGradient;
+            ctx.fill();
+
+            // 2. Draw Wavy Infinite Noodles inside & rising from bowl
+            noodleAnimOffset += isHolding ? 4 : 0.8;
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#fde047'; // Tasty Noodle Yellow
+
+            const totalStrands = 14;
+            for (let i = 0; i < totalStrands; i++) {
+                ctx.beginPath();
+                const xOffset = (i - totalStrands / 2) * (bowlRadiusX * 0.12);
+                const startX = centerX + xOffset;
+                const startY = bowlY - 10;
+
+                // How high chopsticks pull the noodles
+                const maxPullHeight = isHolding ? canvas.height * 0.18 : canvas.height * 0.45;
+                const targetY = Math.max(maxPullHeight, startY - activeNoodleHeight);
+
+                ctx.moveTo(startX, startY);
+
+                let currentY = startY;
+                let step = 12;
+
+                while (currentY > targetY) {
+                    const waveX = Math.sin((currentY + noodleAnimOffset + i * 15) * 0.08) * 10;
+                    ctx.lineTo(startX + waveX, currentY);
+                    currentY -= step;
+                }
+                ctx.stroke();
+            }
+
+            // 3. Draw Toppings Floating on Top of Soup
+            drawToppings(centerX, bowlY - 10, bowlRadiusX * 0.7);
+
+            // 4. Draw Bowl Vessel (Outer Shell)
+            ctx.beginPath();
+            ctx.ellipse(centerX, bowlY, bowlRadiusX, bowlRadiusY, 0, 0, Math.PI);
+            ctx.lineTo(centerX - bowlRadiusX * 0.75, bowlY + bowlRadiusY * 1.8);
+            ctx.ellipse(centerX, bowlY + bowlRadiusY * 1.8, bowlRadiusX * 0.4, bowlRadiusY * 0.3, 0, Math.PI, 0, true);
+            ctx.lineTo(centerX + bowlRadiusX, bowlY);
+            
+            const bowlGradient = ctx.createLinearGradient(centerX - bowlRadiusX, bowlY, centerX + bowlRadiusX, bowlY);
+            bowlGradient.addColorStop(0, '#1c1917');
+            bowlGradient.addColorStop(0.5, '#44403c');
+            bowlGradient.addColorStop(1, '#0c0a09');
+            
+            ctx.fillStyle = bowlGradient;
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#d97706';
+            ctx.stroke();
+
+            // Red decorative stripe on bowl
+            ctx.beginPath();
+            ctx.ellipse(centerX, bowlY + 20, bowlRadiusX * 0.9, bowlRadiusY * 0.6, 0, 0, Math.PI);
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+
+            // 5. Draw Chopsticks pulling noodles
+            const chopstickY = isHolding ? canvas.height * 0.18 : canvas.height * 0.42;
+            ctx.save();
+            ctx.lineWidth = 7;
+            ctx.strokeStyle = '#d97706';
+
+            // Left Chopstick
+            ctx.beginPath();
+            ctx.moveTo(centerX - 40, chopstickY - 30);
+            ctx.lineTo(centerX + 60, chopstickY + 15);
+            ctx.stroke();
+
+            // Right Chopstick
+            ctx.beginPath();
+            ctx.moveTo(centerX - 50, chopstickY - 10);
+            ctx.lineTo(centerX + 60, chopstickY + 20);
+            ctx.stroke();
+            ctx.restore();
+
+            // Smoothly decrease/increase noodle height physics
+            if (isHolding) {
+                if (activeNoodleHeight < canvas.height * 0.35) activeNoodleHeight += 8;
+            } else {
+                if (activeNoodleHeight > 0) activeNoodleHeight -= 5;
+            }
+
+            requestAnimationFrame(drawRamenScene);
+        }
+
+        function drawToppings(cx, cy, radius) {
+            // Egg Topping
+            if (state.toppings.egg) {
+                ctx.beginPath();
+                ctx.ellipse(cx - radius * 0.3, cy - 10, 22, 16, Math.PI / 6, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(cx - radius * 0.3, cy - 10, 10, 0, Math.PI * 2);
+                ctx.fillStyle = '#f97316'; // Egg Yolk
+                ctx.fill();
+            }
+
+            // Scallion Green Topping
+            if (state.toppings.scallion) {
+                ctx.fillStyle = '#22c55e';
+                for (let i = 0; i < 6; i++) {
+                    const angle = i * 1.1;
+                    const rx = cx + Math.cos(angle) * (radius * 0.5);
+                    const ry = cy + Math.sin(angle) * 15;
+                    ctx.beginPath();
+                    ctx.arc(rx, ry, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Cheese Topping
+            if (state.toppings.cheese) {
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.roundRect(cx - 15, cy - 25, 35, 30, 6);
+                ctx.fill();
+            }
+
+            // Chashu Meat
+            if (state.toppings.chashu) {
+                ctx.beginPath();
+                ctx.ellipse(cx + radius * 0.35, cy - 5, 26, 18, -Math.PI / 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#78350f';
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#b45309';
+                ctx.stroke();
+            }
+        }
+
+        // Steam Particle System
+        const steamContainer = document.getElementById('steamContainer');
+
+        function createSteamParticle() {
+            if (document.hidden) return;
+            const particle = document.createElement('div');
+            particle.className = 'steam-particle';
+            
+            const size = Math.random() * 30 + 20;
+            const left = 35 + Math.random() * 30; // Center around bowl
+            
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.left = `${left}%`;
+            particle.style.bottom = '30%';
+            particle.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
+
+            steamContainer.appendChild(particle);
+
+            setTimeout(() => {
+                particle.remove();
+            }, 3000);
+        }
+
+        setInterval(createSteamParticle, 250);
+
+        // Interaction Logic
+        const ramenTapArea = document.getElementById('ramenTapArea');
+        const floatingTextContainer = document.getElementById('floatingTextContainer');
+
+        function triggerRamenPull(e) {
+            let mult = state.isFrenzy ? state.frenzyMultiplier : 1;
+            let addedMeters = state.clickPower * mult;
+            let addedBowls = (0.1 * mult);
+
+            state.noodleMeters += addedMeters;
+            state.bowls += addedBowls;
+
+            // Increase Frenzy Gauge
+            if (!state.isFrenzy && state.frenzyGauge < 100) {
+                state.frenzyGauge = Math.min(100, state.frenzyGauge + 1.5);
+                updateFrenzyUI();
+            }
+
+            sfx.playSlurp();
+
+            // Spawn floating score text
+            const rect = ramenTapArea.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            showFloatingText(`+${addedMeters.toFixed(0)}m 🍜`, x, y);
+            updateStatsDisplay();
+        }
+
+        function showFloatingText(text, x, y) {
+            const el = document.createElement('div');
+            el.className = 'float-text text-amber-300 font-extrabold text-xl text-shadow';
+            el.style.left = `${x - 20}px`;
+            el.style.top = `${y - 20}px`;
+            el.innerText = text;
+
+            floatingTextContainer.appendChild(el);
+            setTimeout(() => el.remove(), 950);
+        }
+
+        // Tap/Press Events
+        let holdInterval = null;
+
+        ramenTapArea.addEventListener('mousedown', (e) => {
+            isHolding = true;
+            triggerRamenPull(e);
+            holdInterval = setInterval(() => triggerRamenPull(e), 120);
+        });
+
+        window.addEventListener('mouseup', () => {
+            isHolding = false;
+            if (holdInterval) clearInterval(holdInterval);
+        });
+
+        ramenTapArea.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isHolding = true;
+            triggerRamenPull(e);
+            holdInterval = setInterval(() => triggerRamenPull(e), 120);
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => {
+            isHolding = false;
+            if (holdInterval) clearInterval(holdInterval);
+        });
+
+        // UI Renderers
+        const panelContent = document.getElementById('panelContent');
+
+        function renderUpgradesTab() {
+            panelContent.innerHTML = '';
+            state.upgrades.forEach((up, index) => {
+                const canAfford = state.bowls >= up.cost;
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border flex items-center justify-between transition-all ${
+                    canAfford ? 'bg-stone-800/90 border-amber-500/40 hover:border-amber-400' : 'bg-stone-900/60 border-stone-800 opacity-60'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-amber-950/80 border border-amber-500/30 text-amber-400 flex items-center justify-center text-lg">
+                            <i class="fa-solid ${up.icon}"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-jua text-amber-200 text-sm">${up.name}</h4>
+                                <span class="text-xs bg-stone-950 text-amber-400 px-2 py-0.5 rounded-full font-bold">Lvl ${up.count}</span>
+                            </div>
+                            <p class="text-[11px] text-stone-400">${up.desc}</p>
+                            <p class="text-[11px] text-emerald-400 font-bold">+${up.rps} 그릇/초</p>
+                        </div>
+                    </div>
+                    <button onclick="buyUpgrade(${index})" ${!canAfford ? 'disabled' : ''} class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-jua text-xs rounded-lg shadow font-extrabold disabled:opacity-40 disabled:cursor-not-allowed">
+                        ${Math.floor(up.cost)} 그릇
+                    </button>
+                `;
+                panelContent.appendChild(card);
+            });
+        }
+
+        function renderToppingsTab() {
+            panelContent.innerHTML = '';
+            state.toppingUpgrades.forEach((top, index) => {
+                const card = document.createElement('div');
+                const isBought = top.bought;
+                const canAfford = state.bowls >= top.cost && !isBought;
+
+                card.className = `p-3 rounded-xl border flex items-center justify-between transition-all ${
+                    isBought ? 'bg-amber-950/30 border-emerald-500/50' : canAfford ? 'bg-stone-800/90 border-amber-500/40' : 'bg-stone-900/60 border-stone-800 opacity-60'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-stone-950 border border-stone-700 flex items-center justify-center text-2xl">
+                            ${top.icon}
+                        </div>
+                        <div>
+                            <h4 class="font-jua text-amber-200 text-sm">${top.name}</h4>
+                            <p class="text-[11px] text-stone-400">${top.desc}</p>
+                        </div>
+                    </div>
+                    <button onclick="buyTopping(${index})" ${isBought || !canAfford ? 'disabled' : ''} class="px-3 py-1.5 ${
+                        isBought ? 'bg-emerald-800 text-emerald-200' : 'bg-gradient-to-r from-amber-500 to-orange-600 text-stone-950'
+                    } font-jua text-xs rounded-lg shadow font-extrabold disabled:opacity-50">
+                        ${isBought ? '추가완료' : `${Math.floor(top.cost)} 그릇`}
+                    </button>
+                `;
+                panelContent.appendChild(card);
+            });
+        }
+
+        function renderBookTab() {
+            panelContent.innerHTML = '';
+            state.ramenBook.forEach(ramen => {
+                const isUnlocked = state.bowls >= ramen.reqBowls;
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border flex items-center gap-3 transition-all ${
+                    isUnlocked ? 'bg-stone-800/90 border-amber-500/40' : 'bg-stone-950/80 border-stone-800 opacity-50'
+                }`;
+
+                card.innerHTML = `
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center text-2xl border" style="background-color: ${isUnlocked ? ramen.color + '22' : '#1c1917'}; border-color: ${isUnlocked ? ramen.color : '#444'}">
+                        ${isUnlocked ? '🍜' : '🔒'}
+                    </div>
+                    <div>
+                        <h4 class="font-jua text-sm ${isUnlocked ? 'text-amber-300' : 'text-stone-500'}">${ramen.name}</h4>
+                        <p class="text-[11px] text-stone-400">${isUnlocked ? ramen.desc : `필요: 누적 ${ramen.reqBowls} 그릇`}</p>
+                    </div>
+                `;
+                panelContent.appendChild(card);
+            });
+        }
+
+        window.buyUpgrade = function(index) {
+            const up = state.upgrades[index];
+            if (state.bowls >= up.cost) {
+                state.bowls -= up.cost;
+                up.count++;
+                up.cost = Math.floor(up.cost * 1.18);
+                recalculateRPS();
+                sfx.playBuy();
+                showToast(`🎉 ${up.name} 구매 완료!`);
+                renderCurrentTab();
+                updateStatsDisplay();
+            }
+        };
+
+        window.buyTopping = function(index) {
+            const top = state.toppingUpgrades[index];
+            if (state.bowls >= top.cost && !top.bought) {
+                state.bowls -= top.cost;
+                top.bought = true;
+                state.clickPower += top.clickBonus;
+                state.toppings[top.id] = true;
+                sfx.playBuy();
+                showToast(`🥚 ${top.name} 고명이 추가되었습니다!`);
+                renderCurrentTab();
+                updateStatsDisplay();
+            }
+        };
+
+        function recalculateRPS() {
+            state.rps = state.upgrades.reduce((sum, up) => sum + (up.rps * up.count), 0);
+        }
+
+        function renderCurrentTab() {
+            if (state.activeTab === 'upgrades') renderUpgradesTab();
+            else if (state.activeTab === 'toppings') renderToppingsTab();
+            else if (state.activeTab === 'book') renderBookTab();
+        }
+
+        // Tab Event Listeners
+        const tabUpgrades = document.getElementById('tabUpgrades');
+        const tabToppings = document.getElementById('tabToppings');
+        const tabBook = document.getElementById('tabBook');
+
+        function setActiveTab(tab, element) {
+            state.activeTab = tab;
+            [tabUpgrades, tabToppings, tabBook].forEach(btn => {
+                btn.className = 'flex-1 py-3 text-sm font-extrabold text-stone-400 hover:text-amber-300 flex items-center justify-center gap-2 transition';
+            });
+            element.className = 'flex-1 py-3 text-sm font-extrabold text-amber-400 border-b-2 border-amber-500 flex items-center justify-center gap-2 transition';
+            renderCurrentTab();
+        }
+
+        tabUpgrades.addEventListener('click', () => setActiveTab('upgrades', tabUpgrades));
+        tabToppings.addEventListener('click', () => setActiveTab('toppings', tabToppings));
+        tabBook.addEventListener('click', () => setActiveTab('book', tabBook));
+
+        // Stats Display Updater
+        const totalBowlsEl = document.getElementById('totalBowls');
+        const noodleMetersEl = document.getElementById('noodleMeters');
+        const rpsDisplayEl = document.getElementById('rpsDisplay');
+
+        function updateStatsDisplay() {
+            totalBowlsEl.innerHTML = `${Math.floor(state.bowls).toLocaleString()} <span class="text-xs">그릇</span>`;
+            noodleMetersEl.innerHTML = `${Math.floor(state.noodleMeters).toLocaleString()} <span class="text-xs">미터</span>`;
+            rpsDisplayEl.innerHTML = `${state.rps.toLocaleString()} <span class="text-xs">그릇/초</span>`;
+        }
+
+        // Frenzy Booster Mode
+        const frenzyBar = document.getElementById('frenzyBar');
+        const frenzyBtn = document.getElementById('frenzyBtn');
+        const frenzyBanner = document.getElementById('frenzyBanner');
+
+        function updateFrenzyUI() {
+            frenzyBar.style.width = `${state.frenzyGauge}%`;
+            if (state.frenzyGauge >= 100 && !state.isFrenzy) {
+                frenzyBtn.disabled = false;
+                frenzyBtn.className = 'px-3 py-1 bg-gradient-to-r from-yellow-400 to-red-500 text-stone-950 font-jua text-xs rounded-lg shadow font-extrabold animate-bounce cursor-pointer';
+            }
+        }
+
+        frenzyBtn.addEventListener('click', () => {
+            if (state.frenzyGauge >= 100 && !state.isFrenzy) {
+                state.isFrenzy = true;
+                state.frenzyGauge = 0;
+                frenzyBtn.disabled = true;
+                frenzyBtn.className = 'px-3 py-1 bg-stone-800 text-stone-500 font-jua text-xs rounded-lg shadow font-bold transition disabled:opacity-50';
+                frenzyBanner.classList.remove('hidden');
+                sfx.playFrenzy();
+                showToast('🔥 라면 무한 폭주 시작! (면발 x5배)');
+
+                let duration = 10; // 10 Seconds
+                const timer = setInterval(() => {
+                    duration--;
+                    if (duration <= 0) {
+                        clearInterval(timer);
+                        state.isFrenzy = false;
+                        frenzyBanner.classList.add('hidden');
+                        updateFrenzyUI();
+                    }
+                }, 1000);
+            }
+        });
+
+        // Toast Notification System
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+
+        function showToast(msg) {
+            toastMsg.innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            }, 2500);
+        }
+
+        // Sound toggle
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        const soundIcon = document.getElementById('soundIcon');
+
+        soundToggleBtn.addEventListener('click', () => {
+            state.soundEnabled = !state.soundEnabled;
+            soundIcon.className = state.soundEnabled ? 'fa-solid fa-volume-high text-lg' : 'fa-solid fa-volume-xmark text-lg text-stone-500';
+            showToast(state.soundEnabled ? '🔊 사운드 온' : '🔇 음소거');
+        });
+
+        // Auto Generation Loop (RPS Tick)
+        setInterval(() => {
+            if (state.rps > 0) {
+                const gain = state.rps / 10;
+                const mult = state.isFrenzy ? state.frenzyMultiplier : 1;
+                state.bowls += gain * mult;
+                state.noodleMeters += (gain * 2) * mult;
+                updateStatsDisplay();
+                renderCurrentTab();
+            }
+        }, 100);
+
+        // Initial setup
+        renderCurrentTab();
+        updateStatsDisplay();
+        requestAnimationFrame(drawRamenScene);
+    </script>
+</body>
+</html>

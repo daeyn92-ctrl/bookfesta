@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>말랑말랑 젤리 퍼즐 🍬✨</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts (Jua / Noto Sans KR) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@500;700;900&display=swap" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            jua: ['"Jua"', 'sans-serif'],
+            sans: ['"Noto Sans KR"', 'sans-serif']
+          },
+          colors: {
+            jelly: {
+              pink: '#ff6b9d',
+              purple: '#a855f7',
+              cyan: '#38bdf8',
+              lime: '#84cc16',
+              yellow: '#facc15',
+              orange: '#fb923c',
+              bg: '#180928'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none; /* Prevents scroll during drag on mobile */
+    }
+
+    body {
+      background: radial-gradient(circle at center, #2e124d 0%, #110521 100%);
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    /* Bouncy Jelly Animation */
+    @keyframes jellyWobble {
+      0%, 100% { transform: scale(1, 1); }
+      25% { transform: scale(1.12, 0.88); }
+      50% { transform: scale(0.9, 1.1); }
+      75% { transform: scale(1.05, 0.95); }
+    }
+
+    .jelly-bounce {
+      animation: jellyWobble 1.8s infinite ease-in-out;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(255, 107, 157, 0.4); }
+      50% { box-shadow: 0 0 30px rgba(255, 107, 157, 0.8); }
+    }
+
+    .glow-pink {
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+
+    /* Glassmorphic UI Card */
+    .glass-panel {
+      background: rgba(30, 16, 53, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+  </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between items-center font-jua overflow-hidden select-none p-2 sm:p-4">
+
+  <!-- TOP HEADER HUD -->
+  <header class="w-full max-w-md px-4 py-3 flex items-center justify-between glass-panel rounded-2xl z-20 shadow-2xl">
+    <!-- Game Logo -->
+    <div class="flex items-center space-x-2">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-yellow-400 p-0.5 shadow-lg flex items-center justify-center jelly-bounce">
+        <span class="text-2xl">🍬</span>
+      </div>
+      <div>
+        <h1 class="text-lg font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-300 to-yellow-200">
+          말랑말랑 젤리 퍼즐
+        </h1>
+        <p class="text-[10px] text-pink-200/80 font-sans font-medium">줄을 맞춰 탱글탱글 젤리를 터뜨리세요!</p>
+      </div>
+    </div>
+
+    <!-- HUD Stats & Audio Button -->
+    <div class="flex items-center space-x-2">
+      <!-- Score Box -->
+      <div class="flex flex-col items-end px-3 py-1 bg-purple-950/80 border border-purple-500/40 rounded-xl">
+        <span class="text-[9px] text-purple-300 font-sans font-bold uppercase">SCORE</span>
+        <span id="hud-score" class="text-base font-black text-yellow-300 leading-tight">0</span>
+      </div>
+
+      <!-- Audio Button -->
+      <button id="btn-audio" onclick="toggleAudio()" class="w-9 h-9 rounded-xl bg-slate-800 border border-purple-500/40 flex items-center justify-center text-purple-300 hover:text-white active:scale-95 transition-all">
+        <i id="audio-icon" class="fa-solid fa-volume-high text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN GAME CANVAS & BOARD AREA -->
+  <main class="relative w-full max-w-md flex-1 my-2 flex flex-col justify-center items-center">
+    <!-- Board Container Frame -->
+    <div class="relative w-full aspect-square max-w-[380px] glass-panel rounded-3xl p-3 shadow-2xl flex items-center justify-center border-2 border-pink-500/30">
+      
+      <!-- Canvas for Grid & Jellies -->
+      <canvas id="gameCanvas" class="w-full h-full block rounded-2xl cursor-pointer"></canvas>
+
+      <!-- STAGE / TARGET OVERLAY BADGE -->
+      <div class="absolute top-4 left-4 bg-purple-900/80 border border-pink-400/40 px-3 py-1 rounded-full text-xs font-bold text-pink-200 backdrop-blur-md shadow-md flex items-center gap-1.5 pointer-events-none">
+        <i class="fa-solid fa-trophy text-yellow-400"></i>
+        <span>최고 점수: <strong id="hud-highscore" class="text-white">0</strong></span>
+      </div>
+
+      <!-- Combo Indicator Floating Text -->
+      <div id="combo-badge" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden pointer-events-none z-30">
+        <span id="combo-text" class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-cyan-300 drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] animate-bounce inline-block">
+          DOUBLE CLEAR! ✨
+        </span>
+      </div>
+
+    </div>
+
+    <!-- JELLY TRAY / SPAWN SLOTS FOR DRAGGING -->
+    <div id="jelly-tray" class="w-full max-w-[380px] mt-3 glass-panel rounded-2xl p-2 sm:p-3 flex justify-around items-center h-28 border border-purple-400/30 shadow-xl">
+      <!-- 3 Jelly piece previews generated dynamically -->
+    </div>
+  </main>
+
+  <!-- BOTTOM CONTROL FOOTER -->
+  <footer class="w-full max-w-md px-4 py-2 bg-slate-900/80 border border-purple-500/30 rounded-2xl backdrop-blur-md z-20 flex items-center justify-between text-xs text-purple-200">
+    <button onclick="restartGame()" class="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:brightness-110 active:scale-95 text-white font-black rounded-xl shadow-md border border-pink-300/40 flex items-center gap-2">
+      <i class="fa-solid fa-rotate-right"></i>
+      <span>새 게임</span>
+    </button>
+
+    <button onclick="toggleHowToModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-purple-200 font-bold rounded-xl border border-purple-500/30 flex items-center gap-1.5">
+      <i class="fa-solid fa-circle-question text-yellow-300"></i>
+      <span>게임 방법</span>
+    </button>
+  </footer>
+
+  <!-- GAME OVER MODAL -->
+  <div id="modal-gameover" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm glass-panel border-2 border-pink-500/80 rounded-3xl p-6 shadow-2xl text-center space-y-4 relative">
+      <div class="w-20 h-20 mx-auto rounded-full bg-pink-500/20 text-pink-400 border-2 border-pink-500 flex items-center justify-center text-5xl jelly-bounce">
+        😿
+      </div>
+      <h2 class="text-2xl font-black text-pink-300">더 이상 넣을 자리가 없어요!</h2>
+      <p class="text-xs text-purple-200 font-sans">
+        젤리 보드판이 가득 찼습니다. 다시 도전하여 최고 기록을 경신해 보세요!
+      </p>
+
+      <div class="p-3 bg-slate-950/80 rounded-2xl border border-purple-500/30 text-xs text-slate-300 flex justify-around">
+        <div>
+          <span class="block text-[10px] text-slate-400 font-bold">최종 점수</span>
+          <span id="final-score-text" class="text-lg font-black text-yellow-300">0</span>
+        </div>
+        <div>
+          <span class="block text-[10px] text-slate-400 font-bold">최고 기록</span>
+          <span id="final-highscore-text" class="text-lg font-black text-pink-400">0</span>
+        </div>
+      </div>
+
+      <button onclick="restartGame()" class="w-full py-3.5 bg-gradient-to-r from-pink-500 via-purple-600 to-cyan-500 text-white font-black text-base rounded-2xl shadow-lg border border-pink-300/50 active:scale-95 transition-all glow-pink">
+        다시 도전하기 🚀
+      </button>
+    </div>
+  </div>
+
+  <!-- HOW TO PLAY MODAL -->
+  <div id="modal-howto" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm glass-panel border-2 border-purple-500/80 rounded-3xl p-6 shadow-2xl text-center space-y-4 relative">
+      <button onclick="toggleHowToModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-pink-500 to-yellow-400 p-1 flex items-center justify-center text-3xl shadow-lg">
+        🍬
+      </div>
+      <h2 class="text-xl font-black text-yellow-300">말랑말랑 젤리 퍼즐 놀이법</h2>
+      
+      <div class="text-left text-xs text-purple-200 space-y-2.5 bg-purple-950/60 p-4 rounded-2xl border border-purple-500/30 font-sans">
+        <p class="flex items-start gap-2">
+          <span class="bg-pink-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
+          <span>하단에 나타나는 알록달록 **3가지 젤리 조각**을 보드판 위로 손가락으로 끌어서 옮기세요.</span>
+        </p>
+        <p class="flex items-start gap-2">
+          <span class="bg-pink-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">2</span>
+          <span>가로 또는 세로 한 줄을 꽉 채우면 **탱글탱글 젤리가 팡팡 터지며** 점수를 얻습니다!</span>
+        </p>
+        <p class="flex items-start gap-2">
+          <span class="bg-pink-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0">3</span>
+          <span>여러 줄을 한 번에 터뜨리면 **콤보 보너스 점수**와 화려한 축하 효과가 펼쳐집니다!</span>
+        </p>
+      </div>
+
+      <button onclick="toggleHowToModal()" class="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-black text-sm rounded-2xl shadow-lg border border-pink-300/40 active:scale-95 transition-all">
+        확인하고 플레이하기! ✨
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* ===================================================================
+       1. AUDIO SYNTHESIZER (WEB AUDIO API)
+       =================================================================== */
+    let audioEnabled = true;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (!audioEnabled) return;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'pickup') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(700, now + 0.08);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'drop') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(600, now);
+          osc.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'clear') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now); // C5
+          osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+          osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+          osc.frequency.setValueAtTime(1046.50, now + 0.24); // C6
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else if (type === 'gameover') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.linearRampToValueAtTime(100, now + 0.4);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        }
+      } catch(e) {}
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('audio-icon').className = audioEnabled 
+        ? 'fa-solid fa-volume-high text-sm' 
+        : 'fa-solid fa-volume-xmark text-sm text-red-400';
+    }
+
+    /* ===================================================================
+       2. GAME CONFIG & SHAPE DEFINITIONS
+       =================================================================== */
+    const GRID_SIZE = 8;
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let cellSize = 40;
+    let boardOffset = { x: 0, y: 0 };
+
+    // COLOR PALETTE FOR JELLIES
+    const JELLY_TYPES = [
+      { name: 'pink', main: '#ff6b9d', highlight: '#ff9ebb', shadow: '#c43d6b', face: '👀' },
+      { name: 'cyan', main: '#38bdf8', highlight: '#7dd3fc', shadow: '#0284c7', face: '😃' },
+      { name: 'lime', main: '#a3e635', highlight: '#bef264', shadow: '#65a30d', face: '😋' },
+      { name: 'yellow', main: '#facc15', highlight: '#fde047', shadow: '#ca8a04', face: '🥰' },
+      { name: 'purple', main: '#c084fc', highlight: '#e9d5ff', shadow: '#9333ea', face: '🤩' },
+      { name: 'orange', main: '#fb923c', highlight: '#fdba74', shadow: '#ea580c', face: '😸' }
+    ];
+
+    // ALL POSSIBLY SPAWNED JELLY SHAPES
+    const SHAPE_PATTERNS = [
+      // Single block
+      { matrix: [[1]], colorIdx: 0 },
+      // 2-line horizontal & vertical
+      { matrix: [[1, 1]], colorIdx: 1 },
+      { matrix: [[1], [1]], colorIdx: 2 },
+      // 3-line horizontal & vertical
+      { matrix: [[1, 1, 1]], colorIdx: 3 },
+      { matrix: [[1], [1], [1]], colorIdx: 4 },
+      // 2x2 Square
+      { matrix: [[1, 1], [1, 1]], colorIdx: 0 },
+      // L Shapes
+      { matrix: [[1, 0], [1, 1]], colorIdx: 1 },
+      { matrix: [[0, 1], [1, 1]], colorIdx: 2 },
+      { matrix: [[1, 1], [1, 0]], colorIdx: 3 },
+      { matrix: [[1, 1], [0, 1]], colorIdx: 4 },
+      // T Shapes
+      { matrix: [[1, 1, 1], [0, 1, 0]], colorIdx: 5 },
+      // Big L (3x3 corner)
+      { matrix: [[1, 0, 0], [1, 0, 0], [1, 1, 1]], colorIdx: 0 }
+    ];
+
+    // GAME STATE VARIABLES
+    let board = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+    let score = 0;
+    let highscore = parseInt(localStorage.getItem('jelly_highscore') || '0');
+    let trayShapes = [null, null, null]; // 3 tray slots
+
+    // DRAGGING STATE
+    let draggingPiece = null; // { shapeIndex, matrix, colorIdx, x, y, offsetX, offsetY }
+    let hoverGridPos = null; // { r, c } if valid, else null
+    let particles = [];
+    let jellyWobbleTime = 0;
+
+    /* ===================================================================
+       3. CANVAS RESIZING & LAYOUT
+       =================================================================== */
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      const size = Math.min(container.clientWidth - 24, 360);
+      canvas.width = size;
+      canvas.height = size;
+      cellSize = Math.floor(size / GRID_SIZE);
+      boardOffset.x = Math.floor((size - cellSize * GRID_SIZE) / 2);
+      boardOffset.y = Math.floor((size - cellSize * GRID_SIZE) / 2);
+      draw();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    /* ===================================================================
+       4. GAME LOGIC & SPANNING SHAPES
+       =================================================================== */
+    function initGame() {
+      board = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+      score = 0;
+      updateScoreHUD();
+      fillTray();
+      resizeCanvas();
+    }
+
+    function updateScoreHUD() {
+      document.getElementById('hud-score').innerText = score;
+      if (score > highscore) {
+        highscore = score;
+        localStorage.setItem('jelly_highscore', highscore.toString());
+      }
+      document.getElementById('hud-highscore').innerText = highscore;
+    }
+
+    function fillTray() {
+      const trayContainer = document.getElementById('jelly-tray');
+      trayContainer.innerHTML = '';
+
+      for (let i = 0; i < 3; i++) {
+        if (!trayShapes[i]) {
+          const randSpec = SHAPE_PATTERNS[Math.floor(Math.random() * SHAPE_PATTERNS.length)];
+          const randomColor = Math.floor(Math.random() * JELLY_TYPES.length);
+          trayShapes[i] = {
+            matrix: randSpec.matrix,
+            colorIdx: randomColor
+          };
+        }
+
+        // Render preview canvas in tray slot
+        const slotCanvas = document.createElement('canvas');
+        slotCanvas.width = 90;
+        slotCanvas.height = 90;
+        slotCanvas.className = 'cursor-grab active:cursor-grabbing hover:scale-105 transition-transform flex-1';
+        slotCanvas.dataset.index = i;
+
+        renderTrayPiece(slotCanvas, trayShapes[i]);
+        trayContainer.appendChild(slotCanvas);
+
+        // Add Pointer Events for Touch & Mouse Drag
+        slotCanvas.addEventListener('pointerdown', (e) => onPointerDownTray(e, i));
+      }
+
+      checkGameOver();
+    }
+
+    function renderTrayPiece(canvasElem, shapeData) {
+      if (!shapeData) return;
+      const pCtx = canvasElem.getContext('2d');
+      pCtx.clearRect(0, 0, canvasElem.width, canvasElem.height);
+
+      const matrix = shapeData.matrix;
+      const rows = matrix.length;
+      const cols = matrix[0].length;
+      const miniCell = 20;
+
+      const startX = (canvasElem.width - cols * miniCell) / 2;
+      const startY = (canvasElem.height - rows * miniCell) / 2;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (matrix[r][c]) {
+            const x = startX + c * miniCell;
+            const y = startY + r * miniCell;
+            drawJellyBlock(pCtx, x, y, miniCell, shapeData.colorIdx, false);
+          }
+        }
+      }
+    }
+
+    /* ===================================================================
+       5. DRAG AND DROP HANDLERS (MOUSE & TOUCH)
+       =================================================================== */
+    function onPointerDownTray(e, index) {
+      e.preventDefault();
+      if (!trayShapes[index]) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+      const shape = trayShapes[index];
+      const rows = shape.matrix.length;
+      const cols = shape.matrix[0].length;
+
+      draggingPiece = {
+        trayIndex: index,
+        matrix: shape.matrix,
+        colorIdx: shape.colorIdx,
+        x: clientX - rect.left,
+        y: clientY - rect.top,
+        offsetX: (cols * cellSize) / 2,
+        offsetY: (rows * cellSize) / 2 + 30 // Shift slightly above finger for touch visibility
+      };
+
+      playSound('pickup');
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+    }
+
+    function onPointerMove(e) {
+      if (!draggingPiece) return;
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+      draggingPiece.x = clientX - rect.left;
+      draggingPiece.y = clientY - rect.top;
+
+      // Calculate Grid Hover Candidate Position
+      const gridX = draggingPiece.x - draggingPiece.offsetX;
+      const gridY = draggingPiece.y - draggingPiece.offsetY;
+
+      const col = Math.round((gridX - boardOffset.x) / cellSize);
+      const row = Math.round((gridY - boardOffset.y) / cellSize);
+
+      if (canPlaceShape(draggingPiece.matrix, row, col)) {
+        hoverGridPos = { r: row, c: col };
+      } else {
+        hoverGridPos = null;
+      }
+
+      draw();
+    }
+
+    function onPointerUp(e) {
+      if (!draggingPiece) return;
+
+      if (hoverGridPos) {
+        // Place piece onto grid
+        placeShapeOnBoard(draggingPiece.matrix, hoverGridPos.r, hoverGridPos.c, draggingPiece.colorIdx);
+        playSound('drop');
+
+        // Clear piece from tray
+        trayShapes[draggingPiece.trayIndex] = null;
+
+        // Check for line clears
+        checkAndClearLines();
+
+        // If tray is empty, spawn new set!
+        if (trayShapes.every(s => s === null)) {
+          fillTray();
+        } else {
+          // Re-render remaining tray canvases
+          fillTray();
+        }
+      }
+
+      draggingPiece = null;
+      hoverGridPos = null;
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      draw();
+    }
+
+    /* ===================================================================
+       6. GRID COLLISION & LINE CLEARING MECHANICS
+       =================================================================== */
+    function canPlaceShape(matrix, startRow, startCol) {
+      const rows = matrix.length;
+      const cols = matrix[0].length;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (matrix[r][c]) {
+            const boardR = startRow + r;
+            const boardC = startCol + c;
+
+            // Bounds Check
+            if (boardR < 0 || boardR >= GRID_SIZE || boardC < 0 || boardC >= GRID_SIZE) {
+              return false;
+            }
+            // Already occupied
+            if (board[boardR][boardC] !== null) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    function placeShapeOnBoard(matrix, startRow, startCol, colorIdx) {
+      const rows = matrix.length;
+      const cols = matrix[0].length;
+      let placedCount = 0;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (matrix[r][c]) {
+            board[startRow + r][startCol + c] = colorIdx;
+            placedCount++;
+          }
+        }
+      }
+
+      score += placedCount * 10;
+      updateScoreHUD();
+    }
+
+    function checkAndClearLines() {
+      let rowsToClear = [];
+      let colsToClear = [];
+
+      // Check Full Rows
+      for (let r = 0; r < GRID_SIZE; r++) {
+        if (board[r].every(cell => cell !== null)) {
+          rowsToClear.push(r);
+        }
+      }
+
+      // Check Full Columns
+      for (let c = 0; c < GRID_SIZE; c++) {
+        let fullCol = true;
+        for (let r = 0; r < GRID_SIZE; r++) {
+          if (board[r][c] === null) {
+            fullCol = false;
+            break;
+          }
+        }
+        if (fullCol) colsToClear.push(c);
+      }
+
+      const totalLinesCleared = rowsToClear.length + colsToClear.length;
+
+      if (totalLinesCleared > 0) {
+        playSound('clear');
+
+        // Spawn Juicy Explosive Particles on Cleared Grid Slots
+        rowsToClear.forEach(r => {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            spawnParticles(
+              boardOffset.x + c * cellSize + cellSize / 2,
+              boardOffset.y + r * cellSize + cellSize / 2,
+              board[r][c]
+            );
+            board[r][c] = null;
+          }
+        });
+
+        colsToClear.forEach(c => {
+          for (let r = 0; r < GRID_SIZE; r++) {
+            if (board[r][c] !== null) {
+              spawnParticles(
+                boardOffset.x + c * cellSize + cellSize / 2,
+                boardOffset.y + r * cellSize + cellSize / 2,
+                board[r][c]
+              );
+              board[r][c] = null;
+            }
+          }
+        });
+
+        // Combo Score Calculation
+        const bonusScore = totalLinesCleared * 100 + (totalLinesCleared > 1 ? totalLinesCleared * 150 : 0);
+        score += bonusScore;
+        updateScoreHUD();
+
+        // Trigger Combo Text Overlay
+        if (totalLinesCleared >= 2) {
+          triggerComboEffect(totalLinesCleared);
+        }
+      }
+    }
+
+    function triggerComboEffect(lines) {
+      const badge = document.getElementById('combo-badge');
+      const text = document.getElementById('combo-text');
+
+      const messages = ['DOUBLE CLEAR! 🍬', 'TRIPLE BLAST! 🌟', 'SUPER JELLY COMBO! 🎉', 'ULTRA CLEAR!! 🔥'];
+      text.innerText = messages[Math.min(lines - 2, messages.length - 1)];
+
+      badge.classList.remove('hidden');
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.5 } });
+
+      setTimeout(() => {
+        badge.classList.add('hidden');
+      }, 1200);
+    }
+
+    function checkGameOver() {
+      // Check if any shape in tray can fit anywhere on the current board
+      for (let i = 0; i < 3; i++) {
+        const shape = trayShapes[i];
+        if (shape) {
+          for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+              if (canPlaceShape(shape.matrix, r, c)) {
+                return; // Valid move exists!
+              }
+            }
+          }
+        }
+      }
+
+      // No moves left for remaining pieces!
+      playSound('gameover');
+      document.getElementById('final-score-text').innerText = score;
+      document.getElementById('final-highscore-text').innerText = highscore;
+      document.getElementById('modal-gameover').classList.remove('hidden');
+    }
+
+    function restartGame() {
+      document.getElementById('modal-gameover').classList.add('hidden');
+      initGame();
+    }
+
+    function toggleHowToModal() {
+      document.getElementById('modal-howto').classList.toggle('hidden');
+    }
+
+    /* ===================================================================
+       7. PARTICLE & CANVAS RENDERING ENGINE
+       =================================================================== */
+    function spawnParticles(x, y, colorIdx) {
+      const jelly = JELLY_TYPES[colorIdx] || JELLY_TYPES[0];
+      for (let i = 0; i < 8; i++) {
+        particles.push({
+          x: x,
+          y: y,
+          vx: (Math.random() - 0.5) * 6,
+          vy: (Math.random() - 0.5) * 6,
+          size: Math.random() * 6 + 4,
+          color: jelly.main,
+          alpha: 1.0
+        });
+      }
+    }
+
+    function drawJellyBlock(targetCtx, x, y, size, colorIdx, isPreview = false) {
+      const jelly = JELLY_TYPES[colorIdx] || JELLY_TYPES[0];
+      const radius = size * 0.25;
+
+      targetCtx.save();
+      targetCtx.globalAlpha = isPreview ? 0.45 : 1.0;
+
+      // Subtle Jelly Wobble Offset
+      const wobbleX = isPreview ? 0 : Math.sin(jellyWobbleTime * 0.1 + x) * 0.8;
+      const wobbleY = isPreview ? 0 : Math.cos(jellyWobbleTime * 0.1 + y) * 0.8;
+
+      // Base Shadow
+      targetCtx.fillStyle = jelly.shadow;
+      targetCtx.beginPath();
+      targetCtx.roundRect(x + 2 + wobbleX, y + 3 + wobbleY, size - 4, size - 4, radius);
+      targetCtx.fill();
+
+      // Main Jelly Body Gradient
+      const grad = targetCtx.createLinearGradient(x, y, x, y + size);
+      grad.addColorStop(0, jelly.highlight);
+      grad.addColorStop(0.7, jelly.main);
+      grad.addColorStop(1, jelly.shadow);
+
+      targetCtx.fillStyle = grad;
+      targetCtx.beginPath();
+      targetCtx.roundRect(x + 2 + wobbleX, y + 2 + wobbleY, size - 4, size - 4, radius);
+      targetCtx.fill();
+
+      // Shiny Top Highlight Curve
+      targetCtx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      targetCtx.beginPath();
+      targetCtx.roundRect(x + 5 + wobbleX, y + 4 + wobbleY, size - 10, size * 0.25, [radius, radius, 2, 2]);
+      targetCtx.fill();
+
+      // Cute Eyes Expression on Jellies
+      if (!isPreview && size >= 30) {
+        targetCtx.font = `${Math.floor(size * 0.35)}px sans-serif`;
+        targetCtx.textAlign = 'center';
+        targetCtx.textBaseline = 'middle';
+        targetCtx.fillText(jelly.face, x + size / 2 + wobbleX, y + size / 2 + 1 + wobbleY);
+      }
+
+      targetCtx.restore();
+    }
+
+    function drawBoardGrid() {
+      // Background Grid Slot Tiles
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const x = boardOffset.x + c * cellSize;
+          const y = boardOffset.y + r * cellSize;
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+          ctx.beginPath();
+          ctx.roundRect(x + 2, y + 2, cellSize - 4, cellSize - 4, cellSize * 0.2);
+          ctx.fill();
+
+          // Render Placed Jellies on Grid
+          if (board[r][c] !== null) {
+            drawJellyBlock(ctx, x, y, cellSize, board[r][c], false);
+          }
+        }
+      }
+
+      // Render Hover Drag Preview Slots
+      if (draggingPiece && hoverGridPos) {
+        const matrix = draggingPiece.matrix;
+        const rows = matrix.length;
+        const cols = matrix[0].length;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (matrix[r][c]) {
+              const hoverR = hoverGridPos.r + r;
+              const hoverC = hoverGridPos.c + c;
+              const x = boardOffset.x + hoverC * cellSize;
+              const y = boardOffset.y + hoverR * cellSize;
+
+              drawJellyBlock(ctx, x, y, cellSize, draggingPiece.colorIdx, true);
+            }
+          }
+        }
+      }
+    }
+
+    function drawParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.03;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        } else {
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+
+    /* ===================================================================
+       8. MAIN GAME RENDER LOOP
+       =================================================================== */
+    function draw() {
+      jellyWobbleTime++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Render Board & Grid Jellies
+      drawBoardGrid();
+
+      // 2. Render Dragging Floating Jelly
+      if (draggingPiece) {
+        const matrix = draggingPiece.matrix;
+        const rows = matrix.length;
+        const cols = matrix[0].length;
+
+        const startX = draggingPiece.x - draggingPiece.offsetX;
+        const startY = draggingPiece.y - draggingPiece.offsetY;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (matrix[r][c]) {
+              const x = startX + c * cellSize;
+              const y = startY + r * cellSize;
+              drawJellyBlock(ctx, x, y, cellSize, draggingPiece.colorIdx, false);
+            }
+          }
+        }
+      }
+
+      // 3. Render Particles
+      drawParticles();
+    }
+
+    function gameLoop() {
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Initialize Game on Window Load
+    window.onload = function() {
+      initGame();
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
+
+</body>
+</html>

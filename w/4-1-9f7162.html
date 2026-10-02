@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MY튜브 - 도깨비 요술 비디오 👹⚡</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts (Outfit & Noto Sans KR) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Noto+Sans+KR:wght@400;700;900&display=swap" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'Noto Sans KR', 'sans-serif'],
+          },
+          colors: {
+            goblin: {
+              bg: '#080d1a',
+              card: '#0f172a',
+              fire: '#10b981',
+              neon: '#34d399',
+              gold: '#fbbf24',
+              purple: '#8b5cf6',
+              accent: '#ec4899',
+            }
+          },
+          animation: {
+            'fire-glow': 'fireGlow 2.5s ease-in-out infinite',
+            'float-slow': 'floatSlow 4s ease-in-out infinite',
+            'pulse-subtle': 'pulseSubtle 1.8s infinite',
+          },
+          keyframes: {
+            fireGlow: {
+              '0%, 100%': { filter: 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.6)) drop-shadow(0 0 20px rgba(52, 211, 153, 0.3))' },
+              '50%': { filter: 'drop-shadow(0 0 18px rgba(139, 92, 246, 0.8)) drop-shadow(0 0 30px rgba(236, 72, 153, 0.5))' },
+            },
+            floatSlow: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-8px)' },
+            },
+            pulseSubtle: {
+              '0%, 100%': { opacity: 1 },
+              '50%': { opacity: 0.6 },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at top center, #0f172a 0%, #030712 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+    }
+
+    /* Glassmorphic elements */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(52, 211, 153, 0.2);
+    }
+
+    .glass-card {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Animated Dynamic Thumbnail Glitch/Transition Frame */
+    .dynamic-thumb-frame {
+      transition: all 0.6s ease-in-out;
+    }
+
+    .thumb-glow-border {
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #10b981;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-100 font-sans pb-16 md:pb-0">
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 border border-emerald-500/50 text-emerald-300 px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md transition-all duration-300 opacity-0 pointer-events-none flex items-center space-x-2 text-sm font-bold">
+    <i class="fa-solid fa-wand-magic-sparkles text-yellow-400 text-lg"></i>
+    <span id="toast-text">도깨비 요술이 발동되었습니다!</span>
+  </div>
+
+  <!-- TOP HEADER NAVIGATION -->
+  <header class="sticky top-0 z-40 w-full glass-panel border-b border-emerald-500/20 px-3 sm:px-6 py-2.5 flex items-center justify-between">
+    <!-- Brand Logo -->
+    <div class="flex items-center space-x-2 cursor-pointer" onclick="filterCategory('전체')">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-purple-600 p-0.5 shadow-lg shadow-emerald-500/30 flex items-center justify-center animate-fire-glow">
+        <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+          <i class="fa-solid fa-mask text-emerald-400 text-lg"></i>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center space-x-1">
+          <h1 class="text-lg sm:text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-200 to-purple-400">
+            MY튜브
+          </h1>
+          <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase">
+            도깨비 톡!
+          </span>
+        </div>
+        <p class="text-[10px] text-slate-400 font-medium">변신하는 요술 영상 세상 👹</p>
+      </div>
+    </div>
+
+    <!-- Search Input Bar (YouTube Style) -->
+    <div class="hidden md:flex items-center flex-1 max-w-md mx-6">
+      <div class="relative w-full">
+        <input 
+          id="search-input"
+          type="text" 
+          placeholder="검색어를 입력하고 도깨비 방망이 두드리세요..."
+          onkeypress="handleSearchKey(event)"
+          className=""
+          class="w-full bg-slate-900/90 border border-emerald-500/30 focus:border-emerald-400 text-xs sm:text-sm text-slate-100 rounded-full py-2 pl-4 pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+        />
+        <button onclick="executeSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 hover:text-emerald-200">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Header Action Buttons -->
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <!-- Record Video Magic Button -->
+      <button 
+        onclick="openRecordModal()"
+        class="bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white px-3 sm:px-4 py-2 rounded-full font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/25 flex items-center space-x-2 active:scale-95 transition-all">
+        <i class="fa-solid fa-video text-yellow-300 animate-pulse"></i>
+        <span class="hidden sm:inline">영상 찍기</span>
+        <span class="sm:hidden">촬영</span>
+      </button>
+
+      <!-- Dynamic Thumbnail Toggle Indicator -->
+      <div id="thumb-sync-badge" class="hidden sm:flex items-center space-x-1.5 bg-slate-900 border border-emerald-500/30 px-3 py-1.5 rounded-full text-[11px] font-bold text-emerald-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span>썸네일 변신 중...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT WRAPPER -->
+  <div class="flex-1 flex flex-col max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-5">
+
+    <!-- Category Chips (YouTube Filter Bar) -->
+    <div class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none text-xs font-bold">
+      <button onclick="filterCategory('전체')" class="category-btn bg-emerald-500 text-slate-950 px-4 py-2 rounded-full shadow-md whitespace-nowrap transition-all">
+        ✨ 전체 도깨비불
+      </button>
+      <button onclick="filterCategory('인기')" class="category-btn bg-slate-800/90 text-slate-300 hover:text-white px-4 py-2 rounded-full border border-slate-700 whitespace-nowrap transition-all">
+        🔥 뚝딱! 인기 영상
+      </button>
+      <button onclick="filterCategory('직접촬영')" class="category-btn bg-slate-800/90 text-slate-300 hover:text-white px-4 py-2 rounded-full border border-slate-700 whitespace-nowrap transition-all">
+        📹 내가 찍은 동영상
+      </button>
+      <button onclick="filterCategory('숏폼')" class="category-btn bg-slate-800/90 text-slate-300 hover:text-white px-4 py-2 rounded-full border border-slate-700 whitespace-nowrap transition-all">
+        ⚡ 숏폼 도깨비
+      </button>
+      <button onclick="filterCategory('게임')" class="category-btn bg-slate-800/90 text-slate-300 hover:text-white px-4 py-2 rounded-full border border-slate-700 whitespace-nowrap transition-all">
+        🎮 게임 & 재미
+      </button>
+      <button onclick="filterCategory('음악')" class="category-btn bg-slate-800/90 text-slate-300 hover:text-white px-4 py-2 rounded-full border border-slate-700 whitespace-nowrap transition-all">
+        🎵 신비로운 음악
+      </button>
+    </div>
+
+    <!-- DYNAMIC THUMBNAIL LIVE HERO BANNER -->
+    <section class="w-full glass-panel rounded-3xl p-4 sm:p-6 border border-emerald-500/30 relative overflow-hidden shadow-2xl">
+      <!-- Background Ambient Glow -->
+      <div class="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <!-- Hero Dynamic Changing Thumbnail Box -->
+        <div class="lg:col-span-7 relative group cursor-pointer" onclick="playHeroVideo()">
+          <div class="relative aspect-video rounded-2xl overflow-hidden border-2 border-emerald-400/50 shadow-xl thumb-glow-border">
+            <!-- Dynamic Changing Hero Image Frame -->
+            <img 
+              id="hero-dynamic-thumb" 
+              src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=800&auto=format&fit=crop&q=80" 
+              alt="Dynamic Thumbnail" 
+              class="w-full h-full object-cover transform group-hover:scale-105 transition-all duration-700 dynamic-thumb-frame"
+            />
+
+            <!-- Changing Thumbnail Live Badge Overlay -->
+            <div class="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md border border-emerald-400/60 px-3 py-1 rounded-full text-[11px] font-black text-emerald-300 flex items-center space-x-1.5 shadow-lg">
+              <i class="fa-solid fa-wand-magic text-yellow-300 animate-spin"></i>
+              <span id="hero-thumb-label">실시간 변신 썸네일 #1</span>
+            </div>
+
+            <!-- Duration Badge -->
+            <div class="absolute bottom-3 right-3 bg-black/80 text-white font-mono text-xs px-2 py-0.5 rounded-md font-bold">
+              03:45
+            </div>
+
+            <!-- Hover Play Icon Overlay -->
+            <div class="absolute inset-0 bg-black/30 group-hover:bg-black/10 flex items-center justify-center transition-all">
+              <div class="w-16 h-16 rounded-full bg-emerald-500/90 text-slate-950 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-play text-2xl ml-1"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Video Metadata -->
+        <div class="lg:col-span-5 flex flex-col justify-center space-y-3">
+          <div class="inline-flex items-center space-x-2 bg-emerald-950/80 border border-emerald-500/40 px-3 py-1 rounded-full w-fit text-xs font-bold text-emerald-300">
+            <i class="fa-solid fa-bolt text-yellow-400"></i>
+            <span>도깨비 추천 화제작</span>
+          </div>
+
+          <h2 id="hero-title" class="text-xl sm:text-2xl font-black text-slate-100 leading-snug">
+            금 나와라 뚝딱! 도깨비의 요술 방망이로 만드는 신비로운 영상 모음집
+          </h2>
+
+          <p class="text-xs sm:text-sm text-slate-400 line-clamp-2">
+            실시간으로 썸네일이 자유자재로 변하는 MY튜브의 특수 마법 엔진! 매 순간 새로운 프레임이 펼쳐집니다.
+          </p>
+
+          <div class="flex items-center space-x-3 pt-2 text-xs font-bold text-slate-400">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-purple-500 flex items-center justify-center text-slate-950 font-black">
+                👹
+              </div>
+              <span class="text-slate-200">금도깨비 크리에이터</span>
+            </div>
+            <span>•</span>
+            <span>조회수 77만회</span>
+            <span>•</span>
+            <span class="text-emerald-400">방금 전 변신</span>
+          </div>
+
+          <button 
+            onclick="playHeroVideo()" 
+            class="mt-2 w-full sm:w-auto py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center space-x-2 transition-all active:scale-95">
+            <i class="fa-solid fa-play"></i>
+            <span>지금 요술 영상 시청하기</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN VIDEO FEED GRID (YouTube Style) -->
+    <section>
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base sm:text-lg font-black text-slate-100 flex items-center space-x-2">
+          <i class="fa-solid fa-fire text-emerald-400"></i>
+          <span>MY튜브 도깨비 동영상 피드</span>
+        </h3>
+        <span class="text-xs font-bold text-slate-400">자동 썸네일 새로고침 활성 중 ⚡</span>
+      </div>
+
+      <!-- Video Grid Container -->
+      <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+        <!-- Dynamically rendered via JS -->
+      </div>
+    </section>
+
+  </div>
+
+  <!-- VIDEO PLAYER MODAL (YOUTUBE SIMULATOR) -->
+  <div id="player-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-6 hidden">
+    <div class="w-full max-w-4xl glass-panel rounded-3xl border border-emerald-500/40 p-4 sm:p-6 flex flex-col space-y-4 max-h-[95vh] overflow-y-auto shadow-[0_0_60px_rgba(16,185,129,0.3)] relative">
+      
+      <!-- Modal Close Button -->
+      <button onclick="closePlayerModal()" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-slate-900 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-transform active:scale-90">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <!-- Video Container -->
+      <div class="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-emerald-500/30 shadow-2xl">
+        <video id="main-video-player" controls class="w-full h-full object-contain">
+          <source id="video-src" src="" type="video/mp4" />
+          브라우저가 비디오 재생을 지원하지 않습니다.
+        </video>
+      </div>
+
+      <!-- Video Details Section -->
+      <div class="flex flex-col space-y-3">
+        <h2 id="modal-video-title" class="text-lg sm:text-xl font-black text-slate-100">
+          동영상 제목 불러오는 중...
+        </h2>
+
+        <!-- Author & Actions Row -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div class="flex items-center space-x-3">
+            <div id="modal-author-avatar" class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-slate-950 font-black text-lg">
+              👹
+            </div>
+            <div>
+              <div id="modal-author-name" class="font-bold text-sm text-slate-200">도깨비 크리에이터</div>
+              <div id="modal-subs-count" class="text-xs text-slate-400">구독자 10만명</div>
+            </div>
+            <button id="sub-btn" onclick="toggleSubscribe()" class="ml-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-full font-black text-xs transition-all active:scale-95">
+              구독하기
+            </button>
+          </div>
+
+          <!-- Like / Share Buttons -->
+          <div class="flex items-center space-x-2 text-xs font-bold">
+            <button id="like-btn" onclick="toggleLike()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-full flex items-center space-x-2 text-slate-200 transition-all">
+              <i class="fa-solid fa-thumbs-up text-emerald-400"></i>
+              <span id="modal-likes-count">1.2만</span>
+            </button>
+            <button onclick="shareVideo()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-full flex items-center space-x-2 text-slate-200 transition-all">
+              <i class="fa-solid fa-share text-cyan-400"></i>
+              <span>공유</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="pt-2">
+          <h4 class="text-sm font-extrabold text-slate-300 mb-3 flex items-center space-x-2">
+            <i class="fa-solid fa-comments text-emerald-400"></i>
+            <span>도깨비 댓글 마당</span>
+          </h4>
+
+          <!-- Comment Input -->
+          <div class="flex space-x-2 mb-4">
+            <input 
+              id="comment-input" 
+              type="text" 
+              placeholder="따뜻한 도깨비 덕담 댓글을 입력해 보세요..." 
+              class="flex-1 bg-slate-900 border border-slate-700 rounded-2xl px-4 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-400"
+              onkeypress="if(event.key === 'Enter') addComment()"
+            />
+            <button onclick="addComment()" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-4 py-2 rounded-2xl text-xs transition-all">
+              작성
+            </button>
+          </div>
+
+          <!-- Comment List -->
+          <div id="comment-list" class="space-y-3 max-h-40 overflow-y-auto pr-2">
+            <!-- Dynamic Comments -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- VIDEO CAMERA RECORDING MODAL (WEBCAM & MYTUBE CAMERA) -->
+  <div id="record-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 hidden">
+    <div class="w-full max-w-lg glass-panel rounded-3xl border border-emerald-500/50 p-5 flex flex-col items-center text-center shadow-[0_0_50px_rgba(16,185,129,0.3)] relative">
+      
+      <button onclick="closeRecordModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs px-3 py-1 rounded-full mb-3 flex items-center space-x-1">
+        <i class="fa-solid fa-video"></i>
+        <span>도깨비 요술 카메라 스튜디오 📹</span>
+      </div>
+
+      <h3 class="text-lg font-black text-slate-100 mb-1">MY튜브 영상 직접 촬영하기</h3>
+      <p class="text-xs text-slate-400 mb-4">웹캠을 사용해 동영상을 찍고 썸네일 변신 피드에 올리세요!</p>
+
+      <!-- Camera Live Preview & Recorded Video Box -->
+      <div class="w-full aspect-video bg-black rounded-2xl border-2 border-emerald-500/40 relative overflow-hidden flex items-center justify-center shadow-inner mb-4">
+        <!-- Live Camera Stream Video Element -->
+        <video id="webcam-preview" autoplay playsinline muted class="w-full h-full object-cover"></video>
+        <!-- Recorded Playback Video Element -->
+        <video id="recorded-preview" controls class="w-full h-full object-cover hidden"></video>
+
+        <!-- Recording Indicator Badge -->
+        <div id="recording-badge" class="absolute top-3 left-3 bg-red-600/90 text-white font-extrabold text-[10px] px-2.5 py-1 rounded-full flex items-center space-x-1.5 opacity-0 transition-opacity">
+          <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+          <span>녹화 중... <span id="record-timer">00:00</span></span>
+        </div>
+      </div>
+
+      <!-- Video Details Input Form -->
+      <div id="publish-form" class="w-full space-y-2 mb-4 hidden">
+        <input 
+          id="record-title" 
+          type="text" 
+          placeholder="영상 제목을 입력하세요 (예: 도깨비 댄스 챌린지!)" 
+          class="w-full bg-slate-900 border border-emerald-500/40 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-400"
+        />
+      </div>
+
+      <!-- Camera Action Buttons -->
+      <div class="w-full flex items-center justify-center space-x-3">
+        <!-- Start Record Button -->
+        <button id="btn-start-rec" onclick="startRecording()" class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl text-xs shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-all">
+          <i class="fa-solid fa-circle"></i>
+          <span>녹화 시작</span>
+        </button>
+
+        <!-- Stop Record Button -->
+        <button id="btn-stop-rec" onclick="stopRecording()" disabled class="flex-1 py-3 bg-slate-800 text-slate-500 font-black rounded-2xl text-xs cursor-not-allowed flex items-center justify-center space-x-2 transition-all">
+          <i class="fa-solid fa-square"></i>
+          <span>녹화 중지</span>
+        </button>
+
+        <!-- Publish Upload Button -->
+        <button id="btn-publish-rec" onclick="publishRecordedVideo()" class="hidden flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-2xl text-xs shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-all">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>MY튜브에 게시</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* ===================================================================
+       INITIAL VIDEO DATABASE & DYNAMIC THUMBNAIL SETS
+       =================================================================== */
+    // Alternate dynamic thumbnail frames for each video to change continuously!
+    const DYNAMIC_THUMB_POOL = [
+      "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1563089145-599997674d42?w=600&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80"
+    ];
+
+    let videoList = [
+      {
+        id: 'v1',
+        title: '금 나와라 뚝딱! 도깨비방망이의 실체 공개 👹',
+        author: '금도깨비 TV',
+        category: '인기',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        duration: '09:56',
+        views: '128만회',
+        likes: '4.8만',
+        thumbs: [
+          'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80'
+        ],
+        currentThumbIdx: 0,
+        comments: [
+          { name: '아기 도깨비', text: '방망이 소리가 너무 감미로워요!! ㅋㅋㅋ' },
+          { name: '혹부리 영감', text: '혹도 때 주시나요? 구독 누르고 갑니다.' }
+        ]
+      },
+      {
+        id: 'v2',
+        title: '도깨비불 댄스 챌린지! 실시간 인싸들의 모임 🔥',
+        author: '네온 도깨비',
+        category: '숏폼',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+        duration: '00:58',
+        views: '89만회',
+        likes: '3.2만',
+        thumbs: [
+          'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1563089145-599997674d42?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80'
+        ],
+        currentThumbIdx: 0,
+        comments: [
+          { name: '춤신춤왕', text: '도깨비불 표현력 대박입니다!' }
+        ]
+      },
+      {
+        id: 'v3',
+        title: '신비로운 한옥 도깨비 마을 24시간 탐험 Vlog 🏯',
+        author: '탐험가 도깨비',
+        category: '음악',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        duration: '14:20',
+        views: '45만회',
+        likes: '2.1만',
+        thumbs: [
+          'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80'
+        ],
+        currentThumbIdx: 0,
+        comments: [
+          { name: '힐링러', text: '영상 분위기가 너무 멋지네요.' }
+        ]
+      },
+      {
+        id: 'v4',
+        title: '도깨비 방망이 게임 초고수 모음집 (버그 아님!) 🎮',
+        author: '게이머 도깨비',
+        category: '게임',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+        duration: '11:05',
+        views: '62만회',
+        likes: '1.9만',
+        thumbs: [
+          'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop&q=80'
+        ],
+        currentThumbIdx: 0,
+        comments: [
+          { name: '겜돌이', text: '컨트롤 엄청나네요' }
+        ]
+      }
+    ];
+
+    let activeCategory = '전체';
+    let currentVideoObj = null;
+    let isSubscribed = false;
+    let isLiked = false;
+
+    // Webcam Recording Variables
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let webcamStream = null;
+    let recordTimerInterval = null;
+    let recordSeconds = 0;
+    let recordedBlobUrl = null;
+
+    /* ===================================================================
+       DYNAMIC THUMBNAIL CHANGING ENGINE (핵심 기능)
+       =================================================================== */
+    // Continuously rotates thumbnails for all video cards and hero banner every 2.5 seconds!
+    function startDynamicThumbnailEngine() {
+      setInterval(() => {
+        // 1. Rotate Hero Banner Thumbnail
+        const heroImg = document.getElementById('hero-dynamic-thumb');
+        const heroLabel = document.getElementById('hero-thumb-label');
+        if (heroImg) {
+          const randIdx = Math.floor(Math.random() * DYNAMIC_THUMB_POOL.length);
+          heroImg.src = DYNAMIC_THUMB_POOL[randIdx];
+          if (heroLabel) {
+            heroLabel.innerText = `실시간 변신 썸네일 #${randIdx + 1}`;
+          }
+        }
+
+        // 2. Rotate Grid Cards Thumbnails
+        videoList.forEach((vid) => {
+          vid.currentThumbIdx = (vid.currentThumbIdx + 1) % vid.thumbs.length;
+          const imgEl = document.getElementById(`thumb-img-${vid.id}`);
+          const badgeEl = document.getElementById(`thumb-badge-${vid.id}`);
+          if (imgEl) {
+            imgEl.src = vid.thumbs[vid.currentThumbIdx];
+            imgEl.classList.add('scale-105', 'brightness-125');
+            setTimeout(() => imgEl.classList.remove('scale-105', 'brightness-125'), 500);
+          }
+          if (badgeEl) {
+            badgeEl.innerText = `변신 #${vid.currentThumbIdx + 1}`;
+          }
+        });
+
+      }, 2800);
+    }
+
+    /* ===================================================================
+       DOM RENDERERS
+       =================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      renderVideoGrid();
+      startDynamicThumbnailEngine();
+    });
+
+    function renderVideoGrid() {
+      const gridContainer = document.getElementById('video-grid');
+      gridContainer.innerHTML = '';
+
+      const filtered = videoList.filter(v => {
+        if (activeCategory === '전체') return true;
+        return v.category === activeCategory;
+      });
+
+      if (filtered.length === 0) {
+        gridContainer.innerHTML = `
+          <div class="col-span-full py-16 text-center text-slate-400 font-bold">
+            <i class="fa-solid fa-ghost text-4xl mb-3 text-emerald-400 animate-bounce block"></i>
+            해당 카테고리의 동영상이 아직 없습니다! 영상 찍기 버튼을 눌러 첫 영상을 작성해 보세요.
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(vid => {
+        const card = document.createElement('div');
+        card.className = "glass-card rounded-2xl overflow-hidden border border-slate-800 hover:border-emerald-500/50 transition-all duration-300 hover:-translate-y-1 group cursor-pointer shadow-lg";
+        card.onclick = () => openPlayerModal(vid);
+
+        card.innerHTML = `
+          <!-- Thumbnail Wrapper -->
+          <div class="relative aspect-video overflow-hidden bg-slate-900">
+            <img 
+              id="thumb-img-${vid.id}"
+              src="${vid.thumbs[vid.currentThumbIdx]}" 
+              alt="${vid.title}" 
+              class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500 dynamic-thumb-frame"
+            />
+
+            <!-- Changing Thumbnail Live Indicator -->
+            <div class="absolute top-2 left-2 bg-slate-950/80 backdrop-blur-sm border border-emerald-500/40 px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-300 flex items-center space-x-1">
+              <i class="fa-solid fa-sync text-yellow-300 text-[9px] animate-spin"></i>
+              <span id="thumb-badge-${vid.id}">변신 #${vid.currentThumbIdx + 1}</span>
+            </div>
+
+            <!-- Duration Badge -->
+            <div class="absolute bottom-2 right-2 bg-black/80 text-white font-mono text-[10px] px-1.5 py-0.5 rounded font-bold">
+              ${vid.duration}
+            </div>
+
+            <!-- Hover Play Button -->
+            <div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div class="w-12 h-12 rounded-full bg-emerald-500/90 text-slate-950 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                <i class="fa-solid fa-play ml-1"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Info -->
+          <div class="p-3 sm:p-4 flex space-x-3">
+            <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-emerald-400 to-purple-500 flex items-center justify-center text-slate-950 font-black text-sm shrink-0">
+              👹
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="text-xs sm:text-sm font-bold text-slate-100 line-clamp-2 leading-snug group-hover:text-emerald-300 transition-colors">
+                ${vid.title}
+              </h4>
+              <p class="text-[11px] text-slate-400 font-semibold mt-1">${vid.author}</p>
+              <div class="flex items-center space-x-2 text-[10px] text-slate-500 mt-0.5 font-bold">
+                <span>조회수 ${vid.views}</span>
+                <span>•</span>
+                <span class="text-emerald-400/80">실시간 썸네일</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        gridContainer.appendChild(card);
+      });
+    }
+
+    /* ===================================================================
+       CATEGORY & SEARCH HANDLERS
+       =================================================================== */
+    function filterCategory(cat) {
+      activeCategory = cat;
+      document.querySelectorAll('.category-btn').forEach(btn => {
+        if (btn.innerText.includes(cat)) {
+          btn.className = "category-btn bg-emerald-500 text-slate-950 px-4 py-2 rounded-full shadow-md whitespace-nowrap transition-all";
+        } else {
+          btn.className = "category-btn bg-slate-800/90 text-slate-300 hover:text-white px-4 py-2 rounded-full border border-slate-700 whitespace-nowrap transition-all";
+        }
+      });
+      renderVideoGrid();
+    }
+
+    function handleSearchKey(e) {
+      if (e.key === 'Enter') executeSearch();
+    }
+
+    function executeSearch() {
+      const q = document.getElementById('search-input').value.trim().toLowerCase();
+      if (!q) {
+        renderVideoGrid();
+        return;
+      }
+
+      const gridContainer = document.getElementById('video-grid');
+      gridContainer.innerHTML = '';
+
+      const matched = videoList.filter(v => v.title.toLowerCase().includes(q) || v.author.toLowerCase().includes(q));
+
+      if (matched.length === 0) {
+        showToast("검색 결과가 없습니다! 도깨비 방망이 재검색 뚝딱!");
+      }
+
+      matched.forEach(vid => {
+        // Render search result items
+      });
+    }
+
+    /* ===================================================================
+       STREAMING_CHUNK:Adding video feed logic, comments, and interactions...
+       VIDEO PLAYER MODAL HANDLERS
+       =================================================================== */
+    function openPlayerModal(vidObj) {
+      currentVideoObj = vidObj;
+      const modal = document.getElementById('player-modal');
+      const videoPlayer = document.getElementById('main-video-player');
+      const videoSrc = document.getElementById('video-src');
+
+      document.getElementById('modal-video-title').innerText = vidObj.title;
+      document.getElementById('modal-author-name').innerText = vidObj.author;
+      document.getElementById('modal-likes-count').innerText = vidObj.likes;
+
+      videoSrc.src = vidObj.videoUrl;
+      videoPlayer.load();
+      videoPlayer.play().catch(() => {});
+
+      renderComments();
+      modal.classList.remove('hidden');
+    }
+
+    function playHeroVideo() {
+      openPlayerModal(videoList[0]);
+    }
+
+    function closePlayerModal() {
+      const modal = document.getElementById('player-modal');
+      const videoPlayer = document.getElementById('main-video-player');
+      videoPlayer.pause();
+      modal.classList.add('hidden');
+    }
+
+    function toggleSubscribe() {
+      const btn = document.getElementById('sub-btn');
+      isSubscribed = !isSubscribed;
+      if (isSubscribed) {
+        btn.innerText = '구독중 ✓';
+        btn.className = "ml-2 bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2 rounded-full font-black text-xs transition-all";
+        showToast("도깨비 채널을 구독했습니다! 👹✨");
+        confetti({ particleCount: 30, spread: 50, origin: { y: 0.6 } });
+      } else {
+        btn.innerText = '구독하기';
+        btn.className = "ml-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-full font-black text-xs transition-all active:scale-95";
+      }
+    }
+
+    function toggleLike() {
+      isLiked = !isLiked;
+      const likeBtn = document.getElementById('like-btn');
+      if (isLiked) {
+        likeBtn.classList.add('text-emerald-400', 'border-emerald-500');
+        showToast("좋아요! 도깨비불 응원 성공 🔥");
+      } else {
+        likeBtn.classList.remove('text-emerald-400', 'border-emerald-500');
+      }
+    }
+
+    function shareVideo() {
+      const dummyUrl = window.location.href;
+      const textarea = document.createElement('textarea');
+      textarea.value = `MY튜브 도깨비 요술 영상 보기: ${currentVideoObj?.title || '신비한 동영상'}`;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+
+      showToast("동영상 공유 링크가 클립보드에 복사되었습니다! 🔗");
+    }
+
+    function renderComments() {
+      const listEl = document.getElementById('comment-list');
+      listEl.innerHTML = '';
+
+      if (!currentVideoObj || !currentVideoObj.comments) return;
+
+      currentVideoObj.comments.forEach(c => {
+        const item = document.createElement('div');
+        item.className = "bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-xs flex space-x-2";
+        item.innerHTML = `
+          <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] shrink-0">
+            👹
+          </div>
+          <div>
+            <span class="font-bold text-slate-300 block">${c.name}</span>
+            <p class="text-slate-400 mt-0.5">${c.text}</p>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    function addComment() {
+      const input = document.getElementById('comment-input');
+      const text = input.value.trim();
+      if (!text || !currentVideoObj) return;
+
+      currentVideoObj.comments.unshift({
+        name: '나 (도깨비 시청자)',
+        text: text
+      });
+
+      input.value = '';
+      renderComments();
+      showToast("댓글이 등록되었습니다!");
+    }
+
+    /* ===================================================================
+       WEBCAM VIDEO RECORDING & MYTUBE UPLOAD (핵심 조건)
+       =================================================================== */
+    async function openRecordModal() {
+      const modal = document.getElementById('record-modal');
+      modal.classList.remove('hidden');
+
+      // Request Webcam stream
+      try {
+        webcamStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const webcamPreview = document.getElementById('webcam-preview');
+        webcamPreview.srcObject = webcamStream;
+        webcamPreview.classList.remove('hidden');
+        document.getElementById('recorded-preview').classList.add('hidden');
+      } catch (err) {
+        showToast("카메라 권한을 얻지 못했습니다. 미디어 권한을 확인해주세요.");
+      }
+    }
+
+    function closeRecordModal() {
+      stopRecording();
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(track => track.stop());
+      }
+      document.getElementById('record-modal').classList.add('hidden');
+    }
+
+    function startRecording() {
+      if (!webcamStream) {
+        showToast("카메라가 준비되지 않았습니다.");
+        return;
+      }
+
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(webcamStream);
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+        recordedBlobUrl = URL.createObjectURL(blob);
+
+        const recPreview = document.getElementById('recorded-preview');
+        const webcamPreview = document.getElementById('webcam-preview');
+
+        webcamPreview.classList.add('hidden');
+        recPreview.src = recordedBlobUrl;
+        recPreview.classList.remove('hidden');
+
+        document.getElementById('publish-form').classList.remove('hidden');
+        document.getElementById('btn-publish-rec').classList.remove('hidden');
+      };
+
+      mediaRecorder.start();
+
+      // UI updates
+      document.getElementById('recording-badge').classList.remove('opacity-0');
+      document.getElementById('btn-start-rec').disabled = true;
+      document.getElementById('btn-start-rec').classList.add('opacity-50');
+      document.getElementById('btn-stop-rec').disabled = false;
+      document.getElementById('btn-stop-rec').className = "flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl text-xs shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-all";
+
+      // Timer
+      recordSeconds = 0;
+      clearInterval(recordTimerInterval);
+      recordTimerInterval = setInterval(() => {
+        recordSeconds++;
+        const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+        const secs = String(recordSeconds % 60).padStart(2, '0');
+        document.getElementById('record-timer').innerText = `${mins}:${secs}`;
+      }, 1000);
+
+      showToast("녹화 시작! 도깨비 카메라가 촬영 중입니다.");
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      clearInterval(recordTimerInterval);
+      document.getElementById('recording-badge').classList.add('opacity-0');
+    }
+
+    function publishRecordedVideo() {
+      const titleInput = document.getElementById('record-title').value.trim();
+      const videoTitle = titleInput || `내가 찍은 도깨비 요술 영상 #${videoList.length + 1}`;
+
+      const newVideo = {
+        id: 'rec_' + Date.now(),
+        title: videoTitle,
+        author: '나의 도깨비 채널',
+        category: '직접촬영',
+        videoUrl: recordedBlobUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        duration: `00:${String(recordSeconds).padStart(2, '0')}`,
+        views: '1회',
+        likes: '1',
+        thumbs: [
+          'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80'
+        ],
+        currentThumbIdx: 0,
+        comments: []
+      };
+
+      videoList.unshift(newVideo);
+      filterCategory('직접촬영');
+      closeRecordModal();
+
+      showToast("금 나와라 뚝딱! 새로 촬영한 동영상이 MY튜브에 게시되었습니다! 🎉");
+      confetti({ particleCount: 50, spread: 70, origin: { y: 0.5 } });
+    }
+
+    /* ===================================================================
+       TOAST UTILITY
+       =================================================================== */
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-text').innerText = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2500);
+    }
+  </script>
+
+</body>
+</html>

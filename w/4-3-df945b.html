@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>도서관 타이쿤 : 나만의 힐링 북케어</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Sunflower:wght@500;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sunflower: ['Sunflower', 'sans-serif'],
+                        gowun: ['Gowun Dodum', 'sans-serif']
+                    },
+                    colors: {
+                        woodDark: '#2c1810',
+                        woodMedium: '#4a2c11',
+                        woodLight: '#8c5a2b',
+                        warmPaper: '#fbf7ee',
+                        emeraldAccent: '#1b4332',
+                        goldAccent: '#d4af37',
+                        cozyRed: '#9e2a2b'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+            background-color: #1a1412;
+            color: #333333;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .title-font {
+            font-family: 'Sunflower', sans-serif;
+        }
+
+        .glass-panel {
+            background: rgba(251, 247, 238, 0.92);
+            backdrop-filter: blur(8px);
+            border: 2px solid #8c5a2b;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .tab-btn {
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background-color: #1b4332;
+            color: #ffffff;
+            border-color: #d4af37;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1e7d0;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #8c5a2b;
+            border-radius: 4px;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.9); }
+        }
+
+        .glow-effect {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="m-0 p-0 flex justify-center items-center">
+
+    <div id="game-container" class="relative w-full max-w-lg h-full sm:h-[96vh] sm:rounded-3xl overflow-hidden bg-warmPaper border-0 sm:border-4 border-woodMedium shadow-2xl flex flex-col justify-between">
+
+        <!-- Top Status HUD Bar -->
+        <header class="relative z-20 bg-woodDark text-warmPaper p-3 shadow-md flex flex-col gap-2 border-b-2 border-goldAccent">
+            <div class="flex justify-between items-center">
+                <!-- Library Name & Level -->
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 rounded-full bg-emeraldAccent border-2 border-goldAccent flex items-center justify-center text-goldAccent text-xl shadow">
+                        📚
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <h1 id="lib-name" class="title-font text-base font-bold text-amber-200">평화로운 북카페 도서관</h1>
+                            <span id="lib-level-badge" class="bg-goldAccent text-woodDark text-[10px] font-black px-1.5 py-0.5 rounded-full">Lv.1</span>
+                        </div>
+                        <p id="lib-reputation" class="text-[11px] text-amber-100/80 font-sans">
+                            ⭐ 명성: <span id="rep-val" class="font-bold text-amber-300">100</span> / 1,000 (동네 작은 글방)
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Settings / Sound Toggles -->
+                <div class="flex items-center gap-2">
+                    <button id="sound-btn" onclick="toggleAudio()" class="w-8 h-8 rounded-xl bg-woodMedium border border-goldAccent/50 text-amber-300 flex items-center justify-center text-xs hover:bg-woodLight transition active:scale-90">
+                        <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <button onclick="openModal('stats')" class="w-8 h-8 rounded-xl bg-woodMedium border border-goldAccent/50 text-amber-300 flex items-center justify-center text-xs hover:bg-woodLight transition active:scale-90">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Currency & Status Display Row -->
+            <div class="grid grid-cols-3 gap-2 bg-woodMedium/80 p-2 rounded-xl border border-woodLight text-xs">
+                <!-- Gold -->
+                <div class="flex flex-col items-center justify-center border-r border-woodLight/50">
+                    <span class="text-[10px] text-amber-200/70 font-sans">🪙 소지 골드</span>
+                    <span id="gold-val" class="text-sm font-bold text-yellow-300 title-font">1,000G</span>
+                </div>
+                <!-- Knowledge Points -->
+                <div class="flex flex-col items-center justify-center border-r border-woodLight/50">
+                    <span class="text-[10px] text-amber-200/70 font-sans">💡 지식 포인트</span>
+                    <span id="knowledge-val" class="text-sm font-bold text-emerald-300 title-font">0 Pt</span>
+                </div>
+                <!-- Active Visitors -->
+                <div class="flex flex-col items-center justify-center">
+                    <span class="text-[10px] text-amber-200/70 font-sans">👥 방문 열람객</span>
+                    <span id="visitor-count" class="text-sm font-bold text-amber-200 title-font">0 / 12명</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Visual Simulation Canvas Container -->
+        <main class="relative w-full flex-grow overflow-hidden bg-amber-50">
+            <canvas id="libraryCanvas" class="w-full h-full cursor-pointer"></canvas>
+
+            <!-- Floating Quick Collect Button / Indicator -->
+            <div id="event-toast" class="absolute top-3 left-1/2 -translate-x-1/2 bg-emeraldAccent/95 text-amber-200 border-2 border-goldAccent px-3 py-1.5 rounded-full text-xs font-bold shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none flex items-center gap-1.5 z-10">
+                <span id="event-toast-icon">✨</span>
+                <span id="event-toast-text">손님이 대출을 완료했습니다! (+150G)</span>
+            </div>
+
+            <!-- Interactive Helper Floating Bubble -->
+            <button onclick="triggerQuickRead()" class="absolute bottom-3 right-3 bg-woodDark text-goldAccent hover:bg-emeraldAccent border-2 border-goldAccent px-3 py-2 rounded-2xl text-xs font-bold shadow-xl flex items-center gap-2 active:scale-95 transition z-10">
+                <span class="text-base animate-bounce">📖</span>
+                <div class="text-left">
+                    <span class="block text-[10px] text-amber-200 font-sans leading-none">클릭하여</span>
+                    <span class="text-amber-300 title-font">독서 권장하기</span>
+                </div>
+            </button>
+        </main>
+
+        <!-- Bottom Tabbed Control Panel -->
+        <footer class="relative z-20 bg-woodDark/95 border-t-2 border-goldAccent flex flex-col h-[42%] max-h-[340px]">
+            <!-- Navigation Tabs -->
+            <div class="grid grid-cols-4 gap-1 p-1.5 bg-woodDark border-b border-woodLight">
+                <button onclick="switchTab('facilities')" id="tab-btn-facilities" class="tab-btn active py-1.5 rounded-lg text-xs font-bold text-amber-100 flex flex-col items-center gap-0.5 border border-transparent">
+                    <span class="text-sm">🏛️</span>
+                    <span class="text-[10px]">시설 & 서가</span>
+                </button>
+                <button onclick="switchTab('books')" id="tab-btn-books" class="tab-btn py-1.5 rounded-lg text-xs font-bold text-amber-100 flex flex-col items-center gap-0.5 border border-transparent">
+                    <span class="text-sm">📕</span>
+                    <span class="text-[10px]">도서 수집</span>
+                </button>
+                <button onclick="switchTab('staff')" id="tab-btn-staff" class="tab-btn py-1.5 rounded-lg text-xs font-bold text-amber-100 flex flex-col items-center gap-0.5 border border-transparent">
+                    <span class="text-sm">👥</span>
+                    <span class="text-[10px]">직원 고용</span>
+                </button>
+                <button onclick="switchTab('quests')" id="tab-btn-quests" class="tab-btn py-1.5 rounded-lg text-xs font-bold text-amber-100 flex flex-col items-center gap-0.5 border border-transparent">
+                    <span class="text-sm">🎯</span>
+                    <span class="text-[10px]">이벤트/미션</span>
+                </button>
+            </div>
+
+            <!-- Tab Content Viewports -->
+            <div class="flex-grow p-3 overflow-y-auto custom-scrollbar bg-warmPaper/90 text-woodDark">
+
+                <!-- 1. Facilities & Upgrades Tab -->
+                <div id="tab-content-facilities" class="space-y-2.5">
+                    <div class="flex justify-between items-center border-b border-woodLight/30 pb-1.5">
+                        <h3 class="title-font text-sm font-bold text-woodDark">📚 열람실 및 서가 확장</h3>
+                        <span class="text-[11px] text-woodMedium font-sans">시설 업그레이드로 수입 증가</span>
+                    </div>
+                    <div id="facilities-list" class="space-y-2">
+                        <!-- Dynamic Facility Items Injected Here -->
+                    </div>
+                </div>
+
+                <!-- 2. Book Collection Tab -->
+                <div id="tab-content-books" class="hidden space-y-2.5">
+                    <div class="flex justify-between items-center border-b border-woodLight/30 pb-1.5">
+                        <h3 class="title-font text-sm font-bold text-woodDark">📖 인기 도서 라인업 해금</h3>
+                        <span class="text-[11px] text-woodMedium font-sans">지식 포인트로 도서 구입</span>
+                    </div>
+                    <div id="books-list" class="space-y-2">
+                        <!-- Dynamic Book Items Injected Here -->
+                    </div>
+                </div>
+
+                <!-- 3. Staff & Automation Tab -->
+                <div id="tab-content-staff" class="hidden space-y-2.5">
+                    <div class="flex justify-between items-center border-b border-woodLight/30 pb-1.5">
+                        <h3 class="title-font text-sm font-bold text-woodDark">👥 도서관 직속 직원 고용</h3>
+                        <span class="text-[11px] text-woodMedium font-sans">업무 자동화 및 대출 속도 증가</span>
+                    </div>
+                    <div id="staff-list" class="space-y-2">
+                        <!-- Dynamic Staff Items Injected Here -->
+                    </div>
+                </div>
+
+                <!-- 4. Quests & Events Tab -->
+                <div id="tab-content-quests" class="hidden space-y-2.5">
+                    <div class="flex justify-between items-center border-b border-woodLight/30 pb-1.5">
+                        <h3 class="title-font text-sm font-bold text-woodDark">🎯 도서관 미션 및 특수 이벤트</h3>
+                        <span class="text-[11px] text-woodMedium font-sans">목표 달성 시 푸짐한 보상</span>
+                    </div>
+                    <div id="quests-list" class="space-y-2">
+                        <!-- Dynamic Quests Injected Here -->
+                    </div>
+                </div>
+
+            </div>
+        </footer>
+
+        <!-- Modal Popup Structure -->
+        <div id="game-modal" class="hidden absolute inset-0 bg-woodDark/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="glass-panel w-full max-w-sm rounded-3xl p-5 border-2 border-goldAccent relative shadow-2xl text-center space-y-4">
+                <button onclick="closeModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-woodDark text-amber-200 hover:bg-cozyRed flex items-center justify-center text-sm font-bold">
+                    ✕
+                </button>
+
+                <div id="modal-content">
+                    <!-- Dynamic Modal Content Injection -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* =========================================================================
+         * Web Audio Synthesizer Engine for Library Ambiance & SFX
+         * ========================================================================= */
+        class LibrarySoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+                this.bgmTimer = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // Coin Collect SFX
+            playCoinSound() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, now); // B5
+                osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            // Page Flip / Book Sound
+            playPageSound() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const bufferSize = this.ctx.sampleRate * 0.08;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 1200;
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start(now);
+            }
+
+            // Upgrade / Fanfare SFX
+            playFanfare() {
+                if (this.muted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
+
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+
+                    gain.gain.setValueAtTime(0.2, now + i * 0.07);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.2);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.07);
+                    osc.stop(now + i * 0.07 + 0.2);
+                });
+            }
+
+            // Soft Ambient Gentle Note BGM Loop
+            startCozyBGM() {
+                if (this.bgmTimer) return;
+                const chords = [261.63, 329.63, 392.00, 493.88]; // C major 7
+                let chordIdx = 0;
+
+                this.bgmTimer = setInterval(() => {
+                    if (this.muted) return;
+                    this.init();
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(chords[chordIdx % chords.length], now);
+                    chordIdx++;
+
+                    gain.gain.setValueAtTime(0.02, now);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 1.8);
+                }, 2200);
+            }
+        }
+
+        const soundEngine = new LibrarySoundEngine();
+
+        /* =========================================================================
+         * STREAMING_CHUNK:Configuring Library Game Engine and State...
+         * ========================================================================= */
+        // Core Game Data & State
+        const gameState = {
+            gold: 1000,
+            knowledge: 10,
+            reputation: 100,
+            maxReputation: 1000,
+            level: 1,
+            totalBorrowedBooks: 0,
+            maxCapacity: 10,
+
+            // Facilities Upgrades List
+            facilities: [
+                { id: 'desk', name: '열람실 독서 책상', level: 1, maxLevel: 10, baseCost: 150, costMult: 1.5, income: 15, desc: '열람객 수용 인원 및 기본 대여 수입 증가', icon: '🪑' },
+                { id: 'fiction', name: '소설 & 문학 서가', level: 1, maxLevel: 15, baseCost: 300, costMult: 1.45, income: 30, desc: '대중적인 인기 서적 배치로 방문율 상승', icon: '📚' },
+                { id: 'science', name: '과학 & IT 전문 서가', level: 0, maxLevel: 15, baseCost: 800, costMult: 1.5, income: 75, desc: '전문 서적으로 지식 포인트 수급 가능', icon: '🔬' },
+                { id: 'comic', name: '웹툰 & 만화 코너', level: 0, maxLevel: 10, baseCost: 1500, costMult: 1.6, income: 140, desc: '어린이 및 청소년 방문객 급증', icon: '🎨' },
+                { id: 'cafe', name: '도서관 북카페', level: 0, maxLevel: 8, baseCost: 3500, costMult: 1.7, income: 320, desc: '커피 및 디저트 판매로 추가 자동 골드 창출', icon: '☕' },
+                { id: 'rare', name: '희귀 고서적 특별관', level: 0, maxLevel: 5, baseCost: 10000, costMult: 2.0, income: 850, desc: '명성 점수 폭발적 증가 및 VIP 방문', icon: '📜' }
+            ],
+
+            // Books Collection List (Unlocked with Knowledge Points)
+            books: [
+                { id: 'b1', title: '어린 왕자의 독서법', genre: '문학', cost: 15, incomeBoost: 1.1, unlocked: true, icon: '🌟' },
+                { id: 'b2', title: '챗GPT와 함께 쓰는 도서관', genre: 'IT/기술', cost: 40, incomeBoost: 1.25, unlocked: false, icon: '🤖' },
+                { id: 'b3', title: '마법 소녀의 북리뷰 1권', genre: '만화', cost: 100, incomeBoost: 1.4, unlocked: false, icon: '🪄' },
+                { id: 'b4', title: '조선의 미스터리 장서', genre: '역사', cost: 250, incomeBoost: 1.7, unlocked: false, icon: '👑' },
+                { id: 'b5', title: '우주 은하 도서관 가이드', genre: 'SF', cost: 600, incomeBoost: 2.2, unlocked: false, icon: '🚀' }
+            ],
+
+            // Staff Automation List
+            staff: [
+                { id: 's1', name: '친절한 수습 사서', role: '자동 대출 처리', count: 0, max: 3, cost: 500, speed: 2.5, desc: '손님이 기다리지 않고 자동으로 책을 대출합니다', icon: '👩‍💼' },
+                { id: 's2', name: '부지런한 청소부', role: '쾌적도 관리', count: 0, max: 2, cost: 1200, speed: 5.0, desc: '도서관 명성 수치를 주기적으로 회복시킵니다', icon: '🧹' },
+                { id: 's3', name: '전문 바리스타', role: '북카페 자동화', count: 0, max: 2, cost: 3000, speed: 8.0, desc: '카페 메뉴 판매 효율을 2배로 늘립니다', icon: '☕' }
+            ],
+
+            // Quests List
+            quests: [
+                { id: 'q1', text: '책상 업그레이드 3단계 달성', target: 3, current: 1, rewardG: 500, rewardK: 20, done: false },
+                { id: 'q2', text: '누적 도서 대출 30회 달성', target: 30, current: 0, rewardG: 1200, rewardK: 50, done: false },
+                { id: 'q3', text: '북카페 개설하기', target: 1, current: 0, rewardG: 3000, rewardK: 100, done: false }
+            ]
+        };
+
+        /* =========================================================================
+         * STREAMING_CHUNK:Implementing Canvas visual rendering and customer AI...
+         * ========================================================================= */
+        const canvas = document.getElementById('libraryCanvas');
+        const ctx = canvas.getContext('2d');
+        let canvasW, canvasH;
+
+        // Visual Readers & Entities inside Library
+        let readers = [];
+        let floatTexts = [];
+
+        // Reader Avatars
+        const AVATAR_EMOJIS = ['👩‍🎓', '👨‍💻', '👧', '👵', '🧔', '🐱', '🎒', '🧐'];
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvasW = canvas.width = rect.width;
+            canvasH = canvas.height = rect.height;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Spawn a new visitor
+        function spawnReader() {
+            if (readers.length >= gameState.maxCapacity) return;
+
+            const avatar = AVATAR_EMOJIS[Math.floor(Math.random() * AVATAR_EMOJIS.length)];
+            readers.push({
+                id: Math.random(),
+                emoji: avatar,
+                x: 40 + Math.random() * 40,
+                y: canvasH - 50,
+                targetX: 60 + Math.random() * (canvasW - 120),
+                targetY: 80 + Math.random() * (canvasH - 160),
+                state: 'walking', // 'walking', 'reading', 'checkingOut'
+                readTimer: 0,
+                maxReadTime: 120 + Math.random() * 180,
+                hasBook: false
+            });
+        }
+
+        // Draw Visual Isometric/Top-down Floorplan of Library
+        function renderLibraryCanvas() {
+            ctx.clearRect(0, 0, canvasW, canvasH);
+
+            // 1. Cozy Wooden Floor Grid
+            ctx.fillStyle = '#f4e8d1';
+            ctx.fillRect(0, 0, canvasW, canvasH);
+
+            // Floor Tile Patterns
+            ctx.strokeStyle = '#e2d2b4';
+            ctx.lineWidth = 1;
+            const tileSize = 40;
+            for (let x = 0; x < canvasW; x += tileSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvasH);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvasH; y += tileSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvasW, y);
+                ctx.stroke();
+            }
+
+            // 2. Render Checkout Counter (대출/반납 창구)
+            ctx.fillStyle = '#4a2c11';
+            ctx.fillRect(20, canvasH - 70, 100, 45);
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(20, canvasH - 70, 100, 45);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px Gowun Dodum';
+            ctx.textAlign = 'center';
+            ctx.fillText('🛎️ 대출 창구', 70, canvasH - 43);
+
+            // 3. Render Bookshelves (서가)
+            const fictionLvl = gameState.facilities.find(f => f.id === 'fiction').level;
+            const comicLvl = gameState.facilities.find(f => f.id === 'comic').level;
+            const cafeLvl = gameState.facilities.find(f => f.id === 'cafe').level;
+
+            // Bookshelf A (Main)
+            drawBookshelf(canvasW - 100, 50, '📚 소설 서가', fictionLvl > 0);
+            if (comicLvl > 0) {
+                drawBookshelf(canvasW - 100, 150, '🎨 웹툰 코너', true);
+            }
+
+            // Study Desk Area
+            const deskLvl = gameState.facilities.find(f => f.id === 'desk').level;
+            ctx.fillStyle = '#8c5a2b';
+            ctx.fillRect(40, 50, 120, 60);
+            ctx.strokeRect(40, 50, 120, 60);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(`🪑 열람석 (Lv.${deskLvl})`, 100, 85);
+
+            // Cafe Area
+            if (cafeLvl > 0) {
+                ctx.fillStyle = '#1b4332';
+                ctx.fillRect(40, 140, 100, 50);
+                ctx.fillStyle = '#d4af37';
+                ctx.fillText('☕ 북카페', 90, 170);
+            }
+
+            // 4. Update and Render Visitors
+            for (let i = readers.length - 1; i >= 0; i--) {
+                const r = readers[i];
+
+                // Movement AI Logic
+                const dx = r.targetX - r.x;
+                const dy = r.targetY - r.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > 3) {
+                    r.x += (dx / dist) * 1.5;
+                    r.y += (dy / dist) * 1.5;
+                } else {
+                    // Arrived at target
+                    if (r.state === 'walking') {
+                        r.state = 'reading';
+                        r.readTimer = 0;
+                        r.hasBook = true;
+                    } else if (r.state === 'reading') {
+                        r.readTimer++;
+                        if (r.readTimer > r.maxReadTime) {
+                            // Head to checkout counter
+                            r.state = 'checkingOut';
+                            r.targetX = 70;
+                            r.targetY = canvasH - 50;
+                        }
+                    } else if (r.state === 'checkingOut') {
+                        // Complete Loan & Checkout
+                        completeCheckout(r);
+                        readers.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                // Render Visitor Avatar
+                ctx.font = '22px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(r.emoji, r.x, r.y);
+
+                // Reading Speech Bubble Effect
+                if (r.state === 'reading') {
+                    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                    ctx.beginPath();
+                    ctx.arc(r.x + 12, r.y - 18, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.font = '10px sans-serif';
+                    ctx.fillText('📖', r.x + 12, r.y - 15);
+                }
+            }
+
+            // 5. Render Floating Coins / Gold Text Animations
+            for (let i = floatTexts.length - 1; i >= 0; i--) {
+                const ft = floatTexts[i];
+                ctx.fillStyle = ft.color || '#d4af37';
+                ctx.font = 'bold 13px Sunflower';
+                ctx.textAlign = 'center';
+                ctx.fillText(ft.text, ft.x, ft.y);
+
+                ft.y -= 0.8;
+                ft.alpha -= 0.02;
+                if (ft.alpha <= 0) {
+                    floatTexts.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(renderLibraryCanvas);
+        }
+
+        function drawBookshelf(x, y, label, active) {
+            ctx.fillStyle = active ? '#4a2c11' : '#a89a8e';
+            ctx.fillRect(x, y, 80, 70);
+            ctx.strokeStyle = '#2c1810';
+            ctx.strokeRect(x, y, 80, 70);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '11px Gowun Dodum';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x + 40, y + 40);
+        }
+
+        function addFloatText(text, x, y, color = '#d4af37') {
+            floatTexts.push({ text, x, y, alpha: 1.0, color });
+        }
+
+        function completeCheckout(reader) {
+            // Calculate Income based on upgrades and unlocked books
+            let baseReward = 20;
+
+            // Add multipliers from unlocked books
+            let bookMultiplier = 1.0;
+            gameState.books.forEach(b => {
+                if (b.unlocked) bookMultiplier *= b.incomeBoost;
+            });
+
+            const earnedGold = Math.floor(baseReward * bookMultiplier);
+            const earnedKnowledge = Math.random() < 0.4 ? 1 : 0;
+
+            gameState.gold += earnedGold;
+            gameState.knowledge += earnedKnowledge;
+            gameState.totalBorrowedBooks++;
+
+            // Quest tracker update
+            const q2 = gameState.quests.find(q => q.id === 'q2');
+            if (q2 && !q2.done) {
+                q2.current = gameState.totalBorrowedBooks;
+            }
+
+            soundEngine.playCoinSound();
+            soundEngine.playPageSound();
+
+            addFloatText(`+${earnedGold}G`, reader.x, reader.y - 10, '#ffd700');
+            if (earnedKnowledge > 0) {
+                addFloatText(`+${earnedKnowledge}Pt`, reader.x + 15, reader.y - 25, '#34d399');
+            }
+
+            showToast(`📖 도서 대출 완료! (+${earnedGold}G)`);
+            updateUI();
+        }
+
+        /* =========================================================================
+         * STREAMING_CHUNK:Defining upgrade handlers, hiring, and quest logic...
+         * ========================================================================= */
+        function triggerQuickRead() {
+            soundEngine.playPageSound();
+            gameState.gold += 10;
+            addFloatText('+10G 독서 응원!', canvasW / 2, canvasH / 2 + 20, '#fef08a');
+            updateUI();
+        }
+
+        function upgradeFacility(id) {
+            const fac = gameState.facilities.find(f => f.id === id);
+            if (!fac) return;
+
+            const cost = Math.floor(fac.baseCost * Math.pow(fac.costMult, fac.level));
+            if (gameState.gold < cost) {
+                showModalAlert('골드 부족', '업그레이드에 필요한 골드가 부족합니다! 🪙');
+                return;
+            }
+
+            gameState.gold -= cost;
+            fac.level++;
+
+            // Capacity boost on desk upgrade
+            if (fac.id === 'desk') {
+                gameState.maxCapacity += 2;
+            }
+
+            // Quest Check
+            const q1 = gameState.quests.find(q => q.id === 'q1');
+            if (q1 && !q1.done && fac.id === 'desk') {
+                q1.current = fac.level;
+            }
+            const q3 = gameState.quests.find(q => q.id === 'q3');
+            if (q3 && !q3.done && fac.id === 'cafe' && fac.level >= 1) {
+                q3.current = 1;
+            }
+
+            soundEngine.playFanfare();
+            showToast(`🎉 ${fac.name} Lv.${fac.level} 업그레이드 완료!`);
+            renderFacilitiesList();
+            updateUI();
+        }
+
+        function unlockBook(id) {
+            const book = gameState.books.find(b => b.id === id);
+            if (!book || book.unlocked) return;
+
+            if (gameState.knowledge < book.cost) {
+                showModalAlert('지식 포인트 부족', '도서를 해금하기 위한 지식 포인트가 부족합니다! 💡');
+                return;
+            }
+
+            gameState.knowledge -= book.cost;
+            book.unlocked = true;
+
+            soundEngine.playFanfare();
+            showToast(`📕 『${book.title}』 도서 비치 완료! 대여 수익 증가!`);
+            renderBooksList();
+            updateUI();
+        }
+
+        function hireStaff(id) {
+            const st = gameState.staff.find(s => s.id === id);
+            if (!st) return;
+
+            if (st.count >= st.max) {
+                showModalAlert('고용 인원 초과', '더 이상 해당 직원을 고용할 수 없습니다!');
+                return;
+            }
+
+            if (gameState.gold < st.cost) {
+                showModalAlert('골드 부족', '직원 고용 지원금이 부족합니다! 🪙');
+                return;
+            }
+
+            gameState.gold -= st.cost;
+            st.count++;
+
+            soundEngine.playFanfare();
+            showToast(`👥 ${st.name} 고용 완료!`);
+            renderStaffList();
+            updateUI();
+        }
+
+        function claimQuest(id) {
+            const q = gameState.quests.find(item => item.id === id);
+            if (!q || q.done || q.current < q.target) return;
+
+            q.done = true;
+            gameState.gold += q.rewardG;
+            gameState.knowledge += q.rewardK;
+
+            soundEngine.playFanfare();
+            showToast(`🎁 퀘스트 보상 획득! (+${q.rewardG}G, +${q.rewardK}Pt)`);
+            renderQuestsList();
+            updateUI();
+        }
+
+        // Automatic Staff Loops
+        setInterval(() => {
+            // Auto Librarian checkout helper
+            const librarian = gameState.staff.find(s => s.id === 's1');
+            if (librarian && librarian.count > 0) {
+                const waitingReader = readers.find(r => r.state === 'reading');
+                if (waitingReader) {
+                    waitingReader.state = 'checkingOut';
+                    waitingReader.targetX = 70;
+                    waitingReader.targetY = canvasH - 50;
+                }
+            }
+
+            // Auto Barista Cafe income
+            const cafeFac = gameState.facilities.find(f => f.id === 'cafe');
+            const barista = gameState.staff.find(s => s.id === 's3');
+            if (cafeFac && cafeFac.level > 0) {
+                let cafeIncome = cafeFac.level * 25;
+                if (barista && barista.count > 0) cafeIncome *= (1 + barista.count * 0.8);
+
+                gameState.gold += Math.floor(cafeIncome);
+                addFloatText(`+${Math.floor(cafeIncome)}G 카페`, 90, 140, '#fef08a');
+                updateUI();
+            }
+        }, 3000);
+
+        // Visitor Spawning Interval
+        setInterval(() => {
+            spawnReader();
+        }, 2500);
+
+        /* =========================================================================
+         * UI Rendering & Tab Switching Handlers
+         * ========================================================================= */
+        function updateUI() {
+            document.getElementById('gold-val').innerText = `${gameState.gold.toLocaleString()}G`;
+            document.getElementById('knowledge-val').innerText = `${gameState.knowledge.toLocaleString()} Pt`;
+            document.getElementById('visitor-count').innerText = `${readers.length} / ${gameState.maxCapacity}명`;
+            document.getElementById('rep-val').innerText = `${gameState.reputation}`;
+
+            // Check level up condition
+            if (gameState.gold >= 10000 && gameState.level === 1) {
+                gameState.level = 2;
+                document.getElementById('lib-level-badge').innerText = 'Lv.2';
+                document.getElementById('lib-name').innerText = '아늑한 중앙 도서관';
+                showModalAlert('🎉 도서관 승급!', '축하합니다! 도서관 레벨이 2단계로 승급되었습니다!');
+            }
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['facilities', 'books', 'staff', 'quests'];
+            tabs.forEach(t => {
+                document.getElementById(`tab-content-${t}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).classList.remove('active');
+            });
+
+            document.getElementById(`tab-content-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tabName}`).classList.add('active');
+
+            if (tabName === 'facilities') renderFacilitiesList();
+            if (tabName === 'books') renderBooksList();
+            if (tabName === 'staff') renderStaffList();
+            if (tabName === 'quests') renderQuestsList();
+        }
+
+        function renderFacilitiesList() {
+            const container = document.getElementById('facilities-list');
+            container.innerHTML = gameState.facilities.map(f => {
+                const cost = Math.floor(f.baseCost * Math.pow(f.costMult, f.level));
+                const isMax = f.level >= f.maxLevel;
+
+                return `
+                    <div class="bg-amber-100/60 p-2.5 rounded-xl border border-woodLight/40 flex justify-between items-center shadow-sm">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-2xl">${f.icon}</span>
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <h4 class="font-bold text-xs text-woodDark">${f.name}</h4>
+                                    <span class="text-[10px] bg-woodMedium text-amber-200 px-1.5 py-0.2 rounded font-bold">Lv.${f.level}</span>
+                                </div>
+                                <p class="text-[10px] text-woodMedium/80 font-sans">${f.desc}</p>
+                            </div>
+                        </div>
+                        <button onclick="upgradeFacility('${f.id}')" ${isMax ? 'disabled' : ''} class="${isMax ? 'bg-gray-400' : 'bg-emeraldAccent hover:bg-emerald-800'} text-amber-100 px-3 py-1.5 rounded-lg text-xs font-bold shadow active:scale-95 transition shrink-0">
+                            ${isMax ? '최대' : `${cost.toLocaleString()}G`}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderBooksList() {
+            const container = document.getElementById('books-list');
+            container.innerHTML = gameState.books.map(b => {
+                return `
+                    <div class="bg-amber-100/60 p-2.5 rounded-xl border border-woodLight/40 flex justify-between items-center shadow-sm">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-2xl">${b.icon}</span>
+                            <div>
+                                <h4 class="font-bold text-xs text-woodDark">${b.title}</h4>
+                                <p class="text-[10px] text-emerald-800 font-sans font-bold">장르: ${b.genre} (수익 +${Math.round((b.incomeBoost - 1) * 100)}%)</p>
+                            </div>
+                        </div>
+                        ${b.unlocked ?
+                            `<span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300">비치 완료</span>` :
+                            `<button onclick="unlockBook('${b.id}')" class="bg-woodDark hover:bg-woodMedium text-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow active:scale-95 transition shrink-0">
+                                💡 ${b.cost} Pt
+                            </button>`
+                        }
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderStaffList() {
+            const container = document.getElementById('staff-list');
+            container.innerHTML = gameState.staff.map(s => {
+                const isMax = s.count >= s.max;
+                return `
+                    <div class="bg-amber-100/60 p-2.5 rounded-xl border border-woodLight/40 flex justify-between items-center shadow-sm">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-2xl">${s.icon}</span>
+                            <div>
+                                <div class="flex items-center gap-1.5">
+                                    <h4 class="font-bold text-xs text-woodDark">${s.name}</h4>
+                                    <span class="text-[10px] text-woodMedium font-bold">(${s.count}/${s.max}명)</span>
+                                </div>
+                                <p class="text-[10px] text-woodMedium/80 font-sans">${s.desc}</p>
+                            </div>
+                        </div>
+                        <button onclick="hireStaff('${s.id}')" ${isMax ? 'disabled' : ''} class="${isMax ? 'bg-gray-400' : 'bg-woodMedium hover:bg-woodDark'} text-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow active:scale-95 transition shrink-0">
+                            ${isMax ? '최대' : `${s.cost.toLocaleString()}G`}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderQuestsList() {
+            const container = document.getElementById('quests-list');
+            container.innerHTML = gameState.quests.map(q => {
+                const canClaim = q.current >= q.target && !q.done;
+                return `
+                    <div class="bg-amber-100/60 p-2.5 rounded-xl border border-woodLight/40 flex justify-between items-center shadow-sm">
+                        <div>
+                            <h4 class="font-bold text-xs text-woodDark">${q.text}</h4>
+                            <p class="text-[10px] text-amber-800 font-bold">진행도: ${q.current} / ${q.target}</p>
+                        </div>
+                        ${q.done ?
+                            `<span class="text-xs font-bold text-gray-500">완료됨</span>` :
+                            `<button onclick="claimQuest('${q.id}')" ${!canClaim ? 'disabled' : ''} class="${canClaim ? 'bg-amber-500 hover:bg-amber-600 text-woodDark font-black animate-bounce' : 'bg-gray-300 text-gray-500'} px-3 py-1.5 rounded-lg text-xs shadow transition shrink-0">
+                                보상 받기
+                            </button>`
+                        }
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Sound Toggle Handler
+        function toggleAudio() {
+            soundEngine.muted = !soundEngine.muted;
+            const icon = document.getElementById('sound-icon');
+            if (!soundEngine.muted) {
+                icon.className = 'fa-solid fa-volume-high';
+                soundEngine.startCozyBGM();
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-gray-400';
+            }
+        }
+
+        // Notification Toasts
+        function showToast(msg) {
+            const toast = document.getElementById('event-toast');
+            document.getElementById('event-toast-text').innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 1800);
+        }
+
+        // Modals Logic
+        function openModal(type) {
+            const modal = document.getElementById('game-modal');
+            const content = document.getElementById('modal-content');
+
+            if (type === 'stats') {
+                content.innerHTML = `
+                    <div class="text-3xl">📊</div>
+                    <h3 class="title-font text-lg font-bold text-woodDark">도서관 경영 통계</h3>
+                    <div class="bg-amber-100/80 p-3 rounded-2xl text-left text-xs space-y-1.5 font-sans border border-woodLight/40">
+                        <div class="flex justify-between"><span>🏛️ 도서관 등급:</span><b>Lv.${gameState.level}</b></div>
+                        <div class="flex justify-between"><span>📖 누적 대출 권수:</span><b>${gameState.totalBorrowedBooks}권</b></div>
+                        <div class="flex justify-between"><span>💡 수집한 지식 포인트:</span><b>${gameState.knowledge} Pt</b></div>
+                        <div class="flex justify-between"><span>👥 좌석 수용 능력:</span><b>${gameState.maxCapacity}명</b></div>
+                    </div>
+                    <button onclick="closeModal()" class="w-full py-2 bg-woodDark text-amber-200 rounded-xl font-bold text-xs">닫기</button>
+                `;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function showModalAlert(title, message) {
+            const modal = document.getElementById('game-modal');
+            const content = document.getElementById('modal-content');
+            content.innerHTML = `
+                <div class="text-3xl">🔔</div>
+                <h3 class="title-font text-base font-bold text-woodDark">${title}</h3>
+                <p class="text-xs text-woodMedium font-sans">${message}</p>
+                <button onclick="closeModal()" class="w-full py-2 bg-woodDark text-amber-200 rounded-xl font-bold text-xs">확인</button>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('game-modal').classList.add('hidden');
+        }
+
+        // Initializer Load
+        window.onload = () => {
+            resizeCanvas();
+            renderFacilitiesList();
+            updateUI();
+            renderLibraryCanvas();
+            soundEngine.startCozyBGM();
+        };
+    </script>
+</body>
+</html>

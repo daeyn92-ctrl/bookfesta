@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>쉿! - 자전거 손흥민의 계단 질주</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Pretendard / Black Han Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .font-title {
+            font-family: 'Black Han Sans', sans-serif;
+        }
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #0f172a, #1e1b4b, #311042);
+        }
+        .btn-active:active {
+            transform: scale(0.92);
+        }
+        /* Custom scrollbar for game modals */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+            50% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.9); }
+        }
+        .fever-active {
+            animation: pulse-glow 0.8s infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-center overflow-hidden select-none">
+
+    <!-- Main Outer Container -->
+    <div class="relative w-full max-w-md h-screen max-h-[920px] flex flex-col justify-between shadow-2xl overflow-hidden md:border-4 md:border-slate-800 md:rounded-3xl">
+        
+        <!-- Top Game Bar / Header -->
+        <div class="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-slate-950/90 via-slate-950/50 to-transparent flex flex-col gap-2 pointer-events-none">
+            <!-- Header Info -->
+            <div class="flex justify-between items-center pointer-events-auto">
+                <div class="flex items-center gap-2">
+                    <span class="font-title text-2xl text-amber-400 tracking-wider drop-shadow-md">쉿! 🚲</span>
+                    <span class="text-xs bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700 text-slate-300">손흥민 계단질주</span>
+                </div>
+                <div class="flex gap-2">
+                    <button id="soundToggleBtn" class="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-amber-400 shadow transition">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <button id="pauseBtn" class="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-200 shadow transition">
+                        <i class="fa-solid fa-pause"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Score & Fever Meter -->
+            <div class="flex justify-between items-end mt-1">
+                <div>
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">현재 계단</div>
+                    <div id="scoreDisplay" class="font-title text-4xl text-white drop-shadow-lg">0</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">최고 기록</div>
+                    <div id="highScoreDisplay" class="font-title text-2xl text-amber-400">0</div>
+                </div>
+            </div>
+
+            <!-- Time Bar (Energy / Fever) -->
+            <div class="w-full bg-slate-800/80 h-3 rounded-full overflow-hidden p-0.5 border border-slate-700 shadow-inner mt-1">
+                <div id="timerBar" class="bg-gradient-to-r from-amber-500 via-rose-500 to-yellow-400 h-full w-full rounded-full transition-all duration-75"></div>
+            </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="relative w-full h-full flex-1">
+            <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+            <!-- Dynamic Floating Speech Bubble Overlay -->
+            <div id="speechBubble" class="absolute hidden transition-all duration-300 transform -translate-x-1/2 -translate-y-full bg-white text-slate-900 font-extrabold px-3 py-1.5 rounded-2xl shadow-xl text-sm border-2 border-slate-900 pointer-events-none z-20">
+                <span id="speechText">쉿! 🤫</span>
+                <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-t-8 border-t-white"></div>
+            </div>
+        </div>
+
+        <!-- Controls Section at Bottom -->
+        <div class="relative z-10 p-5 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent flex flex-col gap-3">
+            <div class="flex justify-between items-center gap-3">
+                <!-- Change Direction Button (Turn) -->
+                <button id="turnBtn" class="btn-active flex-1 py-4 bg-gradient-to-b from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 border-b-4 border-blue-950 rounded-2xl shadow-lg flex flex-col items-center justify-center transition active:border-b-0 active:mt-1">
+                    <i class="fa-solid fa-arrows-rotate text-2xl mb-1 text-blue-200"></i>
+                    <span class="font-title text-lg tracking-wide text-white">방향 전환</span>
+                    <span class="text-[10px] text-blue-200/70 font-semibold">[ A / Left Key ]</span>
+                </button>
+
+                <!-- Down Stair Button (Step) -->
+                <button id="stepBtn" class="btn-active flex-2 py-5 px-6 bg-gradient-to-b from-emerald-500 via-emerald-600 to-teal-800 hover:from-emerald-400 hover:to-teal-700 border-b-4 border-emerald-950 rounded-2xl shadow-xl flex flex-col items-center justify-center transition active:border-b-0 active:mt-1">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-bicycle text-2xl text-yellow-300 animate-bounce"></i>
+                        <span class="font-title text-2xl tracking-wider text-white">계단 내려가기!</span>
+                    </div>
+                    <span class="text-xs text-emerald-100 font-bold mt-1 opacity-90">[ Spacebar / Tap ]</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Start Overlay -->
+        <div id="startModal" class="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+            <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-rose-500 rounded-3xl flex items-center justify-center shadow-2xl mb-4 rotate-6 border-2 border-white/20">
+                <i class="fa-solid fa-bicycle text-4xl text-slate-950"></i>
+            </div>
+            
+            <h1 class="font-title text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-400 to-yellow-200 mb-1 drop-shadow-sm">쉿!</h1>
+            <p class="text-sm text-slate-300 mb-6 font-medium">자전거를 탄 손흥민과 함께 계단을 정복하자!</p>
+
+            <div class="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-left w-full max-w-xs mb-6 text-xs text-slate-300 space-y-2">
+                <div class="flex items-center gap-2">
+                    <span class="bg-emerald-500/20 text-emerald-400 p-1.5 rounded-lg"><i class="fa-solid fa-person-walking-arrow-loop-left"></i></span>
+                    <span><strong>내려가기 버튼</strong>을 누르면 앞으로 1계단 이동합니다.</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="bg-blue-500/20 text-blue-400 p-1.5 rounded-lg"><i class="fa-solid fa-rotate"></i></span>
+                    <span>계단이 꺾일 때 <strong>방향 전환 버튼</strong>을 눌러 방향을 바꾸세요!</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="bg-rose-500/20 text-rose-400 p-1.5 rounded-lg"><i class="fa-solid fa-stopwatch"></i></span>
+                    <span>시간 게이지가 다 떨어지기 전에 리듬감 있게 계속 내려가야 합니다!</span>
+                </div>
+            </div>
+
+            <button id="startBtn" class="w-full max-w-xs py-4 bg-gradient-to-r from-amber-400 to-rose-500 hover:from-amber-300 hover:to-rose-400 text-slate-950 font-title text-2xl rounded-2xl shadow-xl transition transform active:scale-95 border-b-4 border-amber-700">
+                게임 시작하기
+            </button>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="gameOverModal" class="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md hidden flex-col items-center justify-center p-6 text-center">
+            <div id="sonQuote" class="text-3xl mb-2">🤫</div>
+            <h2 class="font-title text-4xl text-rose-500 mb-1">아쉬워요!</h2>
+            <p id="gameOverSubtext" class="text-sm text-slate-300 mb-6">계단에서 균형을 잃었습니다!</p>
+
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 w-full max-w-xs mb-6 space-y-3">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-sm text-slate-400 font-bold">내려간 계단</span>
+                    <span id="finalScore" class="font-title text-3xl text-white">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-slate-400 font-bold">최고 기록</span>
+                    <span id="finalHighScore" class="font-title text-2xl text-amber-400">0</span>
+                </div>
+            </div>
+
+            <button id="restartBtn" class="w-full max-w-xs py-4 bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-title text-2xl rounded-2xl shadow-xl transition transform active:scale-95 border-b-4 border-emerald-700 mb-3">
+                다시 도전하기
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Canvas & Context setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI Element References
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const highScoreDisplay = document.getElementById('highScoreDisplay');
+        const timerBar = document.getElementById('timerBar');
+        const startModal = document.getElementById('startModal');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const turnBtn = document.getElementById('turnBtn');
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        const speechBubble = document.getElementById('speechBubble');
+        const speechText = document.getElementById('speechText');
+        const sonQuote = document.getElementById('sonQuote');
+
+        // Audio Synth Engine (Web Audio API)
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+            }
+
+            playStepSound(combo = 1) {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'triangle';
+                // Higher pitch with higher combo
+                const freq = 160 + Math.min(combo * 15, 400);
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.5, this.ctx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            playTurnSound() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.1);
+
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            }
+
+            playCrashSound() {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.3);
+
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+        }
+
+        const soundEngine = new SoundEngine();
+
+        // Game Constants & Variables
+        const STAIR_WIDTH = 54;
+        const STAIR_HEIGHT = 28;
+        
+        let score = 0;
+        let highScore = localStorage.getItem('shh_son_high_score') || 0;
+        let isPlaying = false;
+        let timer = 100;
+        let timerMax = 100;
+        let lastTime = 0;
+        let combo = 0;
+
+        // Player state
+        let player = {
+            stairIndex: 0,
+            x: 0,
+            y: 0,
+            targetX: 0,
+            targetY: 0,
+            dir: 1, // 1 for down-right, -1 for down-left
+            wheelRotation: 0,
+            bounceY: 0,
+            celebrating: false
+        };
+
+        // Stairs array: array of {x, y, dir}
+        let stairs = [];
+        let particles = [];
+        let floatingTexts = [];
+
+        // Resize Canvas dynamically
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio || 360;
+            canvas.height = rect.height * window.devicePixelRatio || 600;
+            ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Initialize / Reset Game
+        function initGame() {
+            score = 0;
+            combo = 0;
+            timer = 100;
+            stairs = [];
+            particles = [];
+            floatingTexts = [];
+            
+            scoreDisplay.textContent = '0';
+            highScoreDisplay.textContent = highScore;
+
+            // Generate initial stair path
+            let currentX = canvas.width / (2 * (window.devicePixelRatio || 1));
+            let currentY = 180;
+            let currentDir = 1; // start going right
+
+            stairs.push({ x: currentX, y: currentY, dir: currentDir });
+
+            for (let i = 0; i < 40; i++) {
+                // Randomly change direction occasionally
+                if (i > 0 && Math.random() < 0.35) {
+                    currentDir = -currentDir;
+                }
+                currentX += currentDir * STAIR_WIDTH;
+                currentY += STAIR_HEIGHT;
+                stairs.push({ x: currentX, y: currentY, dir: currentDir });
+            }
+
+            // Set player on starting stair
+            player.stairIndex = 0;
+            player.x = stairs[0].x;
+            player.y = stairs[0].y;
+            player.targetX = player.x;
+            player.targetY = player.y;
+            player.dir = stairs[1].dir; // Face towards next stair
+            player.wheelRotation = 0;
+            player.bounceY = 0;
+            player.celebrating = false;
+
+            hideSpeechBubble();
+        }
+
+        // Add more stairs as player moves down
+        function extendStairs() {
+            let lastStair = stairs[stairs.length - 1];
+            let currentX = lastStair.x;
+            let currentY = lastStair.y;
+            let currentDir = lastStair.dir;
+
+            for (let i = 0; i < 15; i++) {
+                if (Math.random() < 0.35) {
+                    currentDir = -currentDir;
+                }
+                currentX += currentDir * STAIR_WIDTH;
+                currentY += STAIR_HEIGHT;
+                stairs.push({ x: currentX, y: currentY, dir: currentDir });
+            }
+        }
+
+        // Particle System for juice (dust, stars)
+        function createLandingParticles(x, y) {
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    x: x + (Math.random() - 0.5) * 20,
+                    y: y + 10,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: (Math.random() - 1) * 2,
+                    radius: Math.random() * 3 + 2,
+                    color: Math.random() > 0.5 ? '#f59e0b' : '#38bdf8',
+                    alpha: 1,
+                    life: 20
+                });
+            }
+        }
+
+        function createFloatingText(text, x, y, color = '#facc15') {
+            floatingTexts.push({
+                text: text,
+                x: x,
+                y: y,
+                vy: -1.5,
+                alpha: 1,
+                color: color
+            });
+        }
+
+        // Draw Son Heung-min riding bicycle
+        function drawSonHeungMin(x, y, dir, wheelRot) {
+            ctx.save();
+            ctx.translate(x, y + player.bounceY);
+
+            // Flip horizontally if moving left (-1)
+            if (dir === -1) {
+                ctx.scale(-1, 1);
+            }
+
+            // Main Bike & Rider Scale
+            const s = 0.95;
+            ctx.scale(s, s);
+
+            // 1. Shadow underneath
+            ctx.beginPath();
+            ctx.ellipse(0, 12, 22, 6, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.35)';
+            ctx.fill();
+
+            // 2. Bike Wheels (Front & Rear)
+            const rearWheelX = -18;
+            const frontWheelX = 18;
+            const wheelY = 0;
+            const wheelRadius = 11;
+
+            [rearWheelX, frontWheelX].forEach(wx => {
+                // Wheel Tire
+                ctx.beginPath();
+                ctx.arc(wx, wheelY, wheelRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 3.5;
+                ctx.stroke();
+
+                // Rim
+                ctx.beginPath();
+                ctx.arc(wx, wheelY, wheelRadius - 2, 0, Math.PI * 2);
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Rotating Spokes
+                ctx.save();
+                ctx.translate(wx, wheelY);
+                ctx.rotate(wheelRot);
+                ctx.beginPath();
+                ctx.moveTo(-wheelRadius + 2, 0); ctx.lineTo(wheelRadius - 2, 0);
+                ctx.moveTo(0, -wheelRadius + 2); ctx.lineTo(0, wheelRadius - 2);
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            // 3. Bicycle Frame (Tottenham Blue / Gold Accent)
+            ctx.beginPath();
+            ctx.moveTo(rearWheelX, wheelY); // Rear Hub
+            ctx.lineTo(-6, -10); // Seat Post
+            ctx.lineTo(10, -10); // Handlebar base
+            ctx.lineTo(frontWheelX, wheelY); // Front Hub
+            ctx.lineTo(-6, -10); // Back to Seat Post
+            ctx.lineTo(rearWheelX, wheelY);
+            ctx.strokeStyle = '#1e3a8a'; // Tottenham Navy
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Handlebar
+            ctx.beginPath();
+            ctx.moveTo(10, -10);
+            ctx.lineTo(14, -18);
+            ctx.lineTo(18, -16);
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // 4. Son Heung-min Rider
+            // Lower Body / Legs (Pedaling)
+            ctx.beginPath();
+            ctx.moveTo(-6, -12); // Hip
+            // Dynamic leg bend
+            const kneeOffset = Math.sin(wheelRot * 2) * 4;
+            ctx.lineTo(-2 + kneeOffset, -4); // Knee
+            ctx.lineTo(0, wheelY); // Foot on pedal
+            ctx.strokeStyle = '#f87171'; // Shorts / Socks
+            ctx.lineWidth = 3.5;
+            ctx.stroke();
+
+            // Upper Body / Navy #7 Jersey
+            ctx.beginPath();
+            ctx.moveTo(-6, -14);
+            ctx.lineTo(4, -28); // Shoulder
+            ctx.strokeStyle = '#1e1b4b'; // Deep Navy
+            ctx.lineWidth = 8;
+            ctx.stroke();
+
+            // Number 7 on Back
+            ctx.fillStyle = '#f59e0b'; // Gold #7
+            ctx.font = '900 8px sans-serif';
+            ctx.fillText('7', -5, -20);
+
+            // Arms holding handle
+            ctx.beginPath();
+            if (player.celebrating) {
+                // "쉿!" Signature Celebration Finger to lips
+                ctx.moveTo(4, -28);
+                ctx.lineTo(10, -32); // Hand up near face
+            } else {
+                ctx.moveTo(4, -28);
+                ctx.lineTo(14, -17); // Hands on handle
+            }
+            ctx.strokeStyle = '#fca5a5'; // Skin tone
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Helmet & Head
+            // Head
+            ctx.beginPath();
+            ctx.arc(8, -35, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#fca5a5';
+            ctx.fill();
+
+            // Happy Smile Face
+            ctx.beginPath();
+            ctx.arc(10, -34, 2.5, 0, Math.PI);
+            ctx.strokeStyle = '#451a03';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Cycling Helmet (White / Gold)
+            ctx.beginPath();
+            ctx.ellipse(7, -38, 8, 5, -0.2, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // Render everything on Canvas
+        function render() {
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+
+            // Clear Background
+            ctx.clearRect(0, 0, width, height);
+
+            // Calculate Camera Follow Offset
+            const cameraY = player.y - height * 0.45;
+            const cameraX = player.x - width * 0.5;
+
+            ctx.save();
+            ctx.translate(-cameraX, -cameraY);
+
+            // Draw Stairs
+            for (let i = 0; i < stairs.length; i++) {
+                const s = stairs[i];
+                
+                // Culling off-screen stairs
+                if (s.y < cameraY - 100 || s.y > cameraY + height + 100) continue;
+
+                // Main Step Top Surface
+                ctx.fillStyle = (i % 2 === 0) ? '#334155' : '#475569';
+                ctx.beginPath();
+                ctx.roundRect(s.x - STAIR_WIDTH / 2, s.y, STAIR_WIDTH, 8, 2);
+                ctx.fill();
+
+                // Step Front/Side Border
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(s.x - STAIR_WIDTH / 2, s.y + 8, STAIR_WIDTH, STAIR_HEIGHT - 8);
+
+                // Highlight edge
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(s.x - STAIR_WIDTH / 2, s.y, STAIR_WIDTH, 2);
+
+                // Step Number Marker every 10 steps
+                if (i > 0 && i % 10 === 0) {
+                    ctx.fillStyle = 'rgba(245, 158, 11, 0.8)';
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.fillText(i + 'M', s.x - 8, s.y - 6);
+                }
+            }
+
+            // Draw Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.05;
+                p.life--;
+
+                if (p.life <= 0 || p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Smooth Interpolation for Player Movement
+            player.x += (player.targetX - player.x) * 0.35;
+            player.y += (player.targetY - player.y) * 0.35;
+
+            // Draw Son Heung-min
+            drawSonHeungMin(player.x, player.y, player.dir, player.wheelRotation);
+
+            // Draw Floating Texts (+1, COMBO!)
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y += ft.vy;
+                ft.alpha -= 0.03;
+
+                if (ft.alpha <= 0) {
+                    floatingTexts.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, ft.alpha);
+                ctx.fillStyle = ft.color;
+                ctx.font = '900 16px "Black Han Sans", sans-serif';
+                ctx.fillText(ft.text, ft.x - 15, ft.y);
+                ctx.restore();
+            }
+
+            ctx.restore();
+
+            // Update Speech Bubble Overlay Position over player head
+            if (!speechBubble.classList.contains('hidden')) {
+                const screenX = player.x - cameraX;
+                const screenY = player.y - cameraY - 45;
+                speechBubble.style.left = `${screenX}px`;
+                speechBubble.style.top = `${screenY}px`;
+            }
+        }
+
+        // Son Heung-min quotes
+        const sonQuotes = [
+            "쉿! 🤫",
+            "Nice One Sonny! ⚽",
+            "멈추지 않아! 🚲",
+            "찰칵 세레머니! 📸",
+            "더 빠르게! 🔥",
+            "대한민국 파이팅! 🇰🇷"
+        ];
+
+        function showSpeechBubble(text, duration = 1200) {
+            speechText.textContent = text;
+            speechBubble.classList.remove('hidden');
+            clearTimeout(speechBubble._timer);
+            speechBubble._timer = setTimeout(() => {
+                speechBubble.classList.add('hidden');
+            }, duration);
+        }
+
+        function hideSpeechBubble() {
+            speechBubble.classList.add('hidden');
+        }
+
+        // Action: Handle Descent Step
+        function handleStep() {
+            if (!isPlaying) return;
+
+            const nextStairIndex = player.stairIndex + 1;
+            const nextStair = stairs[nextStairIndex];
+
+            if (!nextStair) return;
+
+            // Check if player facing correct stair direction
+            if (player.dir === nextStair.dir) {
+                // SUCCESS STEP DOWN!
+                player.stairIndex = nextStairIndex;
+                player.targetX = nextStair.x;
+                player.targetY = nextStair.y;
+                player.wheelRotation += 0.8;
+                player.bounceY = -6; // Satisfying bounce on step down
+                setTimeout(() => { player.bounceY = 0; }, 80);
+
+                // Update score & energy
+                score++;
+                combo++;
+                timer = Math.min(timerMax, timer + 6); // Add time back
+
+                soundEngine.playStepSound(combo);
+                createLandingParticles(nextStair.x, nextStair.y);
+
+                scoreDisplay.textContent = score;
+
+                // Visual juice popup
+                if (combo % 10 === 0) {
+                    createFloatingText(`🔥 ${combo} COMBO!`, nextStair.x, nextStair.y - 30, '#f43f5e');
+                    player.celebrating = true;
+                    showSpeechBubble(sonQuotes[Math.floor(Math.random() * sonQuotes.length)]);
+                    setTimeout(() => { player.celebrating = false; }, 800);
+                } else {
+                    createFloatingText('+1', nextStair.x, nextStair.y - 15);
+                }
+
+                // Auto-expand stairs if running low
+                if (stairs.length - player.stairIndex < 20) {
+                    extendStairs();
+                }
+
+            } else {
+                // WRONG DIRECTION - CRASH GAME OVER!
+                triggerGameOver("잘못된 방향으로 핸들을 돌렸습니다!");
+            }
+        }
+
+        // Action: Handle Turn Direction
+        function handleTurn() {
+            if (!isPlaying) return;
+
+            player.dir = -player.dir;
+            soundEngine.playTurnSound();
+
+            // Brief bicycle tilt feedback
+            player.bounceY = -3;
+            setTimeout(() => { player.bounceY = 0; }, 60);
+        }
+
+        // Trigger Game Over
+        function triggerGameOver(reason) {
+            isPlaying = false;
+            soundEngine.playCrashSound();
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('shh_son_high_score', highScore);
+            }
+
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalHighScore').textContent = highScore;
+            document.getElementById('gameOverSubtext').textContent = reason;
+            
+            sonQuote.textContent = score >= 50 ? "📸 " + sonQuotes[3] : "🤫 " + sonQuotes[0];
+
+            gameOverModal.classList.remove('hidden');
+            gameOverModal.classList.add('flex');
+        }
+
+        // Main Loop
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            if (isPlaying) {
+                // Timer depletion (accelerates with score)
+                const speedMult = 1 + Math.min(score * 0.015, 2.5);
+                timer -= dt * 28 * speedMult;
+
+                if (timer <= 0) {
+                    timer = 0;
+                    triggerGameOver("시간이 다 되었습니다!");
+                }
+
+                // Update Timer Bar UI
+                const timerPct = Math.max(0, (timer / timerMax) * 100);
+                timerBar.style.width = `${timerPct}%`;
+            }
+
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Button Event Listeners
+        startBtn.addEventListener('click', () => {
+            soundEngine.init();
+            startModal.classList.add('hidden');
+            initGame();
+            isPlaying = true;
+            showSpeechBubble("쉿! 출발한다! 🚲", 1500);
+        });
+
+        restartBtn.addEventListener('click', () => {
+            gameOverModal.classList.add('hidden');
+            gameOverModal.classList.remove('flex');
+            initGame();
+            isPlaying = true;
+            showSpeechBubble("이번엔 더 아래로! 🔥", 1200);
+        });
+
+        stepBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleStep();
+        });
+
+        turnBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleTurn();
+        });
+
+        // Toggle Sound Mute
+        soundToggleBtn.addEventListener('click', () => {
+            soundEngine.enabled = !soundEngine.enabled;
+            soundToggleBtn.innerHTML = soundEngine.enabled ? 
+                '<i class="fa-solid fa-volume-high"></i>' : 
+                '<i class="fa-solid fa-volume-xmark"></i>';
+        });
+
+        // Keyboard Controls
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return; // Prevent key hold repetition
+
+            if (e.code === 'Space' || e.code === 'ArrowDown') {
+                e.preventDefault();
+                handleStep();
+            } else if (e.code === 'KeyA' || e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'KeyD') {
+                e.preventDefault();
+                handleTurn();
+            }
+        });
+
+        // Start animation loop on window load
+        window.onload = function() {
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>샤베트 슬라임 리얼 촉감 & ASMR 오디션</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Gaegu (Handwriting), Jua, Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Jua&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+        }
+        .font-jua { font-family: 'Jua', sans-serif; }
+        .font-handwriting { font-family: 'Gaegu', cursive; }
+
+        /* Custom Glassmorphism UI */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+        .glass-dark {
+            background: rgba(30, 20, 50, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Soft Pulsing Animation */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 182, 193, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.8); }
+            50% { box-shadow: 0 0 25px rgba(255, 105, 180, 0.9), inset 0 0 15px rgba(255, 255, 255, 1); }
+        }
+        .animate-glow {
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+
+        /* Canvas Touch Feedback Cursor */
+        canvas {
+            touch-action: none;
+            cursor: grab;
+        }
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        /* Custom Horizontal Scrollbar */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between overflow-hidden relative">
+
+    <!-- Top Navigation Header -->
+    <header class="w-full z-20 px-4 py-3 flex justify-between items-center glass-panel shadow-lg rounded-b-3xl">
+        <div class="flex items-center gap-2.5">
+            <div class="w-11 h-11 bg-gradient-to-tr from-pink-400 to-purple-400 rounded-2xl flex items-center justify-center text-2xl shadow-md text-white font-jua animate-bounce">
+                🍨
+            </div>
+            <div>
+                <h1 class="text-xl font-black font-jua text-pink-900 tracking-wide leading-none flex items-center gap-1.5">
+                    <span>샤베트 슬라임 ASMR</span>
+                    <span class="text-xs bg-pink-500 text-white px-2 py-0.5 rounded-full font-bold">오디션</span>
+                </h1>
+                <p class="text-[11px] text-pink-700 font-bold mt-0.5">사각사각 촉감 놀이 & 소리 리듬 오디션</p>
+            </div>
+        </div>
+
+        <!-- Header Action Controls -->
+        <div class="flex items-center gap-2">
+            <button id="btnAuditionMode" class="px-3.5 py-1.5 bg-gradient-to-r from-amber-400 to-pink-500 hover:from-amber-300 hover:to-pink-400 text-white rounded-2xl font-jua text-sm shadow-md transition transform active:scale-95 flex items-center gap-1.5">
+                <i class="fa-solid fa-trophy text-amber-100"></i>
+                <span>오디션 시작</span>
+            </button>
+
+            <button id="btnSoundToggle" class="w-10 h-10 rounded-2xl bg-white/80 border border-pink-200 text-pink-600 flex items-center justify-center shadow-sm hover:bg-white transition">
+                <i class="fa-solid fa-volume-high text-base" id="soundIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Interactive Slime Viewport -->
+    <main class="flex-1 relative w-full h-full flex items-center justify-center overflow-hidden">
+        
+        <!-- Background Ambient Glow & Particles -->
+        <div class="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white via-pink-100 to-purple-200"></div>
+
+        <!-- Slime Canvas Element -->
+        <canvas id="slimeCanvas" class="w-full h-full z-10 block"></canvas>
+
+        <!-- Touch Hint Overlay (Fades out on interaction) -->
+        <div id="touchHint" class="absolute pointer-events-none z-15 flex flex-col items-center justify-center text-pink-800/80 font-jua transition-opacity duration-500 bg-white/40 px-6 py-3 rounded-full backdrop-blur-sm border border-white/60 shadow-lg">
+            <div class="text-3xl mb-1 animate-bounce">👆</div>
+            <p class="text-base text-pink-900 font-extrabold">슬라임을 콕콕 누르고 늘려보세요!</p>
+            <p class="text-xs text-pink-700">사각사각 샤베트 소리가 흘러나와요</p>
+        </div>
+
+        <!-- Floating Quick Action Floating Menu -->
+        <div class="absolute top-4 left-4 z-15 flex flex-col gap-2">
+            <button id="btnClearToppings" class="w-10 h-10 bg-white/80 hover:bg-white text-pink-800 rounded-2xl shadow-md border border-pink-200 flex items-center justify-center transition active:scale-90" title="토핑 초기화">
+                <i class="fa-solid fa-trash-can text-sm"></i>
+            </button>
+            <button id="btnAddRandomTopping" class="w-10 h-10 bg-white/80 hover:bg-white text-pink-800 rounded-2xl shadow-md border border-pink-200 flex items-center justify-center transition active:scale-90" title="랜덤 토핑 뿌리기">
+                <i class="fa-solid fa-wand-magic-sparkles text-sm text-amber-500"></i>
+            </button>
+            <button id="btnSquishSlap" class="w-10 h-10 bg-white/80 hover:bg-white text-pink-800 rounded-2xl shadow-md border border-pink-200 flex items-center justify-center transition active:scale-90" title="강하게 충격주기">
+                <i class="fa-solid fa-hand-sparkles text-sm text-pink-600"></i>
+            </button>
+        </div>
+
+        <!-- Audition Live Score Tracker Overlay (Hidden by default) -->
+        <div id="auditionOverlay" class="hidden absolute top-4 right-4 z-15 glass-dark px-4 py-3 rounded-3xl text-white font-jua flex flex-col gap-1 w-48 shadow-2xl animate-glow">
+            <div class="flex justify-between items-center text-amber-300 border-b border-white/20 pb-1">
+                <span class="text-xs font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-microphone-lines text-pink-400"></i> ASMR 오디션
+                </span>
+                <span id="auditionTimer" class="text-sm font-black text-pink-300">10s</span>
+            </div>
+            <div class="flex justify-between items-end mt-1">
+                <span class="text-xs text-gray-300">사각사각 점수</span>
+                <span id="auditionScore" class="text-xl font-black text-amber-400">0</span>
+            </div>
+            <div class="w-full bg-gray-700/80 rounded-full h-2 overflow-hidden mt-1">
+                <div id="auditionProgressBar" class="bg-gradient-to-r from-pink-500 to-amber-400 h-full w-0 transition-all duration-200"></div>
+            </div>
+            <p id="auditionHintText" class="text-[10px] text-pink-200 text-center mt-1 animate-pulse">리듬감 있게 신나게 주물러주세요!</p>
+        </div>
+    </main>
+
+    <!-- Customization Bottom Control Drawer -->
+    <footer class="w-full z-20 glass-panel rounded-t-3xl p-3 sm:p-4 shadow-2xl flex flex-col gap-3">
+        
+        <!-- Category Selection Tabs -->
+        <div class="flex gap-2 justify-center border-b border-pink-200/80 pb-2">
+            <button id="tabColor" class="px-4 py-1.5 rounded-2xl bg-pink-500 text-white font-jua text-xs font-bold shadow transition flex items-center gap-1.5">
+                <i class="fa-solid fa-palette"></i> 샤베트 컬러
+            </button>
+            <button id="tabTexture" class="px-4 py-1.5 rounded-2xl bg-white/70 text-pink-900 font-jua text-xs font-bold hover:bg-white transition flex items-center gap-1.5">
+                <i class="fa-solid fa-snowflake"></i> 알갱이 텍스처
+            </button>
+            <button id="tabTopping" class="px-4 py-1.5 rounded-2xl bg-white/70 text-pink-900 font-jua text-xs font-bold hover:bg-white transition flex items-center gap-1.5">
+                <i class="fa-solid fa-icons"></i> 토핑 & 토이
+            </button>
+        </div>
+
+        <!-- Tab 1: Color / Flavors Selector -->
+        <div id="panelColor" class="flex gap-3 overflow-x-auto no-scrollbar py-1 px-1">
+            <button data-flavor="peach" class="flavor-btn shrink-0 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-pink-300 to-rose-300 text-pink-950 font-jua text-xs border-2 border-white shadow-md flex items-center gap-1.5 hover:scale-105 transition active:scale-95">
+                <span class="text-base">🍑</span> 피치 솜사탕
+            </button>
+            <button data-flavor="mint" class="flavor-btn shrink-0 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-emerald-200 to-teal-300 text-teal-950 font-jua text-xs border-2 border-white shadow-md flex items-center gap-1.5 hover:scale-105 transition active:scale-95">
+                <span class="text-base">🌱</span> 민트 슬러시
+            </button>
+            <button data-flavor="blueberry" class="flavor-btn shrink-0 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-indigo-300 to-purple-300 text-purple-950 font-jua text-xs border-2 border-white shadow-md flex items-center gap-1.5 hover:scale-105 transition active:scale-95">
+                <span class="text-base">🫐</span> 블루베리 아이스
+            </button>
+            <button data-flavor="rainbow" class="flavor-btn shrink-0 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-yellow-200 via-pink-200 to-cyan-200 text-slate-800 font-jua text-xs border-2 border-white shadow-md flex items-center gap-1.5 hover:scale-105 transition active:scale-95">
+                <span class="text-base">🌈</span> 무지개 샤베트
+            </button>
+            <button data-flavor="lemon" class="flavor-btn shrink-0 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-200 to-yellow-300 text-amber-950 font-jua text-xs border-2 border-white shadow-md flex items-center gap-1.5 hover:scale-105 transition active:scale-95">
+                <span class="text-base">🍋</span> 상큼 레몬
+            </button>
+            <button data-flavor="soda" class="flavor-btn shrink-0 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-sky-200 to-blue-300 text-blue-950 font-jua text-xs border-2 border-white shadow-md flex items-center gap-1.5 hover:scale-105 transition active:scale-95">
+                <span class="text-base">🧊</span> 소다 팝
+            </button>
+        </div>
+
+        <!-- Tab 2: Texture & ASMR Sound Density Selector -->
+        <div id="panelTexture" class="hidden flex gap-2 overflow-x-auto no-scrollbar py-1 px-1">
+            <button data-texture="sherbet" class="texture-btn flex-1 py-2 rounded-2xl bg-pink-100 text-pink-900 font-jua text-xs border border-pink-300 text-center hover:bg-pink-200 transition">
+                🍧 부드러운 샤베트
+            </button>
+            <button data-texture="crunch" class="texture-btn flex-1 py-2 rounded-2xl bg-white/80 text-pink-900 font-jua text-xs border border-pink-200 text-center hover:bg-pink-100 transition">
+                🧊 바삭 얼음 입자
+            </button>
+            <button data-texture="cloud" class="texture-btn flex-1 py-2 rounded-2xl bg-white/80 text-pink-900 font-jua text-xs border border-pink-200 text-center hover:bg-pink-100 transition">
+                ☁️ 푹신 구름 슬라임
+            </button>
+        </div>
+
+        <!-- Tab 3: Topping Picker -->
+        <div id="panelTopping" class="hidden flex gap-2 overflow-x-auto no-scrollbar py-1 px-1">
+            <button data-topping="⭐" class="topping-btn px-3 py-1.5 rounded-xl bg-amber-100 text-amber-900 font-jua text-xs border border-amber-300 flex items-center gap-1 shrink-0">
+                ⭐ 별 사탕
+            </button>
+            <button data-topping="🍓" class="topping-btn px-3 py-1.5 rounded-xl bg-red-100 text-red-900 font-jua text-xs border border-red-300 flex items-center gap-1 shrink-0">
+                🍓 딸기 조각
+            </button>
+            <button data-topping="💖" class="topping-btn px-3 py-1.5 rounded-xl bg-pink-100 text-pink-900 font-jua text-xs border border-pink-300 flex items-center gap-1 shrink-0">
+                💖 러블리 하트
+            </button>
+            <button data-topping="⚪" class="topping-btn px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 font-jua text-xs border border-slate-300 flex items-center gap-1 shrink-0">
+                ⚪ 폭신 폼볼
+            </button>
+            <button data-topping="✨" class="topping-btn px-3 py-1.5 rounded-xl bg-purple-100 text-purple-900 font-jua text-xs border border-purple-300 flex items-center gap-1 shrink-0">
+                ✨ 반짝 가루
+            </button>
+        </div>
+
+    </footer>
+
+    <!-- Audition Result Modal -->
+    <div id="modalAuditionResult" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel bg-white/95 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 border-4 border-amber-300 shadow-2xl relative animate-glow">
+            
+            <div class="w-16 h-16 bg-gradient-to-tr from-amber-400 to-pink-500 rounded-full flex items-center justify-center text-3xl mx-auto shadow-lg text-white">
+                👑
+            </div>
+
+            <h2 class="font-jua text-2xl text-pink-950">슬라임 ASMR 오디션 결과</h2>
+
+            <div class="bg-pink-50/80 rounded-2xl p-4 border border-pink-200 space-y-2">
+                <div class="flex justify-between items-center font-jua text-sm text-pink-900">
+                    <span>ASMR 청량 음향 점수</span>
+                    <span id="resScoreSound" class="text-base text-amber-600 font-bold">95점</span>
+                </div>
+                <div class="flex justify-between items-center font-jua text-sm text-pink-900">
+                    <span>촉감 리듬 반응도</span>
+                    <span id="resScoreRhythm" class="text-base text-pink-600 font-bold">98점</span>
+                </div>
+                <div class="flex justify-between items-center font-jua text-sm text-pink-900 border-t border-pink-200 pt-2">
+                    <span class="text-base">최종 종합 등급</span>
+                    <span id="resGrade" class="text-xl text-amber-500 font-black">S급 명품 샤베트</span>
+                </div>
+            </div>
+
+            <!-- Judge Comment -->
+            <div class="bg-white p-3 rounded-xl border border-pink-200 text-left">
+                <p class="text-xs font-bold text-pink-950 flex items-center gap-1 font-jua mb-1">
+                    <i class="fa-solid fa-comment-dots text-pink-500"></i> 심사위원 총평:
+                </p>
+                <p id="resComment" class="text-xs text-gray-700 font-handwriting text-base leading-snug">
+                    "사각사각 소리가 아주 매력적이에요! 완벽한 비율의 샤베트 슬라임입니다!"
+                </p>
+            </div>
+
+            <button id="btnCloseAuditionModal" class="w-full py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-jua rounded-2xl text-base shadow-md transition transform active:scale-95">
+                다시 자유롭게 만지기 ✨
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Alert Notification -->
+    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 glass-dark text-amber-200 border border-amber-400/40 px-5 py-2.5 rounded-2xl shadow-2xl font-jua text-xs flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px] z-50">
+        <span class="text-lg" id="toastIcon">🍧</span>
+        <span id="toastMsg">알림 메시지</span>
+    </div>
+
+
+    <script>
+        class ASMRSoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+                this.noiseBuffer = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                    this.createNoiseBuffer();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // Create white noise buffer for crunchy sherbet effect
+            createNoiseBuffer() {
+                if (!this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const output = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                this.noiseBuffer = buffer;
+            }
+
+            // Play Sherbet Crunch sound ("사각사각", "뽀드득")
+            playSherbetCrunch(intensity = 0.5, densityType = 'sherbet') {
+                if (!this.enabled) return;
+                this.init();
+
+                const now = this.ctx.currentTime;
+                const duration = 0.08 + Math.random() * 0.08;
+
+                // Noise Source
+                const noiseSource = this.ctx.createBufferSource();
+                noiseSource.buffer = this.noiseBuffer;
+
+                // Bandpass Filter for Icy Sherbet Frequency Tone
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+
+                let centerFreq = 3000 + Math.random() * 2000;
+                let qValue = 3.0;
+
+                if (densityType === 'crunch') {
+                    centerFreq = 4500 + Math.random() * 2500; // Sharp crunchy ice
+                    qValue = 4.5;
+                } else if (densityType === 'cloud') {
+                    centerFreq = 1800 + Math.random() * 1200; // Soft fluff cloud
+                    qValue = 1.5;
+                }
+
+                filter.frequency.setValueAtTime(centerFreq, now);
+                filter.Q.setValueAtTime(qValue, now);
+
+                // Gain Envelope
+                const gain = this.ctx.createGain();
+                const vol = Math.min(0.4, 0.05 + intensity * 0.25);
+                gain.gain.setValueAtTime(vol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                noiseSource.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                noiseSource.start(now);
+                noiseSource.stop(now + duration);
+            }
+
+            // Play Bubble Pop / Squish sound
+            playBubblePop() {
+                if (!this.enabled) return;
+                this.init();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                const startFreq = 400 + Math.random() * 300;
+                const endFreq = 900 + Math.random() * 400;
+
+                osc.frequency.setValueAtTime(startFreq, now);
+                osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.06);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.06);
+            }
+        }
+
+        const asmrSound = new ASMRSoundEngine();
+
+        class SlimePhysicsEngine {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                
+                this.width = canvas.width;
+                this.height = canvas.height;
+
+                this.numPoints = 32;
+                this.points = [];
+                this.center = { x: 0, y: 0 };
+                this.baseRadius = 150;
+
+                // Slime Custom State
+                this.flavor = 'peach'; // peach, mint, blueberry, rainbow, lemon, soda
+                this.textureType = 'sherbet'; // sherbet, crunch, cloud
+                this.toppings = []; // { x, y, icon, angle, scale }
+                this.sherbetGrains = []; // Frosty ice grain particles
+
+                // Drag state
+                this.isDragging = false;
+                this.dragPoint = null;
+                this.pointerPos = { x: 0, y: 0 };
+
+                this.initSlime();
+            }
+
+            resize(w, h) {
+                this.width = w;
+                this.height = h;
+                this.canvas.width = w;
+                this.canvas.height = h;
+                this.center = { x: w / 2, y: h / 2 };
+                this.baseRadius = Math.min(w, h) * 0.25;
+                this.repositionPoints();
+            }
+
+            initSlime() {
+                this.center = { x: this.width / 2, y: this.height / 2 };
+                this.points = [];
+                for (let i = 0; i < this.numPoints; i++) {
+                    const angle = (i / this.numPoints) * Math.PI * 2;
+                    const x = this.center.x + Math.cos(angle) * this.baseRadius;
+                    const y = this.center.y + Math.sin(angle) * this.baseRadius;
+                    this.points.push({
+                        x: x,
+                        y: y,
+                        originX: x,
+                        originY: y,
+                        vx: 0,
+                        vy: 0,
+                        angle: angle,
+                        radius: this.baseRadius
+                    });
+                }
+
+                // Generate Sherbet Grains Inside Blob
+                this.sherbetGrains = [];
+                for (let i = 0; i < 350; i++) {
+                    const r = Math.random() * 0.85;
+                    const a = Math.random() * Math.PI * 2;
+                    this.sherbetGrains.push({
+                        rNorm: r,
+                        angle: a,
+                        size: 1 + Math.random() * 2.5,
+                        opacity: 0.3 + Math.random() * 0.6
+                    });
+                }
+            }
+
+            repositionPoints() {
+                for (let i = 0; i < this.numPoints; i++) {
+                    const angle = this.points[i].angle;
+                    this.points[i].originX = this.center.x + Math.cos(angle) * this.baseRadius;
+                    this.points[i].originY = this.center.y + Math.sin(angle) * this.baseRadius;
+                }
+            }
+
+            update() {
+                // Spring physics update for outer perimeter nodes
+                for (let i = 0; i < this.points.length; i++) {
+                    const p = this.points[i];
+
+                    // Spring back force towards origin radius
+                    const dx = p.originX - p.x;
+                    const dy = p.originY - p.y;
+
+                    p.vx += dx * 0.04;
+                    p.vy += dy * 0.04;
+
+                    // Damping
+                    p.vx *= 0.82;
+                    p.vy *= 0.82;
+
+                    p.x += p.vx;
+                    p.y += p.vy;
+                }
+
+                // Interaction force on drag/touch
+                if (this.isDragging) {
+                    // Push nearby points or stretch
+                    for (let i = 0; i < this.points.length; i++) {
+                        const p = this.points[i];
+                        const dist = Math.hypot(this.pointerPos.x - p.x, this.pointerPos.y - p.y);
+                        if (dist < 120) {
+                            const force = (120 - dist) * 0.15;
+                            const angle = Math.atan2(p.y - this.pointerPos.y, p.x - this.pointerPos.x);
+                            p.vx += Math.cos(angle) * force;
+                            p.vy += Math.sin(angle) * force;
+                        }
+                    }
+                }
+            }
+
+            // Poke Action
+            poke(x, y) {
+                this.pointerPos = { x, y };
+                let hit = false;
+                for (let i = 0; i < this.points.length; i++) {
+                    const p = this.points[i];
+                    const dist = Math.hypot(x - p.x, y - p.y);
+                    if (dist < this.baseRadius * 1.5) {
+                        hit = true;
+                        const force = - (180 - dist) * 0.35;
+                        const angle = Math.atan2(y - this.center.y, x - this.center.x);
+                        p.vx += Math.cos(angle) * force;
+                        p.vy += Math.sin(angle) * force;
+                    }
+                }
+
+                // Sound & particle feedback
+                asmrSound.playSherbetCrunch(0.8, this.textureType);
+                if (Math.random() < 0.4) asmrSound.playBubblePop();
+
+                return hit;
+            }
+
+            // Slap / Big Squish Action
+            slap() {
+                for (let i = 0; i < this.points.length; i++) {
+                    const p = this.points[i];
+                    const randomForce = (Math.random() - 0.5) * 45;
+                    p.vx += randomForce;
+                    p.vy += randomForce;
+                }
+                asmrSound.playSherbetCrunch(1.0, this.textureType);
+                asmrSound.playBubblePop();
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+
+                if (this.points.length === 0) return;
+
+                // 1. Draw Drop Shadow
+                this.ctx.save();
+                this.ctx.beginPath();
+                this.drawBlobPath();
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+                this.ctx.filter = 'blur(12px)';
+                this.ctx.fill();
+                this.ctx.restore();
+
+                // 2. Main Slime Body Fill
+                this.ctx.save();
+                this.ctx.beginPath();
+                this.drawBlobPath();
+
+                // Gradient setup based on flavor
+                const grad = this.getSlimeGradient();
+                this.ctx.fillStyle = grad;
+                this.ctx.fill();
+
+                // Frosty Inner Glow Border
+                this.ctx.lineWidth = 8;
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                this.ctx.stroke();
+
+                // Clip area for Sherbet Grains
+                this.ctx.clip();
+
+                // 3. Render Sherbet Icy Texture Grains
+                for (let i = 0; i < this.sherbetGrains.length; i++) {
+                    const g = this.sherbetGrains[i];
+                    const rCurr = g.rNorm * this.baseRadius * 0.9;
+                    const gx = this.center.x + Math.cos(g.angle) * rCurr;
+                    const gy = this.center.y + Math.sin(g.angle) * rCurr;
+
+                    this.ctx.beginPath();
+                    this.ctx.arc(gx, gy, g.size, 0, Math.PI * 2);
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${g.opacity})`;
+                    this.ctx.fill();
+                }
+
+                // 4. Highlight Shimmer
+                this.ctx.beginPath();
+                this.ctx.ellipse(this.center.x - this.baseRadius * 0.3, this.center.y - this.baseRadius * 0.35, this.baseRadius * 0.3, this.baseRadius * 0.15, -Math.PI / 6, 0, Math.PI * 2);
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                this.ctx.fill();
+
+                this.ctx.restore();
+
+                // 5. Render Toppings
+                this.drawToppings();
+            }
+
+            drawBlobPath() {
+                const p0 = this.points[0];
+                const pLast = this.points[this.points.length - 1];
+                const midX = (pLast.x + p0.x) / 2;
+                const midY = (pLast.y + p0.y) / 2;
+
+                this.ctx.moveTo(midX, midY);
+
+                for (let i = 0; i < this.points.length; i++) {
+                    const pCurrent = this.points[i];
+                    const pNext = this.points[(i + 1) % this.points.length];
+                    const xc = (pCurrent.x + pNext.x) / 2;
+                    const yc = (pCurrent.y + pNext.y) / 2;
+                    this.ctx.quadraticCurveTo(pCurrent.x, pCurrent.y, xc, yc);
+                }
+            }
+
+            getSlimeGradient() {
+                const g = this.ctx.createRadialGradient(
+                    this.center.x - this.baseRadius * 0.2,
+                    this.center.y - this.baseRadius * 0.2,
+                    10,
+                    this.center.x,
+                    this.center.y,
+                    this.baseRadius * 1.3
+                );
+
+                switch (this.flavor) {
+                    case 'mint':
+                        g.addColorStop(0, '#a7f3d0');
+                        g.addColorStop(0.6, '#34d399');
+                        g.addColorStop(1, '#059669');
+                        break;
+                    case 'blueberry':
+                        g.addColorStop(0, '#c084fc');
+                        g.addColorStop(0.6, '#a855f7');
+                        g.addColorStop(1, '#7e22ce');
+                        break;
+                    case 'rainbow':
+                        g.addColorStop(0, '#fef08a');
+                        g.addColorStop(0.5, '#fbcfe8');
+                        g.addColorStop(1, '#a5f3fc');
+                        break;
+                    case 'lemon':
+                        g.addColorStop(0, '#fef08a');
+                        g.addColorStop(0.6, '#fde047');
+                        g.addColorStop(1, '#eab308');
+                        break;
+                    case 'soda':
+                        g.addColorStop(0, '#bae6fd');
+                        g.addColorStop(0.6, '#38bdf8');
+                        g.addColorStop(1, '#0284c7');
+                        break;
+                    case 'peach':
+                    default:
+                        g.addColorStop(0, '#fbcfe8');
+                        g.addColorStop(0.6, '#f472b6');
+                        g.addColorStop(1, '#db2777');
+                        break;
+                }
+                return g;
+            }
+
+            addTopping(icon) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * this.baseRadius * 0.7;
+                this.toppings.push({
+                    normX: Math.cos(angle) * dist,
+                    normY: Math.sin(angle) * dist,
+                    icon: icon,
+                    size: 20 + Math.random() * 10,
+                    rotation: (Math.random() - 0.5) * 0.8
+                });
+                asmrSound.playBubblePop();
+            }
+
+            drawToppings() {
+                this.ctx.font = '22px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+
+                for (let i = 0; i < this.toppings.length; i++) {
+                    const top = this.toppings[i];
+                    const tx = this.center.x + top.normX;
+                    const ty = this.center.y + top.normY;
+
+                    this.ctx.save();
+                    this.ctx.translate(tx, ty);
+                    this.ctx.rotate(top.rotation);
+                    this.ctx.fillText(top.icon, 0, 0);
+                    this.ctx.restore();
+                }
+            }
+        }
+
+        let slime = null;
+
+        // Audition Mode State
+        let isAuditionActive = false;
+        let auditionTimerVal = 10;
+        let auditionTimerInterval = null;
+        let auditionScoreVal = 0;
+
+        window.onload = () => {
+            const canvas = document.getElementById('slimeCanvas');
+            slime = new SlimePhysicsEngine(canvas);
+
+            function handleResize() {
+                const main = canvas.parentElement;
+                slime.resize(main.clientWidth, main.clientHeight);
+            }
+            window.addEventListener('resize', handleResize);
+            handleResize();
+
+            // Main Animation Loop
+            function animate() {
+                slime.update();
+                slime.draw();
+                requestAnimationFrame(animate);
+            }
+            animate();
+
+            // Setup Touch & Mouse Interaction Events
+            setupCanvasInteraction(canvas);
+
+            // Setup UI Tabs & Controls
+            setupUIControls();
+        };
+
+        function setupCanvasInteraction(canvas) {
+            const touchHint = document.getElementById('touchHint');
+
+            function getCanvasPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            }
+
+            function onStart(e) {
+                if (touchHint) touchHint.style.opacity = '0';
+                const pos = getCanvasPos(e);
+                slime.isDragging = true;
+                slime.pointerPos = pos;
+                slime.poke(pos.x, pos.y);
+
+                if (isAuditionActive) {
+                    auditionScoreVal += Math.floor(15 + Math.random() * 20);
+                    updateAuditionScoreUI();
+                }
+            }
+
+            function onMove(e) {
+                if (!slime.isDragging) return;
+                const pos = getCanvasPos(e);
+                slime.pointerPos = pos;
+                
+                // Continuous audio on stretch
+                if (Math.random() < 0.25) {
+                    asmrSound.playSherbetCrunch(0.4, slime.textureType);
+                    if (isAuditionActive) {
+                        auditionScoreVal += 5;
+                        updateAuditionScoreUI();
+                    }
+                }
+            }
+
+            function onEnd() {
+                slime.isDragging = false;
+            }
+
+            canvas.addEventListener('mousedown', onStart);
+            canvas.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onEnd);
+
+            canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onStart(e); }, { passive: false });
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); onMove(e); }, { passive: false });
+            window.addEventListener('touchend', onEnd);
+        }
+
+        function setupUIControls() {
+            // Sound Toggle Button
+            const soundBtn = document.getElementById('btnSoundToggle');
+            const soundIcon = document.getElementById('soundIcon');
+            soundBtn.onclick = () => {
+                asmrSound.enabled = !asmrSound.enabled;
+                soundIcon.className = asmrSound.enabled ? "fa-solid fa-volume-high text-base" : "fa-solid fa-volume-xmark text-base text-pink-400";
+                showToast(asmrSound.enabled ? "🔊 ASMR 사운드 켜짐" : "🔇 ASMR 사운드 꺼짐");
+            };
+
+            // Quick Actions
+            document.getElementById('btnClearToppings').onclick = () => {
+                slime.toppings = [];
+                showToast("✨ 토핑이 깔끔하게 정리되었습니다.");
+            };
+            document.getElementById('btnAddRandomTopping').onclick = () => {
+                const list = ['⭐', '🍓', '💖', '⚪', '✨', '🍋', '🫐', '🌸'];
+                const randomIcon = list[Math.floor(Math.random() * list.length)];
+                slime.addTopping(randomIcon);
+            };
+            document.getElementById('btnSquishSlap').onclick = () => {
+                slime.slap();
+                showToast("💥 팡팡! 슬라임을 흔들었습니다!");
+            };
+
+            // Category Tab Switches
+            const tabColor = document.getElementById('tabColor');
+            const tabTexture = document.getElementById('tabTexture');
+            const tabTopping = document.getElementById('tabTopping');
+
+            const panelColor = document.getElementById('panelColor');
+            const panelTexture = document.getElementById('panelTexture');
+            const panelTopping = document.getElementById('panelTopping');
+
+            function switchTab(activeTab, activePanel) {
+                [tabColor, tabTexture, tabTopping].forEach(t => {
+                    t.className = "px-4 py-1.5 rounded-2xl bg-white/70 text-pink-900 font-jua text-xs font-bold hover:bg-white transition flex items-center gap-1.5";
+                });
+                [panelColor, panelTexture, panelTopping].forEach(p => p.classList.add('hidden'));
+
+                activeTab.className = "px-4 py-1.5 rounded-2xl bg-pink-500 text-white font-jua text-xs font-bold shadow transition flex items-center gap-1.5";
+                activePanel.classList.remove('hidden');
+            }
+
+            tabColor.onclick = () => switchTab(tabColor, panelColor);
+            tabTexture.onclick = () => switchTab(tabTexture, panelTexture);
+            tabTopping.onclick = () => switchTab(tabTopping, panelTopping);
+
+            // Flavor Buttons
+            document.querySelectorAll('.flavor-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const flavor = btn.getAttribute('data-flavor');
+                    slime.flavor = flavor;
+                    asmrSound.playBubblePop();
+                    showToast(`🍧 ${btn.innerText.trim()} 맛 슬라임 변신!`);
+                };
+            });
+
+            // Texture Buttons
+            document.querySelectorAll('.texture-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.texture-btn').forEach(b => b.className = "texture-btn flex-1 py-2 rounded-2xl bg-white/80 text-pink-900 font-jua text-xs border border-pink-200 text-center hover:bg-pink-100 transition");
+                    btn.className = "texture-btn flex-1 py-2 rounded-2xl bg-pink-500 text-white font-jua text-xs border border-pink-500 text-center shadow transition";
+                    
+                    const tex = btn.getAttribute('data-texture');
+                    slime.textureType = tex;
+                    asmrSound.playSherbetCrunch(0.8, tex);
+                    showToast(`✨ ${btn.innerText.trim()} 촉감으로 변경`);
+                };
+            });
+
+            // Topping Buttons
+            document.querySelectorAll('.topping-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const topIcon = btn.getAttribute('data-topping');
+                    slime.addTopping(topIcon);
+                };
+            });
+
+            // Audition Mode Controls
+            const btnAuditionMode = document.getElementById('btnAuditionMode');
+            const auditionOverlay = document.getElementById('auditionOverlay');
+
+            btnAuditionMode.onclick = () => {
+                if (isAuditionActive) return;
+                startAuditionMode();
+            };
+
+            document.getElementById('btnCloseAuditionModal').onclick = () => {
+                document.getElementById('modalAuditionResult').classList.add('hidden');
+            };
+        }
+
+        function startAuditionMode() {
+            isAuditionActive = true;
+            auditionTimerVal = 10;
+            auditionScoreVal = 0;
+
+            const auditionOverlay = document.getElementById('auditionOverlay');
+            auditionOverlay.classList.remove('hidden');
+
+            updateAuditionScoreUI();
+
+            showToast("🎙️ 10초 ASMR 오디션 시작! 슬라임을 마음껏 만져보세요!");
+
+            if (auditionTimerInterval) clearInterval(auditionTimerInterval);
+
+            auditionTimerInterval = setInterval(() => {
+                auditionTimerVal--;
+                document.getElementById('auditionTimer').innerText = `${auditionTimerVal}s`;
+                document.getElementById('auditionProgressBar').style.width = `${((10 - auditionTimerVal) / 10) * 100}%`;
+
+                if (auditionTimerVal <= 0) {
+                    clearInterval(auditionTimerInterval);
+                    endAuditionMode();
+                }
+            }, 1000);
+        }
+
+        function updateAuditionScoreUI() {
+            document.getElementById('auditionScore').innerText = auditionScoreVal;
+        }
+
+        function endAuditionMode() {
+            isAuditionActive = false;
+            document.getElementById('auditionOverlay').classList.add('hidden');
+
+            // Calculate Audition Results
+            const soundScore = Math.min(100, Math.floor(auditionScoreVal * 0.4 + 40));
+            const rhythmScore = Math.min(100, Math.floor(auditionScoreVal * 0.5 + 35));
+            const totalScore = Math.floor((soundScore + rhythmScore) / 2);
+
+            document.getElementById('resScoreSound').innerText = `${soundScore}점`;
+            document.getElementById('resScoreRhythm').innerText = `${rhythmScore}점`;
+
+            let grade = "S급 명품 샤베트";
+            let comment = `"사각사각 소리와 리듬감이 일품입니다! 보는 사람까지 기분 좋아지는 소리예요!"`;
+
+            if (totalScore >= 95) {
+                grade = "👑 전설의 갓-샤베트 슬라임";
+                comment = `"완벽한 오디오 밸런스와 극상의 쫀득함! 심사위원 전원 만점입니다!"`;
+            } else if (totalScore < 70) {
+                grade = "🍧 귀여운 새싹 샤베트";
+                comment = `"소리가 아주 귀여워요! 조금 더 리드미컬하게 만져주면 최고일 것 같아요!"`;
+            }
+
+            document.getElementById('resGrade').innerText = grade;
+            document.getElementById('resComment').innerText = comment;
+
+            document.getElementById('modalAuditionResult').classList.remove('hidden');
+        }
+
+        // Toast Notification System
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.innerText = msg;
+
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

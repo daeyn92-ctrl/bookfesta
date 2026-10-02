@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>천적 피하기 (Avoid Predators) - 3D 토토 모험</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Jua', 'Fredoka', sans-serif;
+            touch-action: manipulation;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0f172a;
+        }
+
+        /* Pulsing Red Antenna Light Animation */
+        @keyframes redAntennaPulse {
+            0%, 100% {
+                box-shadow: 0 0 6px #ff2a2a, 0 0 12px #ff0000;
+                background-color: #ff3333;
+            }
+            50% {
+                box-shadow: 0 0 20px #ff0000, 0 0 35px #ff0000;
+                background-color: #ff0000;
+            }
+        }
+
+        .red-antenna-glow {
+            animation: redAntennaPulse 1s infinite ease-in-out;
+        }
+
+        /* Glassmorphic Panel Styling */
+        .glass-box {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Robux-style Button Shadow */
+        .game-btn {
+            box-shadow: 0 5px 0 #1e293b;
+            transition: all 0.1s ease;
+        }
+
+        .game-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #1e293b;
+        }
+
+        /* Transformation Flash Overlay */
+        @keyframes alertFlash {
+            0% { opacity: 0.8; background-color: rgba(239, 68, 68, 0.5); }
+            100% { opacity: 0; background-color: transparent; }
+        }
+
+        .transform-flash {
+            animation: alertFlash 1.2s ease-out forwards;
+        }
+
+        /* Floating Bobbing Animation */
+        @keyframes gentleFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(2deg); }
+        }
+
+        .float-anim {
+            animation: gentleFloat 2.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="relative flex flex-col justify-between w-full h-full select-none overflow-hidden text-white">
+
+    <div id="canvas-container" class="absolute inset-0 z-0 w-full h-full bg-slate-900"></div>
+
+    <!-- Screen Flash Indicator for Animal Transformation -->
+    <div id="flash-overlay" class="pointer-events-none absolute inset-0 z-20 hidden"></div>
+
+    <!-- Top HUD Header -->
+    <div class="absolute top-0 left-0 w-full p-4 z-10 flex flex-col md:flex-row justify-between items-center pointer-events-none gap-3">
+        
+        <!-- Game Title & Active Predator Display -->
+        <div class="pointer-events-auto glass-box rounded-2xl p-3 flex items-center space-x-4 border-2 border-amber-400">
+            <div id="animal-icon-bg" class="w-14 h-14 rounded-xl bg-amber-500 flex items-center justify-center text-3xl shadow-inner border-2 border-white">
+                🐰
+            </div>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-amber-300 font-bold tracking-wider uppercase">현재 출몰 동물</span>
+                    <span class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full text-white">확률 16.6%</span>
+                </div>
+                <div id="animal-name" class="text-2xl font-black text-amber-400 drop-shadow">토끼 (안전 모드)</div>
+            </div>
+        </div>
+
+        <!-- 5-Minute Transformation Countdown Bar -->
+        <div class="pointer-events-auto glass-box rounded-2xl p-3 flex flex-col items-center min-w-[260px] border-2 border-cyan-400">
+            <div class="flex justify-between w-full text-xs font-bold text-cyan-300 mb-1">
+                <span><i class="fa-solid fa-clock animate-spin mr-1"></i> 다음 변신까지</span>
+                <span id="timer-text" class="text-white font-mono text-sm font-black">05:00</span>
+            </div>
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-700/80 rounded-full h-3 overflow-hidden border border-white/20">
+                <div id="timer-bar" class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full w-full transition-all duration-1000"></div>
+            </div>
+            <!-- Dev Quick Switch Button -->
+            <button id="quick-transform-btn" class="mt-2 text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1 px-3 rounded-lg border border-indigo-300 shadow active:scale-95 transition flex items-center space-x-1">
+                <i class="fa-solid fa-dice"></i>
+                <span>5분 건너뛰기 (즉시 랜덤 변신)</span>
+            </button>
+        </div>
+
+        <!-- Player Stats (Carrots & Survival Time) -->
+        <div class="pointer-events-auto flex space-x-3">
+            <div class="glass-box px-4 py-2 rounded-2xl border-2 border-orange-400 flex items-center space-x-2">
+                <span class="text-2xl animate-bounce">🥕</span>
+                <div>
+                    <div class="text-[10px] text-orange-200 font-bold">수집한 당근</div>
+                    <span id="carrot-count" class="text-xl font-black text-orange-400">0</span>
+                </div>
+            </div>
+            <div class="glass-box px-4 py-2 rounded-2xl border-2 border-emerald-400 flex items-center space-x-2">
+                <i class="fa-solid fa-heart text-red-500 text-2xl animate-pulse"></i>
+                <div>
+                    <div class="text-[10px] text-emerald-200 font-bold">체력</div>
+                    <span id="hp-count" class="text-xl font-black text-emerald-400">100 HP</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Joystick & Action Controls -->
+    <div class="absolute bottom-6 left-6 z-10 pointer-events-auto block md:hidden">
+        <div id="joystick-container" class="relative w-28 h-28 bg-white/20 backdrop-blur-md border-2 border-white/40 rounded-full flex items-center justify-center shadow-2xl">
+            <div id="joystick-stick" class="absolute w-12 h-12 bg-white/80 border-2 border-cyan-400 rounded-full shadow-lg"></div>
+        </div>
+    </div>
+
+    <!-- Jump & Dash Action Buttons -->
+    <div class="absolute bottom-6 right-28 z-10 pointer-events-auto flex space-x-3">
+        <button id="dash-btn" class="w-16 h-16 bg-gradient-to-b from-amber-400 to-amber-600 border-2 border-white text-white rounded-full text-xl font-black game-btn flex flex-col items-center justify-center shadow-xl active:scale-95">
+            <i class="fa-solid fa-bolt"></i>
+            <span class="text-[9px]">대시</span>
+        </button>
+        <button id="jump-btn" class="w-16 h-16 bg-gradient-to-b from-cyan-400 to-blue-600 border-2 border-white text-white rounded-full text-xl font-black game-btn flex flex-col items-center justify-center shadow-xl active:scale-95">
+            <i class="fa-solid fa-arrow-up"></i>
+            <span class="text-[9px]">점프</span>
+        </button>
+    </div>
+
+    <!-- Toto Rabbit Assistant Button (With Red Light Antenna) -->
+    <div class="absolute bottom-6 right-6 z-20 pointer-events-auto">
+        <button id="toto-helper-btn" class="relative group p-0 outline-none focus:outline-none transition-transform hover:scale-105 active:scale-95">
+            <!-- Red Light Antenna Halo -->
+            <div class="absolute -inset-2 bg-gradient-to-r from-red-500 via-pink-500 to-yellow-400 rounded-full blur-md opacity-80 group-hover:opacity-100 animate-pulse"></div>
+
+            <div class="relative w-20 h-20 bg-gradient-to-b from-pink-100 to-pink-200 border-4 border-white rounded-full shadow-2xl flex flex-col items-center justify-center overflow-visible">
+                
+                <!-- Red Light Antenna -->
+                <div class="absolute -top-3 flex flex-col items-center z-30">
+                    <div class="w-4 h-4 rounded-full red-antenna-glow border-2 border-white"></div>
+                    <div class="w-1 h-3 bg-gray-400 rounded-full -mt-0.5"></div>
+                </div>
+
+                <!-- Cute Rabbit SVG Face -->
+                <svg class="w-14 h-14 mt-1" viewBox="0 0 100 100" fill="none">
+                    <ellipse cx="38" cy="22" rx="7" ry="18" fill="#FFFFFF" stroke="#F472B6" stroke-width="3"/>
+                    <ellipse cx="38" cy="22" rx="4" ry="12" fill="#FBCFE8"/>
+                    <ellipse cx="62" cy="22" rx="7" ry="18" fill="#FFFFFF" stroke="#F472B6" stroke-width="3"/>
+                    <ellipse cx="62" cy="22" rx="4" ry="12" fill="#FBCFE8"/>
+                    <circle cx="50" cy="58" r="28" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+                    <ellipse cx="35" cy="65" rx="5" ry="3" fill="#F472B6" opacity="0.6"/>
+                    <ellipse cx="65" cy="65" rx="5" ry="3" fill="#F472B6" opacity="0.6"/>
+                    <circle cx="40" cy="55" r="3.5" fill="#1E293B"/>
+                    <circle cx="60" cy="55" r="3.5" fill="#1E293B"/>
+                    <polygon points="50,60 47,57 53,57" fill="#F472B6"/>
+                    <path d="M47 62 Q50 65 53 62" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                </svg>
+
+                <div class="absolute -bottom-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full border-2 border-white shadow">
+                    토토
+                </div>
+            </div>
+        </button>
+    </div>
+
+    <!-- Toto Helper Dialog Modal -->
+    <div id="toto-dialog-modal" class="hidden absolute inset-0 z-30 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-box w-full max-w-md rounded-3xl p-6 relative flex flex-col items-center border-4 border-pink-400 shadow-2xl animate-fade-in">
+            
+            <button id="close-toto-modal" class="absolute top-4 right-4 bg-gray-700 hover:bg-gray-600 text-white rounded-full w-9 h-9 flex items-center justify-center font-bold border-2 border-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Red Light Avatar Header -->
+            <div class="relative flex flex-col items-center -mt-12 mb-2">
+                <div class="relative mb-1">
+                    <div class="w-6 h-6 rounded-full red-antenna-glow border-2 border-white"></div>
+                    <div class="w-1.5 h-4 bg-gray-400 mx-auto"></div>
+                </div>
+
+                <div class="w-20 h-20 bg-gradient-to-b from-pink-100 to-pink-200 border-4 border-white rounded-full shadow-lg flex items-center justify-center float-anim overflow-hidden">
+                    <span class="text-4xl">🐰</span>
+                </div>
+            </div>
+
+            <div class="text-xs text-pink-400 font-black uppercase tracking-widest mb-1 flex items-center">
+                <span class="w-2 h-2 rounded-full red-antenna-glow mr-1.5"></span> 아기 토끼 토토의 도감 & 팁
+            </div>
+
+            <div id="toto-speech" class="w-full bg-pink-950/60 border-2 border-pink-400 rounded-2xl p-4 mb-4 text-center text-pink-100 text-sm font-extrabold leading-relaxed">
+                "안녕! 나는 머리에 빨간불이 빛나는 아기 토끼 토토야! 5분마다 나타나는 6종류의 동물을 조심해!"
+            </div>
+
+            <!-- Probability Information List -->
+            <div class="w-full bg-slate-800/80 rounded-2xl p-3 border border-slate-600 mb-4 text-xs">
+                <div class="text-amber-400 font-bold mb-2 flex justify-between items-center">
+                    <span>🎲 6가지 동물 변신 확률 (각 16.6% 동일)</span>
+                    <span class="text-[10px] text-gray-400">5분마다 무작위</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-gray-200 text-[11px]">
+                    <div class="bg-slate-700/60 p-1.5 rounded-lg">🐰 토끼: 평화 & 당근 버프</div>
+                    <div class="bg-slate-700/60 p-1.5 rounded-lg">🐍 뱀: 지면 독성 공격</div>
+                    <div class="bg-slate-700/60 p-1.5 rounded-lg">🦅 매: 고속 공중 수습</div>
+                    <div class="bg-slate-700/60 p-1.5 rounded-lg">🦅 독수리: 광범위 돌풍</div>
+                    <div class="bg-slate-700/60 p-1.5 rounded-lg">🐯 호랑이: 맹렬한 덮치기</div>
+                    <div class="bg-slate-700/60 p-1.5 rounded-lg">🐉 용: 화염구 브레스</div>
+                </div>
+            </div>
+
+            <button id="grant-shield-btn" class="w-full bg-gradient-to-r from-pink-500 to-rose-600 border-2 border-white text-white font-black py-2.5 rounded-2xl game-btn active:scale-95 shadow-lg flex items-center justify-center space-x-2">
+                <span>🛡️ 토토의 무료 무적 보호막 받기</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameover-modal" class="hidden absolute inset-0 z-40 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-box w-full max-w-sm rounded-3xl p-6 text-center border-4 border-red-500 shadow-2xl animate-bounce-in">
+            <div class="text-6xl mb-2">💀</div>
+            <h2 class="text-3xl font-black text-red-500 mb-1">천적에게 습격당함!</h2>
+            <p id="gameover-reason" class="text-gray-300 font-bold text-xs mb-4">천적의 공격을 피하지 못했습니다!</p>
+            
+            <div class="bg-slate-800 rounded-2xl p-3 border border-slate-700 mb-4 flex justify-around text-center">
+                <div>
+                    <span class="block text-[10px] text-gray-400">모은 당근</span>
+                    <span id="final-carrots" class="text-lg font-black text-orange-400">0 🥕</span>
+                </div>
+                <div>
+                    <span class="block text-[10px] text-gray-400">생존 시간</span>
+                    <span id="final-time" class="text-lg font-black text-cyan-400">00:00</span>
+                </div>
+            </div>
+
+            <button id="restart-btn" class="w-full bg-gradient-to-b from-green-400 to-emerald-600 border-2 border-white text-white font-black text-lg py-3 rounded-2xl game-btn active:scale-95 shadow-lg">
+                다시 도전하기 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- Desktop Keyboard Manual Banner -->
+    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 hidden md:flex items-center space-x-3 bg-slate-900/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 text-white text-xs font-bold pointer-events-none">
+        <span>🎮 이동: <kbd class="bg-white/20 px-1.5 py-0.5 rounded">W A S D</kbd></span>
+        <span>| 점프: <kbd class="bg-white/20 px-1 py-0.5 rounded">Space</kbd></span>
+        <span>| 대시: <kbd class="bg-white/20 px-1 py-0.5 rounded">Shift</kbd></span>
+        <span>| 마우스: 카메라 회전</span>
+    </div>
+
+    <script>
+        // Game State Engine
+        const ANIMALS = [
+            { id: 'rabbit', name: '토끼 (안전 모드)', icon: '🐰', color: 0x4ade80, bgClass: 'bg-emerald-500', isSafe: true, speed: 0, desc: '평화로운 당근 수집 시간! 체력이 회복됩니다.' },
+            { id: 'snake', name: '뱀 (독성 지면 포식자)', icon: '🐍', color: 0x84cc16, bgClass: 'bg-lime-600', isSafe: false, speed: 0.08, desc: '지면을 신속하게 오가며 독성 자국을 남깁니다!' },
+            { id: 'hawk', name: '매 (고속 공중 포식자)', icon: '🦅', color: 0xf97316, bgClass: 'bg-orange-600', isSafe: false, speed: 0.14, desc: '하늘에서 빠른 속도로 직진 하강 공격을 퍼붓습니다!' },
+            { id: 'eagle', name: '독수리 (돌풍 공중 제왕)', icon: '🦅', color: 0xeab308, bgClass: 'bg-yellow-600', isSafe: false, speed: 0.11, desc: '거대한 돌풍 파동을 일으켜 넓은 범위를 위협합니다!' },
+            { id: 'tiger', name: '호랑이 (맹렬한 지상 수장)', icon: '🐯', color: 0xef4444, bgClass: 'bg-red-600', isSafe: false, speed: 0.12, desc: '포효와 함께 플레이어 쪽으로 급속 덮치기 공격!' },
+            { id: 'dragon', name: '용 (궁극의 화염 전설)', icon: '🐉', color: 0xa855f7, bgClass: 'bg-purple-600', isSafe: false, speed: 0.15, desc: '하늘을 날아다니며 연사 화염구를 내리칩니다!' }
+        ];
+
+        const state = {
+            activeAnimalIndex: 0, // Starts as Rabbit
+            timerSeconds: 300, // 5 minutes = 300 seconds
+            timerInterval: null,
+            survivalTime: 0,
+            carrots: 0,
+            hp: 100,
+            maxHp: 100,
+            hasShield: false,
+            isGameOver: false,
+            player: {
+                x: 0, y: 1, z: 0,
+                vx: 0, vy: 0, vz: 0,
+                isGrounded: true,
+                speedMultiplier: 1.0,
+                dashCooldown: 0
+            },
+            keys: {},
+            joystick: { active: false, x: 0, y: 0 }
+        };
+
+        // Audio Effects Synthesizer using Web Audio API
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+            if (type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'carrot') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.08);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'alert') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.setValueAtTime(440, now + 0.1);
+                osc.frequency.setValueAtTime(880, now + 0.2);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'hit') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.2);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        let scene, camera, renderer;
+        let playerGroup, predatorGroup, predatorMesh;
+        let carrots = [];
+        let hazardProjectiles = [];
+        let cameraAngleX = 0, cameraAngleY = 0.35;
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+            scene.fog = new THREE.FogExp2(0x0f172a, 0.012);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Ambient & Directional Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambient);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(30, 50, 30);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 150;
+            const d = 50;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            // Ground Arena Grid
+            buildArenaFloor();
+
+            // Player Roblox Rabbit Character Creation
+            buildPlayerModel();
+
+            // Predator Group Setup
+            predatorGroup = new THREE.Group();
+            scene.add(predatorGroup);
+
+            // Spawn Initial Carrots
+            spawnCarrots(15);
+
+            // Input Events
+            setupInputs();
+
+            // Start 5-Minute Timer Loop
+            startTransformationTimer();
+
+            // Render Animation Loop
+            animate();
+        }
+
+        function buildArenaFloor() {
+            // Main Island Floor
+            const floorGeo = new THREE.CylinderGeometry(40, 42, 3, 32);
+            const floorMat = new THREE.MeshToonMaterial({ color: 0x1e293b });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.position.y = -1.5;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Grass Surface Ring
+            const grassGeo = new THREE.CylinderGeometry(39.5, 39.5, 0.2, 32);
+            const grassMat = new THREE.MeshToonMaterial({ color: 0x059669 });
+            const grass = new THREE.Mesh(grassGeo, grassMat);
+            grass.position.y = 0.05;
+            grass.receiveShadow = true;
+            scene.add(grass);
+
+            // Decorative Outer Pillars
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const px = Math.cos(angle) * 37;
+                const pz = Math.sin(angle) * 37;
+                
+                const pillarGeo = new THREE.BoxGeometry(2, 6, 2);
+                const pillarMat = new THREE.MeshToonMaterial({ color: 0x334155 });
+                const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+                pillar.position.set(px, 3, pz);
+                pillar.castShadow = true;
+                scene.add(pillar);
+            }
+        }
+
+        function buildPlayerModel() {
+            playerGroup = new THREE.Group();
+
+            const bodyMat = new THREE.MeshToonMaterial({ color: 0x38bdf8 });
+            const whiteMat = new THREE.MeshToonMaterial({ color: 0xffffff });
+            const pinkMat = new THREE.MeshToonMaterial({ color: 0xf472b6 });
+
+            // Torso
+            const torsoGeo = new THREE.BoxGeometry(1.2, 1.4, 0.7);
+            const torso = new THREE.Mesh(torsoGeo, bodyMat);
+            torso.position.y = 1.3;
+            torso.castShadow = true;
+            playerGroup.add(torso);
+
+            // Head
+            const headGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+            const head = new THREE.Mesh(headGeo, whiteMat);
+            head.position.y = 2.5;
+            head.castShadow = true;
+            playerGroup.add(head);
+
+            // Red Light Antenna on Player Head
+            const antennaRodGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.6);
+            const antennaRodMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8 });
+            const rod = new THREE.Mesh(antennaRodGeo, antennaRodMat);
+            rod.position.set(0, 3.2, 0);
+            playerGroup.add(rod);
+
+            const bulbGeo = new THREE.SphereGeometry(0.2, 16, 16);
+            const bulbMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+            bulb.position.set(0, 3.5, 0);
+            playerGroup.add(bulb);
+
+            // Rabbit Ears
+            const earGeo = new THREE.BoxGeometry(0.22, 0.9, 0.2);
+            const leftEar = new THREE.Mesh(earGeo, whiteMat);
+            leftEar.position.set(-0.3, 3.3, 0);
+            leftEar.rotation.z = -0.15;
+            playerGroup.add(leftEar);
+
+            const rightEar = leftEar.clone();
+            rightEar.position.x = 0.3;
+            rightEar.rotation.z = 0.15;
+            playerGroup.add(rightEar);
+
+            // Eyes
+            const eyeGeo = new THREE.BoxGeometry(0.12, 0.18, 0.05);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.2, 2.55, 0.52);
+            playerGroup.add(leftEye);
+
+            const rightEye = leftEye.clone();
+            rightEye.position.x = 0.2;
+            playerGroup.add(rightEye);
+
+            scene.add(playerGroup);
+        }
+
+        function spawnCarrots(count) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 32;
+                const cx = Math.cos(angle) * radius;
+                const cz = Math.sin(angle) * radius;
+
+                const group = new THREE.Group();
+                group.position.set(cx, 0.8, cz);
+
+                // Cone Body
+                const carrotGeo = new THREE.ConeGeometry(0.35, 1.2, 8);
+                const carrotMat = new THREE.MeshToonMaterial({ color: 0xf97316 });
+                const carrotMesh = new THREE.Mesh(carrotGeo, carrotMat);
+                carrotMesh.rotation.x = Math.PI;
+                group.add(carrotMesh);
+
+                // Leaf Top
+                const leafGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
+                const leafMat = new THREE.MeshToonMaterial({ color: 0x22c55e });
+                const leaf = new THREE.Mesh(leafGeo, leafMat);
+                leaf.position.y = 0.6;
+                group.add(leaf);
+
+                scene.add(group);
+                carrots.push({ mesh: group, x: cx, z: cz });
+            }
+        }
+
+        function startTransformationTimer() {
+            if (state.timerInterval) clearInterval(state.timerInterval);
+
+            state.timerSeconds = 300; // 5 minutes
+
+            state.timerInterval = setInterval(() => {
+                if (state.isGameOver) return;
+
+                state.timerSeconds--;
+                state.survivalTime++;
+
+                updateTimerUI();
+
+                if (state.timerSeconds <= 0) {
+                    // Trigger 5-minute random transformation
+                    triggerRandomTransformation();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const mins = Math.floor(state.timerSeconds / 60);
+            const secs = state.timerSeconds % 60;
+            document.getElementById('timer-text').innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            
+            const pct = (state.timerSeconds / 300) * 100;
+            document.getElementById('timer-bar').style.width = `${pct}%`;
+        }
+
+        // Equal Probability Transformation (1/6 for each of the 6 animals)
+        function triggerRandomTransformation() {
+            // Reset 5-minute timer
+            state.timerSeconds = 300;
+            updateTimerUI();
+
+            // Strict Equal Probability Pick (1 / 6 chance = ~16.67%)
+            const randomIndex = Math.floor(Math.random() * ANIMALS.length);
+            state.activeAnimalIndex = randomIndex;
+
+            const currentAnimal = ANIMALS[randomIndex];
+
+            // Flash screen alert
+            const flash = document.getElementById('flash-overlay');
+            flash.classList.remove('hidden');
+            flash.classList.add('transform-flash');
+            setTimeout(() => flash.classList.add('hidden'), 1200);
+
+            playSound('alert');
+
+            // Update Top HUD
+            document.getElementById('animal-icon-bg').innerText = currentAnimal.icon;
+            document.getElementById('animal-name').innerText = currentAnimal.name;
+
+            // Update Toto Speech Dialogue
+            document.getElementById('toto-speech').innerText = `"${currentAnimal.icon} [경보!] 5분이 지나 새로운 동물이 출몰했어! - ${currentAnimal.desc}"`;
+
+            // Rebuild 3D Predator Mesh based on new form
+            rebuildPredatorMesh(currentAnimal);
+        }
+
+        function rebuildPredatorMesh(animal) {
+            // Clear existing predator
+            while(predatorGroup.children.length > 0) {
+                predatorGroup.remove(predatorGroup.children[0]);
+            }
+
+            if (animal.isSafe) {
+                // Friendly Golden Giant Rabbit
+                const rabbitGeo = new THREE.BoxGeometry(3, 4, 3);
+                const rabbitMat = new THREE.MeshToonMaterial({ color: 0xfacc15 });
+                const mesh = new THREE.Mesh(rabbitGeo, rabbitMat);
+                mesh.position.set(0, 2, -20);
+                predatorGroup.add(mesh);
+            } else if (animal.id === 'snake') {
+                // Segmented Snake
+                for (let i = 0; i < 6; i++) {
+                    const segGeo = new THREE.SphereGeometry(1.2 - (i * 0.15), 16, 16);
+                    const segMat = new THREE.MeshToonMaterial({ color: 0x84cc16 });
+                    const seg = new THREE.Mesh(segGeo, segMat);
+                    seg.position.set(0, 1, -20 - (i * 1.5));
+                    predatorGroup.add(seg);
+                }
+            } else if (animal.id === 'hawk' || animal.id === 'eagle') {
+                // Bird Flying Predator
+                const scale = animal.id === 'eagle' ? 1.8 : 1.2;
+                const bodyGeo = new THREE.ConeGeometry(1.2 * scale, 3 * scale, 8);
+                const bodyMat = new THREE.MeshToonMaterial({ color: animal.color });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                body.rotation.x = Math.PI / 2;
+                body.position.set(0, 8, -25);
+
+                // Wings
+                const wingGeo = new THREE.BoxGeometry(6 * scale, 0.2, 1.5 * scale);
+                const wing = new THREE.Mesh(wingGeo, bodyMat);
+                wing.position.set(0, 0, 0);
+                body.add(wing);
+
+                predatorGroup.add(body);
+            } else if (animal.id === 'tiger') {
+                // Tiger Four-legged Beast
+                const bodyGeo = new THREE.BoxGeometry(2.5, 2, 4);
+                const bodyMat = new THREE.MeshToonMaterial({ color: 0xef4444 });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                body.position.set(0, 2, -22);
+
+                const headGeo = new THREE.BoxGeometry(2, 2, 2);
+                const head = new THREE.Mesh(headGeo, bodyMat);
+                head.position.set(0, 1, 2);
+                body.add(head);
+
+                predatorGroup.add(body);
+            } else if (animal.id === 'dragon') {
+                // Dragon Boss
+                const bodyGeo = new THREE.BoxGeometry(3, 3, 6);
+                const bodyMat = new THREE.MeshToonMaterial({ color: 0xa855f7 });
+                const dragon = new THREE.Mesh(bodyGeo, bodyMat);
+                dragon.position.set(0, 12, -25);
+
+                const wingGeo = new THREE.BoxGeometry(12, 0.3, 3);
+                const wings = new THREE.Mesh(wingGeo, bodyMat);
+                dragon.add(wings);
+
+                predatorGroup.add(dragon);
+            }
+
+            predatorGroup.position.set(0, 0, 0);
+        }
+
+        function setupInputs() {
+            window.addEventListener('keydown', (e) => {
+                state.keys[e.code] = true;
+                if (e.code === 'Space') triggerJump();
+                if (e.code === 'ShiftLeft') triggerDash();
+            });
+
+            window.addEventListener('keyup', (e) => {
+                state.keys[e.code] = false;
+            });
+
+            // Mobile Touch Joystick
+            const joystickContainer = document.getElementById('joystick-container');
+            const joystickStick = document.getElementById('joystick-stick');
+            let touchId = null, startX = 0, startY = 0;
+
+            joystickContainer.addEventListener('touchstart', (e) => {
+                const touch = e.changedTouches[0];
+                touchId = touch.identifier;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                state.joystick.active = true;
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!state.joystick.active) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchId) {
+                        const touch = e.changedTouches[i];
+                        const dx = touch.clientX - startX;
+                        const dy = touch.clientY - startY;
+                        const dist = Math.min(Math.sqrt(dx * dx + dy * dy), 35);
+                        const angle = Math.atan2(dy, dx);
+
+                        const stickX = Math.cos(angle) * dist;
+                        const stickY = Math.sin(angle) * dist;
+                        joystickStick.style.transform = `translate(${stickX}px, ${stickY}px)`;
+
+                        state.joystick.x = stickX / 35;
+                        state.joystick.y = stickY / 35;
+                    }
+                }
+            });
+
+            const resetJoystick = () => {
+                state.joystick.active = false;
+                state.joystick.x = 0;
+                state.joystick.y = 0;
+                joystickStick.style.transform = `translate(0px, 0px)`;
+            };
+
+            window.addEventListener('touchend', resetJoystick);
+
+            // Buttons
+            document.getElementById('jump-btn').addEventListener('click', triggerJump);
+            document.getElementById('dash-btn').addEventListener('click', triggerDash);
+            document.getElementById('quick-transform-btn').addEventListener('click', triggerRandomTransformation);
+
+            // Toto Modal Dialogs
+            document.getElementById('toto-helper-btn').addEventListener('click', () => {
+                document.getElementById('toto-dialog-modal').classList.remove('hidden');
+            });
+            document.getElementById('close-toto-modal').addEventListener('click', () => {
+                document.getElementById('toto-dialog-modal').classList.add('hidden');
+            });
+
+            document.getElementById('grant-shield-btn').addEventListener('click', () => {
+                state.hasShield = true;
+                document.getElementById('toto-dialog-modal').classList.add('hidden');
+                document.getElementById('toto-speech').innerText = "🛡️ 토토의 보호막이 적의 공격을 1회 막아줍니다!";
+            });
+
+            document.getElementById('restart-btn').addEventListener('click', restartGame);
+
+            // Mouse Orbit Drag Camera
+            let isDragging = false, prevX = 0, prevY = 0;
+            window.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'CANVAS') {
+                    isDragging = true;
+                    prevX = e.clientX;
+                    prevY = e.clientY;
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    cameraAngleX -= (e.clientX - prevX) * 0.005;
+                    cameraAngleY = Math.max(0.1, Math.min(Math.PI / 2.3, cameraAngleY + (e.clientY - prevY) * 0.005));
+                    prevX = e.clientX;
+                    prevY = e.clientY;
+                }
+            });
+
+            window.addEventListener('mouseup', () => isDragging = false);
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function triggerJump() {
+            if (state.player.isGrounded) {
+                state.player.vy = 0.32;
+                state.player.isGrounded = false;
+                playSound('jump');
+            }
+        }
+
+        function triggerDash() {
+            if (state.player.dashCooldown <= 0) {
+                state.player.speedMultiplier = 2.5;
+                state.player.dashCooldown = 60; // Frames
+                playSound('jump');
+            }
+        }
+
+        function updatePhysics() {
+            if (state.isGameOver) return;
+
+            let moveX = 0, moveZ = 0;
+            const speed = 0.14 * state.player.speedMultiplier;
+
+            if (state.keys['KeyW'] || state.keys['ArrowUp']) moveZ -= 1;
+            if (state.keys['KeyS'] || state.keys['ArrowDown']) moveZ += 1;
+            if (state.keys['KeyA'] || state.keys['ArrowLeft']) moveX -= 1;
+            if (state.keys['KeyD'] || state.keys['ArrowRight']) moveX += 1;
+
+            if (state.joystick.active) {
+                moveX = state.joystick.x;
+                moveZ = state.joystick.y;
+            }
+
+            if (moveX !== 0 || moveZ !== 0) {
+                const angle = Math.atan2(moveX, moveZ) + cameraAngleX;
+                state.player.vx = Math.sin(angle) * speed;
+                state.player.vz = Math.cos(angle) * speed;
+                playerGroup.rotation.y = angle;
+            } else {
+                state.player.vx *= 0.7;
+                state.player.vz *= 0.7;
+            }
+
+            // Gravity
+            state.player.vy -= 0.015;
+
+            state.player.x += state.player.vx;
+            state.player.y += state.player.vy;
+            state.player.z += state.player.vz;
+
+            // Ground Floor Bound
+            if (state.player.y <= 0) {
+                state.player.y = 0;
+                state.player.vy = 0;
+                state.player.isGrounded = true;
+            }
+
+            // Arena Radius Bounds
+            const distFromCenter = Math.hypot(state.player.x, state.player.z);
+            if (distFromCenter > 38) {
+                state.player.x = (state.player.x / distFromCenter) * 38;
+                state.player.z = (state.player.z / distFromCenter) * 38;
+            }
+
+            if (state.player.dashCooldown > 0) {
+                state.player.dashCooldown--;
+                if (state.player.dashCooldown < 45) {
+                    state.player.speedMultiplier = 1.0;
+                }
+            }
+
+            playerGroup.position.set(state.player.x, state.player.y, state.player.z);
+
+            // Predator AI Behavior Motion
+            const activeAnimal = ANIMALS[state.activeAnimalIndex];
+            if (!activeAnimal.isSafe && predatorGroup.children.length > 0) {
+                const pMesh = predatorGroup.children[0];
+                const dx = state.player.x - pMesh.position.x;
+                const dz = state.player.z - pMesh.position.z;
+                const pDist = Math.hypot(dx, dz);
+
+                // Move Predator towards player
+                if (pDist > 1) {
+                    pMesh.position.x += (dx / pDist) * activeAnimal.speed;
+                    pMesh.position.z += (dz / pDist) * activeAnimal.speed;
+                }
+
+                // Check Damage Collision
+                if (pDist < 2.2 && Math.abs(state.player.y - pMesh.position.y) < 3) {
+                    applyDamage(25, activeAnimal.name);
+                }
+            }
+
+            // Collect Carrots
+            carrots.forEach(c => {
+                if (!c.collected) {
+                    c.mesh.rotation.y += 0.04;
+                    const cDist = Math.hypot(state.player.x - c.x, state.player.z - c.z);
+                    if (cDist < 1.5) {
+                        c.collected = true;
+                        scene.remove(c.mesh);
+                        state.carrots += 1;
+                        document.getElementById('carrot-count').innerText = state.carrots;
+                        playSound('carrot');
+                    }
+                }
+            });
+
+            // Update Camera Position
+            const camDist = 9;
+            camera.position.x = state.player.x + camDist * Math.sin(cameraAngleX) * Math.cos(cameraAngleY);
+            camera.position.y = state.player.y + camDist * Math.sin(cameraAngleY) + 2;
+            camera.position.z = state.player.z + camDist * Math.cos(cameraAngleX) * Math.cos(cameraAngleY);
+            camera.lookAt(state.player.x, state.player.y + 1.5, state.player.z);
+        }
+
+        function applyDamage(amount, sourceName) {
+            if (state.hasShield) {
+                state.hasShield = false;
+                playSound('hit');
+                return;
+            }
+
+            state.hp -= amount;
+            playSound('hit');
+
+            if (state.hp <= 0) {
+                state.hp = 0;
+                triggerGameOver(sourceName);
+            }
+
+            document.getElementById('hp-count').innerText = `${state.hp} HP`;
+        }
+
+        function triggerGameOver(reason) {
+            state.isGameOver = true;
+            document.getElementById('gameover-reason').innerText = `${reason}에게 공격 당했습니다!`;
+            document.getElementById('final-carrots').innerText = `${state.carrots} 🥕`;
+            
+            const mins = Math.floor(state.survivalTime / 60);
+            const secs = state.survivalTime % 60;
+            document.getElementById('final-time').innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            document.getElementById('gameover-modal').classList.remove('hidden');
+        }
+
+        function restartGame() {
+            state.hp = 100;
+            state.carrots = 0;
+            state.survivalTime = 0;
+            state.isGameOver = false;
+            state.player.x = 0;
+            state.player.z = 0;
+
+            document.getElementById('hp-count').innerText = "100 HP";
+            document.getElementById('carrot-count').innerText = "0";
+            document.getElementById('gameover-modal').classList.add('hidden');
+
+            startTransformationTimer();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updatePhysics();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function() {
+            init3D();
+        };
+    </script>
+</body>
+</html>

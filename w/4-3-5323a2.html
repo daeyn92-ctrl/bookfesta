@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도깨비 퇴치 어플 - Goblin Exorcist App</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Gowun Batang for traditional mood, Inter for UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        .font-traditional {
+            font-family: 'Gowun Batang', serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        /* Glow animation */
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(234, 179, 8, 0.6)); }
+            50% { filter: drop-shadow(0 0 30px rgba(239, 68, 68, 0.9)); }
+        }
+        .animate-glow {
+            animation: pulse-glow 2.5s infinite;
+        }
+        /* Screen Shake */
+        .shake {
+            animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-black">
+
+    <!-- Top Bar -->
+    <header class="border-b border-amber-900/40 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-600 via-red-600 to-yellow-400 flex items-center justify-center shadow-lg shadow-amber-900/30">
+                    <i class="fa-solid fa-wand-magic-sparkles text-slate-950 text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-wider bg-gradient-to-r from-amber-200 via-amber-400 to-red-400 bg-clip-text text-transparent font-traditional">
+                        도깨비 퇴치 어플
+                    </h1>
+                    <p class="text-xs text-amber-500/70">신묘한 퇴치 점(點)과 퇴치 검 소환기</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="hidden sm:flex items-center space-x-2 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-full text-xs text-slate-300">
+                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span>퇴치 봉인 기운: <strong id="spirit-power" class="text-amber-400">9,999 EP</strong></span>
+                </div>
+                <button id="sound-toggle" class="p-2 rounded-lg bg-slate-800 border border-slate-700 text-amber-400 hover:bg-slate-700 transition" title="음향 온/오프">
+                    <i class="fa-solid fa-volume-high" id="sound-icon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="max-w-6xl mx-auto w-full px-4 py-6 flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Dynamic Sword Viewer & Generator (7 Cols) -->
+        <section class="lg:col-span-7 flex flex-col space-y-4">
+            
+            <!-- Sword Visual Card -->
+            <div id="sword-card" class="relative rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-950 border border-amber-900/30 p-6 flex flex-col items-center justify-between shadow-2xl overflow-hidden min-h-[460px]">
+                
+                <!-- Background Ambient Rune Effect -->
+                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#eab308_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
+                <div id="element-bg-glow" class="absolute w-72 h-72 rounded-full blur-3xl opacity-20 bg-amber-500 pointer-events-none transition-all duration-700"></div>
+
+                <!-- Top Info Bar: Rarity & Sword Name -->
+                <div class="w-full flex justify-between items-start z-10">
+                    <div>
+                        <span id="sword-rarity" class="inline-block px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 mb-1">
+                            신화 (MYTHIC)
+                        </span>
+                        <h2 id="sword-name" class="text-2xl sm:text-3xl font-extrabold text-white font-traditional tracking-wide">
+                            천명 뇌전 퇴마검
+                        </h2>
+                        <p id="sword-element-text" class="text-xs text-amber-400/80 flex items-center gap-1">
+                            <i class="fa-solid fa-bolt"></i> <span>뇌전(Lightning) 속성 도깨비 멸살검</span>
+                        </p>
+                    </div>
+
+                    <!-- Banished Count Badge -->
+                    <div class="text-right bg-slate-900/80 border border-slate-800 px-3 py-2 rounded-xl">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-wider">퇴치한 도깨비</p>
+                        <p class="text-lg font-black text-amber-400 font-mono" id="banish-count">0 마리</p>
+                    </div>
+                </div>
+
+                <!-- Canvas: Dynamic Animated Sword Drawing -->
+                <div class="relative w-full flex-grow flex items-center justify-center my-4 z-10">
+                    <canvas id="sword-canvas" width="450" height="260" class="max-w-full drop-shadow-[0_0_25px_rgba(234,179,8,0.4)] transition-transform duration-300 hover:scale-105 cursor-pointer" title="클릭하여 검 기운을 발산하세요!"></canvas>
+                </div>
+
+                <!-- Sword Stats -->
+                <div class="w-full grid grid-cols-3 gap-2 sm:gap-4 z-10 bg-slate-950/70 p-3 rounded-xl border border-slate-800/80">
+                    <div class="text-center">
+                        <span class="text-[11px] text-slate-400 block">퇴마 위력</span>
+                        <span id="stat-power" class="text-base sm:text-lg font-bold text-red-400 font-mono">9,450</span>
+                    </div>
+                    <div class="text-center border-x border-slate-800">
+                        <span class="text-[11px] text-slate-400 block">봉인 속도</span>
+                        <span id="stat-speed" class="text-base sm:text-lg font-bold text-cyan-400 font-mono">⚡ 98%</span>
+                    </div>
+                    <div class="text-center">
+                        <span class="text-[11px] text-slate-400 block">퇴치 점 공명</span>
+                        <span id="stat-resonance" class="text-base sm:text-lg font-bold text-amber-400 font-mono">🔮 SSS</span>
+                    </div>
+                </div>
+
+                <!-- MAIN BUTTON: Random Sword Generator -->
+                <div class="w-full mt-4 z-10 flex flex-col sm:flex-row gap-3">
+                    <button id="btn-change-sword" class="flex-1 group relative inline-flex items-center justify-center px-6 py-3.5 text-base font-bold text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-95 transition-all duration-200">
+                        <i class="fa-solid fa-dice-d20 text-lg mr-2 group-hover:rotate-180 transition-transform duration-500"></i>
+                        <span>무작위 퇴치 검 변경하기</span>
+                    </button>
+                    <button id="btn-strike" class="px-5 py-3.5 bg-red-950/80 hover:bg-red-900 border border-red-600/50 text-red-200 font-bold rounded-xl transition active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-burst text-red-400"></i>
+                        <span>도깨비 베기</span>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Sword Lore & Special Skill Banner -->
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 text-xs text-slate-300 leading-relaxed flex items-start space-x-3">
+                <i class="fa-solid fa-scroll text-amber-500 text-lg mt-0.5"></i>
+                <div>
+                    <strong id="sword-skill-title" class="text-amber-400 font-bold block mb-1">비기: 뇌전 멸쇄 봉인진</strong>
+                    <span id="sword-desc">상고 시대 백두산 사령 기운을 머금은 검. 도깨비의 몸에 새겨진 퇴치 점(點)을 자극하여 일격에 성불시킵니다.</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Column: Dot (점) Generator & Exorcism Board (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col space-y-4">
+
+            <!-- Goblin Exorcism Dot Board Card -->
+            <div class="rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-900/30 p-5 flex flex-col shadow-2xl relative">
+                
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-bullseye text-amber-400"></i>
+                        <h3 class="font-bold text-white font-traditional text-lg">도깨비 퇴치 점(點) 봉인판</h3>
+                    </div>
+                    <span class="text-xs bg-amber-950 border border-amber-800 text-amber-300 px-2.5 py-0.5 rounded-full font-mono">
+                        점(點) <span id="dot-count">7</span>개 포착
+                    </span>
+                </div>
+
+                <p class="text-xs text-slate-400 mb-3">
+                    도깨비를 없애기 위해 신체 주요 봉인점(點)을 생성했습니다. 도깨비를 클릭하거나 부적 판을 눌러 퇴치 점을 직접 찍으세요.
+                </p>
+
+                <!-- Interactive Talisman Dot Canvas / Target Area -->
+                <div class="relative w-full h-[280px] bg-slate-950 rounded-xl border border-amber-900/40 overflow-hidden flex items-center justify-center shadow-inner group">
+                    
+                    <!-- Traditional Talisman Texture Overlay -->
+                    <div class="absolute inset-0 opacity-15 bg-gradient-to-tr from-amber-950 via-red-950 to-slate-950"></div>
+                    <div class="absolute text-slate-800/30 text-8xl font-traditional font-black pointer-events-none select-none">
+                        退魔
+                    </div>
+
+                    <!-- Goblin Target Canvas -->
+                    <canvas id="dot-canvas" width="340" height="270" class="relative z-10 w-full h-full cursor-crosshair"></canvas>
+
+                    <!-- Flash Hit Overlay -->
+                    <div id="hit-overlay" class="absolute inset-0 bg-red-500/20 opacity-0 pointer-events-none transition-opacity duration-150 z-20"></div>
+                </div>
+
+                <!-- Controls for Dot (점) Creation -->
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button id="btn-generate-dots" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-amber-300 flex items-center justify-center gap-2 transition active:scale-95">
+                        <i class="fa-solid fa-sparkles text-amber-400"></i>
+                        <span>퇴치 점 재생성</span>
+                    </button>
+                    <button id="btn-clear-dots" class="px-3 py-2.5 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1 transition active:scale-95">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>점 초기화</span>
+                    </button>
+                </div>
+
+                <!-- Dot Effect Fortune / Spell Reading -->
+                <div class="mt-4 p-3 bg-amber-950/20 border border-amber-800/30 rounded-xl">
+                    <div class="flex items-center justify-between text-xs text-amber-400 mb-1">
+                        <span class="font-bold flex items-center gap-1">
+                            <i class="fa-solid fa-compass-drafting"></i> 현재 퇴치 점괘 (點卦)
+                        </span>
+                        <span id="dot-compatibility" class="text-[11px] text-emerald-400">퇴치 성공률 99.8%</span>
+                    </div>
+                    <p id="dot-reading-text" class="text-xs text-slate-300 leading-relaxed font-traditional">
+                        "이마의 [북두칠성 점]과 가슴의 [봉인 점]이 검의 기운과 완벽히 호응하여, 도깨비가 힘을 쓰지 못합니다."
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Exorcism Log / Activity Feed -->
+            <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex-grow flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-check text-amber-500"></i> 퇴치 기록
+                    </h4>
+                    <span class="text-[10px] text-slate-500">실시간 감지</span>
+                </div>
+                <div id="log-container" class="space-y-1.5 text-xs max-h-28 overflow-y-auto pr-1">
+                    <div class="text-slate-400 py-1 border-b border-slate-800/50 flex justify-between">
+                        <span>⚡ 앱 실행: 도깨비 퇴치 준비 완료</span>
+                        <span class="text-slate-600">방금 전</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500">
+        <p>© 2026 도깨비 퇴치 어플 (Goblin Exorcism App) - 전설의 검으로 도깨비를 물리치세요.</p>
+    </footer>
+
+    <script>
+        // ==========================================
+        // Sound Engine (Web Audio API Synthesizer)
+        // ==========================================
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+            }
+
+            playSlash() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                
+                // Noise buffer for sword WHOOSH sound
+                const bufferSize = this.ctx.sampleRate * 0.2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(800, now);
+                filter.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                noise.start(now);
+            }
+
+            playSummonSound() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+
+                // High mystical chime/tone
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.3);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+
+            playDotSound() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+
+            playGoblinDefeatSound() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.5);
+
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        // ==========================================
+        // Random Sword Components Generator Data
+        // ==========================================
+        const SWORD_DATA = {
+            prefixes: [
+                '천명', '신기', '멸마', '봉인', '백두산', '용의', '천신', '칠성', 
+                '음양', '도깨비불', '벽력', '극의', '신화', '황금', '태극', '청룡'
+            ],
+            elements: [
+                { name: '뇌전 (Lightning)', icon: 'fa-bolt', color: '#38bdf8', glow: 'rgba(56, 189, 248, 0.6)', bg: '#0284c7', skill: '비기: 뇌전 멸쇄 봉인진' },
+                { name: '화염 (Flame)', icon: 'fa-fire', color: '#f97316', glow: 'rgba(249, 115, 22, 0.6)', bg: '#ea580c', skill: '비기: 용암 도깨비 화장' },
+                { name: '신성 (Holy Light)', icon: 'fa-sun', color: '#facc15', glow: 'rgba(250, 204, 21, 0.6)', bg: '#ca8a04', skill: '비기: 태양 멸마 광륜' },
+                { name: '빙설 (Frost)', icon: 'fa-snowflake', color: '#22d3ee', glow: 'rgba(34, 211, 238, 0.6)', bg: '#0891b2', skill: '비기: 극빙 동결 봉마결' },
+                { name: '암흑 (Dark Void)', icon: 'fa-moon', color: '#a855f7', glow: 'rgba(168, 85, 247, 0.6)', bg: '#7e22ce', skill: '비기: 나락 영혼 흡수' },
+                { name: '풍운 (Gale)', icon: 'fa-wind', color: '#34d399', glow: 'rgba(52, 211, 153, 0.6)', bg: '#059669', skill: '비기: 태풍 단쇄참' }
+            ],
+            suffixes: ['검', '도', '퇴마검', '멸살검', '봉인검', '보검', '신검', '창천검'],
+            rarities: [
+                { name: '신화 (MYTHIC)', class: 'bg-amber-500/20 text-amber-300 border-amber-500/50', powerBase: 8000 },
+                { name: '전설 (LEGENDARY)', class: 'bg-purple-500/20 text-purple-300 border-purple-500/50', powerBase: 5000 },
+                { name: '희귀 (RARE)', class: 'bg-blue-500/20 text-blue-300 border-blue-500/50', powerBase: 2500 },
+                { name: '보통 (COMMON)', class: 'bg-slate-500/20 text-slate-300 border-slate-500/50', powerBase: 1000 }
+            ],
+            bladeStyles: ['straight', 'curved', 'broad', 'katana', 'flame-shaped'],
+            descriptions: [
+                "도깨비의 방망이 소리를 무력화하고 영혼을 순식간에 정화하는 퇴마의 명검입니다.",
+                "가슴의 붉은 봉인 점(點)과 반응하면 100배의 결계 기운을 발산하는 신비한 도검입니다.",
+                "전설 속 퇴마사가 도깨비 왕을 봉인할 때 사용했던 고대 무기입니다.",
+                "검날에 새겨진 은빛 주술 문자들이 도깨비의 마기를 정화합니다."
+            ]
+        };
+
+        const DOT_READINGS = [
+            "\"이마의 [북두칠성 점]과 가슴의 [봉인 점]이 검의 기운과 완벽히 호응하여, 도깨비가 힘을 쓰지 못합니다.\"",
+            "\"도깨비의 양 어깨와 심장에 찍힌 3개의 퇴치 점(點)이 검의 공격력을 200% 증폭시킵니다.\"",
+            "\"신체 중앙의 흑점 봉인 구역이 파악되었습니다! 지금 베기 버튼을 눌러 퇴치하세요.\"",
+            "\"혈도에 찍힌 신묘한 퇴치 점들이 도깨비의 이동을 완벽히 봉쇄하고 있습니다.\""
+        ];
+
+        // ==========================================
+        // App State
+        // ==========================================
+        let currentSword = null;
+        let dots = [];
+        let banishCount = 0;
+
+        // ==========================================
+        // Sword Canvas Renderer
+        // ==========================================
+        const swordCanvas = document.getElementById('sword-canvas');
+        const swordCtx = swordCanvas.getContext('2d');
+
+        function drawSword(sword) {
+            const w = swordCanvas.width;
+            const h = swordCanvas.height;
+            
+            swordCtx.clearRect(0, 0, w, h);
+
+            swordCtx.save();
+
+            // Center Origin
+            const cx = w / 2;
+            const cy = h / 2 + 10;
+
+            // Rotate slightly for dramatic angle
+            swordCtx.translate(cx, cy);
+            swordCtx.rotate(-Math.PI / 6);
+
+            // Element Outer Glow
+            swordCtx.shadowColor = sword.element.color;
+            swordCtx.shadowBlur = 30;
+
+            // 1. Blade Body
+            swordCtx.beginPath();
+            if (sword.style === 'curved') {
+                swordCtx.moveTo(-12, 50);
+                swordCtx.lineTo(-8, -110);
+                swordCtx.quadraticCurveTo(5, -150, 20, -165);
+                swordCtx.quadraticCurveTo(-2, -130, -2, 50);
+            } else if (sword.style === 'broad') {
+                swordCtx.moveTo(-22, 50);
+                swordCtx.lineTo(-22, -130);
+                swordCtx.lineTo(0, -170);
+                swordCtx.lineTo(22, -130);
+                swordCtx.lineTo(22, 50);
+            } else { // straight
+                swordCtx.moveTo(-12, 50);
+                swordCtx.lineTo(-10, -140);
+                swordCtx.lineTo(0, -175);
+                swordCtx.lineTo(10, -140);
+                swordCtx.lineTo(12, 50);
+            }
+            swordCtx.closePath();
+
+            // Blade Gradient
+            const bladeGrad = swordCtx.createLinearGradient(0, 50, 0, -175);
+            bladeGrad.addColorStop(0, '#cbd5e1');
+            bladeGrad.addColorStop(0.5, '#f8fafc');
+            bladeGrad.addColorStop(1, sword.element.color);
+            swordCtx.fillStyle = bladeGrad;
+            swordCtx.fill();
+            swordCtx.strokeStyle = '#ffffff';
+            swordCtx.lineWidth = 2;
+            swordCtx.stroke();
+
+            // 2. Blade Fuller / Rune Channel
+            swordCtx.beginPath();
+            swordCtx.moveTo(0, 40);
+            swordCtx.lineTo(0, -130);
+            swordCtx.strokeStyle = sword.element.color;
+            swordCtx.lineWidth = 3;
+            swordCtx.stroke();
+
+            // Rune Dots along blade
+            for (let i = 0; i < 5; i++) {
+                swordCtx.beginPath();
+                swordCtx.arc(0, 20 - (i * 30), 3, 0, Math.PI * 2);
+                swordCtx.fillStyle = '#ffffff';
+                swordCtx.shadowBlur = 10;
+                swordCtx.shadowColor = sword.element.color;
+                swordCtx.fill();
+            }
+
+            // 3. Crossguard (코등이/검막)
+            swordCtx.shadowBlur = 15;
+            swordCtx.shadowColor = '#000000';
+            swordCtx.fillStyle = '#d97706'; // Gold
+            swordCtx.beginPath();
+            swordCtx.ellipse(0, 52, 35, 10, 0, 0, Math.PI * 2);
+            swordCtx.fill();
+            swordCtx.strokeStyle = '#fef08a';
+            swordCtx.lineWidth = 2;
+            swordCtx.stroke();
+
+            // Guard Jewel
+            swordCtx.beginPath();
+            swordCtx.arc(0, 52, 6, 0, Math.PI * 2);
+            swordCtx.fillStyle = sword.element.color;
+            swordCtx.fill();
+
+            // 4. Handle (손잡이)
+            swordCtx.fillStyle = '#1e293b';
+            swordCtx.fillRect(-8, 62, 16, 60);
+
+            // Handle wrap pattern
+            swordCtx.strokeStyle = '#b45309';
+            swordCtx.lineWidth = 3;
+            for (let y = 65; y < 118; y += 10) {
+                swordCtx.beginPath();
+                swordCtx.moveTo(-8, y);
+                swordCtx.lineTo(8, y + 6);
+                swordCtx.stroke();
+            }
+
+            // 5. Pommel (칼자루 끝 장식)
+            swordCtx.fillStyle = '#d97706';
+            swordCtx.beginPath();
+            swordCtx.arc(0, 126, 12, 0, Math.PI * 2);
+            swordCtx.fill();
+            swordCtx.strokeStyle = '#fef08a';
+            swordCtx.lineWidth = 1.5;
+            swordCtx.stroke();
+
+            swordCtx.restore();
+        }
+
+        // ==========================================
+        // Random Sword Generator Engine
+        // ==========================================
+        function getRandomArrayItem(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function generateRandomSword() {
+            const prefix = getRandomArrayItem(SWORD_DATA.prefixes);
+            const element = getRandomArrayItem(SWORD_DATA.elements);
+            const suffix = getRandomArrayItem(SWORD_DATA.suffixes);
+            const rarity = getRandomArrayItem(SWORD_DATA.rarities);
+            const style = getRandomArrayItem(SWORD_DATA.bladeStyles);
+            const desc = getRandomArrayItem(SWORD_DATA.descriptions);
+
+            const power = rarity.powerBase + Math.floor(Math.random() * 1500);
+            const speed = Math.floor(Math.random() * 20) + 80; // 80~99%
+            const resRanks = ['S', 'SS', 'SSS', 'EX'];
+            const resonance = getRandomArrayItem(resRanks);
+
+            return {
+                name: `${prefix} ${element.name.split(' ')[0]} ${suffix}`,
+                rarity: rarity,
+                element: element,
+                style: style,
+                power: power,
+                speed: speed,
+                resonance: resonance,
+                desc: desc
+            };
+        }
+
+        function updateSwordUI(sword) {
+            currentSword = sword;
+
+            // Text Updates
+            document.getElementById('sword-name').innerText = sword.name;
+            document.getElementById('sword-rarity').innerText = sword.rarity.name;
+            document.getElementById('sword-rarity').className = `inline-block px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase border ${sword.rarity.class} mb-1`;
+            
+            const elementText = document.getElementById('sword-element-text');
+            elementText.innerHTML = `<i class="fa-solid ${sword.element.icon}"></i> <span>${sword.element.name} 속성 도깨비 멸살검</span>`;
+            elementText.style.color = sword.element.color;
+
+            document.getElementById('stat-power').innerText = sword.power.toLocaleString();
+            document.getElementById('stat-speed').innerText = `⚡ ${sword.speed}%`;
+            document.getElementById('stat-resonance').innerText = `🔮 ${sword.resonance}`;
+
+            document.getElementById('sword-skill-title').innerText = sword.element.skill;
+            document.getElementById('sword-desc').innerText = sword.desc;
+
+            // Background Ambient Glow Update
+            const bgGlow = document.getElementById('element-bg-glow');
+            bgGlow.style.backgroundColor = sword.element.color;
+
+            // Canvas Redraw
+            drawSword(sword);
+        }
+
+        // ==========================================
+        // Exorcism Dot (점) Canvas Engine
+        // ==========================================
+        const dotCanvas = document.getElementById('dot-canvas');
+        const dotCtx = dotCanvas.getContext('2d');
+
+        function generateRandomDots(count = 7) {
+            dots = [];
+            for (let i = 0; i < count; i++) {
+                dots.push({
+                    x: Math.random() * (dotCanvas.width - 60) + 30,
+                    y: Math.random() * (dotCanvas.height - 60) + 30,
+                    radius: Math.random() * 6 + 6,
+                    pulse: Math.random() * Math.PI,
+                    sealed: false,
+                    label: `점 #${i + 1}`
+                });
+            }
+            document.getElementById('dot-count').innerText = dots.length;
+            
+            // Randomize Reading
+            document.getElementById('dot-reading-text').innerText = getRandomArrayItem(DOT_READINGS);
+        }
+
+        function drawGoblinSilhouette() {
+            const w = dotCanvas.width;
+            const h = dotCanvas.height;
+            const cx = w / 2;
+            const cy = h / 2 + 10;
+
+            // Draw Goblin Ghost Contour
+            dotCtx.save();
+            dotCtx.strokeStyle = 'rgba(239, 68, 68, 0.25)';
+            dotCtx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+            dotCtx.lineWidth = 2;
+            dotCtx.setLineDash([4, 4]);
+
+            // Horns & Head shape
+            dotCtx.beginPath();
+            // Head
+            dotCtx.arc(cx, cy - 30, 45, 0, Math.PI * 2);
+            // Left Horn
+            dotCtx.moveTo(cx - 25, cy - 60);
+            dotCtx.quadraticCurveTo(cx - 40, cy - 100, cx - 15, cy - 70);
+            // Right Horn
+            dotCtx.moveTo(cx + 25, cy - 60);
+            dotCtx.quadraticCurveTo(cx + 40, cy - 100, cx + 15, cy - 70);
+            // Body outline
+            dotCtx.moveTo(cx - 50, cy + 80);
+            dotCtx.quadraticCurveTo(cx - 60, cy + 10, cx - 40, cy - 10);
+            dotCtx.quadraticCurveTo(cx, cy - 20, cx + 40, cy - 10);
+            dotCtx.quadraticCurveTo(cx + 60, cy + 10, cx + 50, cy + 80);
+
+            dotCtx.stroke();
+            dotCtx.fill();
+
+            // Eyes
+            dotCtx.fillStyle = 'rgba(239, 68, 68, 0.6)';
+            dotCtx.beginPath();
+            dotCtx.arc(cx - 15, cy - 35, 5, 0, Math.PI * 2);
+            dotCtx.arc(cx + 15, cy - 35, 5, 0, Math.PI * 2);
+            dotCtx.fill();
+
+            dotCtx.restore();
+        }
+
+        function renderDotBoard() {
+            dotCtx.clearRect(0, 0, dotCanvas.width, dotCanvas.height);
+
+            // 1. Draw Background Goblin Silhouette
+            drawGoblinSilhouette();
+
+            // 2. Draw Connections (Constellation/Seal Lines)
+            if (dots.length > 1) {
+                dotCtx.beginPath();
+                dotCtx.moveTo(dots[0].x, dots[0].y);
+                for (let i = 1; i < dots.length; i++) {
+                    dotCtx.lineTo(dots[i].x, dots[i].y);
+                }
+                dotCtx.closePath();
+                dotCtx.strokeStyle = 'rgba(234, 179, 8, 0.25)';
+                dotCtx.lineWidth = 1.5;
+                dotCtx.stroke();
+            }
+
+            // 3. Draw Dots (점)
+            const time = Date.now() * 0.005;
+            dots.forEach((dot, index) => {
+                const pulseRadius = dot.radius + Math.sin(time + dot.pulse) * 2;
+
+                // Outer Aura
+                dotCtx.beginPath();
+                dotCtx.arc(dot.x, dot.y, pulseRadius + 6, 0, Math.PI * 2);
+                dotCtx.fillStyle = dot.sealed ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+                dotCtx.fill();
+
+                // Core Dot
+                dotCtx.beginPath();
+                dotCtx.arc(dot.x, dot.y, pulseRadius, 0, Math.PI * 2);
+                dotCtx.fillStyle = dot.sealed ? '#22c55e' : (currentSword ? currentSword.element.color : '#f59e0b');
+                dotCtx.shadowColor = dot.sealed ? '#22c55e' : '#ef4444';
+                dotCtx.shadowBlur = 12;
+                dotCtx.fill();
+
+                // Center Highlight
+                dotCtx.beginPath();
+                dotCtx.arc(dot.x, dot.y, pulseRadius * 0.4, 0, Math.PI * 2);
+                dotCtx.fillStyle = '#ffffff';
+                dotCtx.fill();
+
+                // Dot Label
+                dotCtx.shadowBlur = 0;
+                dotCtx.fillStyle = '#cbd5e1';
+                dotCtx.font = '10px Noto Sans KR';
+                dotCtx.fillText(dot.sealed ? '봉인됨' : `퇴치점 ${index+1}`, dot.x + 12, dot.y + 4);
+            });
+
+            requestAnimationFrame(renderDotBoard);
+        }
+
+        // ==========================================
+        // Event Listeners & Interactions
+        // ==========================================
+
+        function addLog(msg) {
+            const container = document.getElementById('log-container');
+            const item = document.createElement('div');
+            item.className = 'text-slate-300 py-1 border-b border-slate-800/50 flex justify-between items-center animate-fade-in';
+            item.innerHTML = `<span>${msg}</span> <span class="text-[10px] text-slate-500">${new Date().toLocaleTimeString('ko-KR', {hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit'})}</span>`;
+            container.prepend(item);
+            if (container.children.length > 10) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        // 1. Change Sword Button Click
+        document.getElementById('btn-change-sword').addEventListener('click', () => {
+            const newSword = generateRandomSword();
+            updateSwordUI(newSword);
+            sound.playSummonSound();
+
+            // Trigger card animation
+            const card = document.getElementById('sword-card');
+            card.classList.remove('shake');
+            void card.offsetWidth; // trigger reflow
+            card.classList.add('shake');
+
+            addLog(`⚡ 검 소환: <strong class="text-amber-400">[${newSword.rarity.name}] ${newSword.name}</strong> 소환!`);
+        });
+
+        // 2. Click Sword Canvas directly
+        swordCanvas.addEventListener('click', () => {
+            sound.playSlash();
+            swordCanvas.style.transform = 'scale(1.1) rotate(5deg)';
+            setTimeout(() => {
+                swordCanvas.style.transform = 'scale(1) rotate(0deg)';
+            }, 150);
+        });
+
+        // 3. Click Dot Canvas to place custom dot or hit goblin
+        dotCanvas.addEventListener('click', (e) => {
+            const rect = dotCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Check if clicked an existing dot to toggle seal
+            let hitDot = false;
+            dots.forEach(dot => {
+                const dist = Math.hypot(dot.x - x, dot.y - y);
+                if (dist < 20) {
+                    dot.sealed = !dot.sealed;
+                    hitDot = true;
+                    sound.playDotSound();
+                    addLog(`🔮 퇴치 점 봉인: [${dot.label}] ${dot.sealed ? '봉인 완료!' : '해제됨'}`);
+                }
+            });
+
+            // If clicked empty space, add a new dot!
+            if (!hitDot && dots.length < 15) {
+                dots.push({
+                    x: x,
+                    y: y,
+                    radius: 7,
+                    pulse: Math.random() * Math.PI,
+                    sealed: false,
+                    label: `새 점 #${dots.length + 1}`
+                });
+                document.getElementById('dot-count').innerText = dots.length;
+                sound.playDotSound();
+                addLog(`✨ 새로운 퇴치 점(點) 생성됨 (${Math.round(x)}, ${Math.round(y)})`);
+            }
+        });
+
+        // 4. Regenerate Dots
+        document.getElementById('btn-generate-dots').addEventListener('click', () => {
+            generateRandomDots(Math.floor(Math.random() * 5) + 5);
+            sound.playSummonSound();
+            addLog(`🔮 도깨비의 퇴치 점(點)이 무작위 재배치되었습니다.`);
+        });
+
+        // 5. Clear Dots
+        document.getElementById('btn-clear-dots').addEventListener('click', () => {
+            dots = [];
+            document.getElementById('dot-count').innerText = 0;
+            addLog(`🧹 봉인 점 초기화 완료.`);
+        });
+
+        // 6. Strike Goblin Action Button
+        document.getElementById('btn-strike').addEventListener('click', () => {
+            sound.playSlash();
+
+            // Flash overlay
+            const overlay = document.getElementById('hit-overlay');
+            overlay.style.opacity = '1';
+            setTimeout(() => { overlay.style.opacity = '0'; }, 200);
+
+            // Sound & Shake
+            setTimeout(() => {
+                sound.playGoblinDefeatSound();
+            }, 100);
+
+            // Banish Count Update
+            banishCount++;
+            document.getElementById('banish-count').innerText = `${banishCount} 마리`;
+
+            // Seal all dots on strike
+            dots.forEach(d => d.sealed = true);
+
+            addLog(`⚔️ <strong class="text-red-400">${currentSword.name}</strong>(으)로 도깨비를 베어 성불시켰습니다!`);
+        });
+
+        // 7. Mute/Unmute Sound
+        document.getElementById('sound-toggle').addEventListener('click', () => {
+            sound.enabled = !sound.enabled;
+            const icon = document.getElementById('sound-icon');
+            if (sound.enabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                addLog(`🔊 음향 효과 활성화`);
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+                addLog(`🔇 음향 효과 음소거`);
+            }
+        });
+
+        // ==========================================
+        // App Initialization
+        // ==========================================
+        window.addEventListener('load', () => {
+            // Generate initial sword & dots
+            const initialSword = generateRandomSword();
+            updateSwordUI(initialSword);
+            generateRandomDots(7);
+
+            // Start animation loop
+            renderDotBoard();
+        });
+
+    </script>
+</body>
+</html>

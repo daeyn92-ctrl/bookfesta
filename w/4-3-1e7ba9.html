@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>떡볶이 어플 - 대한민국 No.1 떡볶이 가이드</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans KR & Black Han Sans) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .font-title {
+            font-family: 'Black Han Sans', sans-serif;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e11d48;
+            border-radius: 3px;
+        }
+
+        /* Glassmorphism & Animations */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .spicy-pulse {
+            animation: pulseGlow 1.8s infinite alternate ease-in-out;
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 10px rgba(225, 29, 72, 0.3); }
+            100% { box-shadow: 0 0 25px rgba(225, 29, 72, 0.8); }
+        }
+
+        /* Floating Topping Animations */
+        @keyframes floatAnim {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(3deg); }
+        }
+        .float-item {
+            animation: floatAnim 3s infinite ease-in-out;
+        }
+
+        /* Wheel Canvas Transition */
+        #roulette-canvas {
+            transition: transform 4s cubic-bezier(0.15, 0.99, 0.18, 1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-16 md:pb-0">
+
+    <!-- App Header -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-xl">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <!-- App Logo & Title -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('customizer')">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-red-600 via-orange-500 to-amber-400 p-0.5 shadow-lg spicy-pulse flex items-center justify-center">
+                    <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                        <i class="fa-solid fa-pepper-hot text-red-500 text-xl"></i>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-title tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-400 to-amber-300">
+                            떡볶이 어플
+                        </h1>
+                        <span class="text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">v2.5</span>
+                    </div>
+                    <p class="text-xs text-slate-400">대한민국 모든 떡볶이 덕후들의 필수앱</p>
+                </div>
+            </div>
+
+            <!-- Top Header Right Stats / Sound -->
+            <div class="flex items-center space-x-2">
+                <button id="btn-sound-toggle" onclick="toggleSound()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition flex items-center gap-1.5">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-amber-400"></i>
+                    <span id="sound-text" class="hidden sm:inline">효과음 켬</span>
+                </button>
+                <div class="hidden md:flex items-center space-x-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                    <i class="fa-solid fa-fire text-orange-500"></i>
+                    <span class="text-slate-400">오늘의 추천:</span>
+                    <strong class="text-amber-400 font-bold" id="header-today-pick">마라 로제 떡볶이</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs (Desktop & Mobile Top) -->
+        <nav class="bg-slate-950 border-t border-slate-800/80 px-2 overflow-x-auto">
+            <div class="max-w-6xl mx-auto flex space-x-1 sm:space-x-2 text-xs sm:text-sm font-bold min-w-max py-1.5">
+                <button onclick="switchTab('customizer')" id="nav-customizer" class="tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 bg-red-600 text-white shadow-md">
+                    <i class="fa-solid fa-bowl-food"></i>
+                    <span>떡볶이 커스텀</span>
+                </button>
+                <button onclick="switchTab('roulette')" id="nav-roulette" class="tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-compass-drafting"></i>
+                    <span>랜덤 룰렛</span>
+                </button>
+                <button onclick="switchTab('worldcup')" id="nav-worldcup" class="tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-trophy text-amber-400"></i>
+                    <span>취향 월드컵</span>
+                </button>
+                <button onclick="switchTab('timer')" id="nav-timer" class="tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-stopwatch text-emerald-400"></i>
+                    <span>황금 타이머</span>
+                </button>
+                <button onclick="switchTab('brands')" id="nav-brands" class="tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-store text-blue-400"></i>
+                    <span>브랜드 가이드</span>
+                </button>
+                <button onclick="switchTab('diary')" id="nav-diary" class="tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-book-bookmark text-purple-400"></i>
+                    <span>나의 떡스토리</span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Dynamic Content Body -->
+    <main class="max-w-6xl w-full mx-auto p-4 flex-1">
+
+        <!-- TAB 1: TTEOKBOKKI CUSTOMIZER -->
+        <section id="tab-customizer" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Visual Tteokbokki Bowl Preview (Lg: 6 cols) -->
+                <div class="lg:col-span-6 flex flex-col space-y-4">
+                    <div class="glass-card p-6 rounded-3xl border border-slate-800 relative overflow-hidden flex flex-col items-center justify-center min-h-[380px] shadow-2xl">
+                        
+                        <!-- Spicy Badge -->
+                        <div class="absolute top-4 left-4 bg-slate-950/80 border border-red-500/40 px-3 py-1.5 rounded-full flex items-center gap-2 z-10 backdrop-blur">
+                            <span class="text-xs text-slate-400 font-bold">맵기:</span>
+                            <span id="preview-spice-text" class="text-xs font-black text-red-400">🔥 2단계 (보통 매운맛)</span>
+                        </div>
+
+                        <!-- Calorie Estimator Badge -->
+                        <div class="absolute top-4 right-4 bg-slate-950/80 border border-amber-500/40 px-3 py-1.5 rounded-full flex items-center gap-2 z-10 backdrop-blur">
+                            <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
+                            <span class="text-xs text-amber-300 font-bold">예상 칼로리: <span id="preview-calories">580</span> kcal</span>
+                        </div>
+
+                        <!-- Graphic Bowl Visualizer -->
+                        <div class="relative w-72 h-72 sm:w-80 sm:h-80 my-4 flex items-center justify-center">
+                            <!-- Bowl Outer Shadow -->
+                            <div class="absolute inset-4 rounded-full bg-slate-950 shadow-2xl transform scale-105"></div>
+                            <!-- Bowl Outer Rim -->
+                            <div class="absolute inset-2 rounded-full border-8 border-slate-700 bg-slate-900 shadow-inner"></div>
+                            
+                            <!-- Sauce Liquid Base (Color controlled dynamically) -->
+                            <div id="bowl-sauce-base" class="absolute inset-6 rounded-full transition-all duration-500 bg-gradient-to-br from-red-600 via-red-700 to-amber-800 p-4 shadow-inner flex items-center justify-center overflow-hidden">
+                                <!-- Sauce Bubbles / Shimmer -->
+                                <div class="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-yellow-300 via-red-500 to-transparent"></div>
+                                
+                                <!-- Dynamic Rendered Tteok & Toppings Layer -->
+                                <div id="bowl-toppings-layer" class="relative w-full h-full flex flex-wrap justify-center items-center gap-2 p-2 z-10">
+                                    <!-- Rendered elements inserted via JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Custom Summary Text -->
+                        <div class="text-center space-y-1 z-10">
+                            <h2 id="custom-title-display" class="text-xl font-title text-white">나만의 맞춤 고추장 떡볶이</h2>
+                            <p id="custom-desc-display" class="text-xs text-slate-400">밀떡 + 보통 매운맛 + 모둠 토핑 조합</p>
+                        </div>
+                    </div>
+
+                    <!-- Action Bar -->
+                    <div class="flex gap-3">
+                        <button onclick="saveCustomToDiary()" class="flex-1 py-3 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold text-sm rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bookmark"></i>
+                            <span>이 레시피 내 일지에 저장하기</span>
+                        </button>
+                        <button onclick="randomizeCustomizer()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-sm rounded-2xl transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-dice text-amber-400"></i>
+                            <span>랜덤 조합</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Customizer Options Controls (Lg: 6 cols) -->
+                <div class="lg:col-span-6 space-y-5">
+                    
+                    <!-- Option 1: Base Sauce -->
+                    <div class="glass-card p-4 rounded-2xl border border-slate-800 space-y-3">
+                        <label class="text-sm font-bold text-slate-200 flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-flask text-red-400"></i>
+                                <span>1. 베이스 소스 선택</span>
+                            </span>
+                            <span id="selected-sauce-name" class="text-xs text-orange-400 font-normal">오리지널 고추장</span>
+                        </label>
+                        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs">
+                            <button onclick="setSauce('red')" class="sauce-btn border border-red-500/50 bg-red-950/40 text-white p-2.5 rounded-xl font-bold hover:border-red-500 transition text-center">오리지널 고추장</button>
+                            <button onclick="setSauce('rose')" class="sauce-btn border border-slate-700 bg-slate-900 text-slate-300 p-2.5 rounded-xl font-bold hover:border-red-500 transition text-center">크리미 로제</button>
+                            <button onclick="setSauce('mara')" class="sauce-btn border border-slate-700 bg-slate-900 text-slate-300 p-2.5 rounded-xl font-bold hover:border-red-500 transition text-center">얼얼 마라</button>
+                            <button onclick="setSauce('black')" class="sauce-btn border border-slate-700 bg-slate-900 text-slate-300 p-2.5 rounded-xl font-bold hover:border-red-500 transition text-center">달콤 짜장</button>
+                            <button onclick="setSauce('cream')" class="sauce-btn border border-slate-700 bg-slate-900 text-slate-300 p-2.5 rounded-xl font-bold hover:border-red-500 transition text-center">고소 투움바</button>
+                            <button onclick="setSauce('soy')" class="sauce-btn border border-slate-700 bg-slate-900 text-slate-300 p-2.5 rounded-xl font-bold hover:border-red-500 transition text-center">궁중 간장</button>
+                        </div>
+                    </div>
+
+                    <!-- Option 2: Tteok Type -->
+                    <div class="glass-card p-4 rounded-2xl border border-slate-800 space-y-3">
+                        <label class="text-sm font-bold text-slate-200 flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-wheat-awn text-amber-400"></i>
+                                <span>2. 주재료 (떡/면) 선택</span>
+                            </span>
+                            <span id="selected-tteok-name" class="text-xs text-amber-400 font-normal">쫀득 밀떡</span>
+                        </label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                            <button onclick="setTteok('wheat')" class="tteok-btn border border-amber-500/50 bg-amber-950/30 text-white p-2.5 rounded-xl font-bold hover:border-amber-500 transition">쫀득 밀떡</button>
+                            <button onclick="setTteok('rice')" class="tteok-btn border border-slate-700 bg-slate-900 text-slate-300 p-2.5 rounded-xl font-bold hover:border-amber-500 transition">말랑 쌀떡</button>
+                            <button onclick="setTteok('bunmoja')" class="tteok-btn border border-slate-700 bg-slate-900 text-slate-300 p-2.5 rounded-xl font-bold hover:border-amber-500 transition">탱글 분모자</button>
+                            <button onclick="setTteok('noodle')" class="tteok-btn border border-slate-700 bg-slate-900 text-slate-300 p-2.5 rounded-xl font-bold hover:border-amber-500 transition">중국 당면</button>
+                        </div>
+                    </div>
+
+                    <!-- Option 3: Spice Level Slider -->
+                    <div class="glass-card p-4 rounded-2xl border border-slate-800 space-y-3">
+                        <div class="flex justify-between items-center text-sm font-bold text-slate-200">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-fire text-red-500"></i>
+                                <span>3. 맵기 단계 (1 ~ 5단계)</span>
+                            </span>
+                            <span id="spice-level-num" class="text-red-400 font-mono text-base font-black">LV 2</span>
+                        </div>
+                        <input type="range" id="spice-range" min="1" max="5" value="2" oninput="updateSpiceLevel(this.value)" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-red-500">
+                        <div class="flex justify-between text-[11px] text-slate-400 font-bold">
+                            <span>순한맛</span>
+                            <span>보통맛</span>
+                            <span>매운맛</span>
+                            <span>아주매운맛</span>
+                            <span>저세상 맵기🌶️</span>
+                        </div>
+                    </div>
+
+                    <!-- Option 4: Toppings Selection -->
+                    <div class="glass-card p-4 rounded-2xl border border-slate-800 space-y-3">
+                        <label class="text-sm font-bold text-slate-200 flex items-center justify-between">
+                            <span class="flex items-center gap-2">
+                                <i class="fa-solid fa-cheese text-amber-300"></i>
+                                <span>4. 추가 토핑 (다중 선택 가능)</span>
+                            </span>
+                            <span class="text-xs text-slate-400">클릭하여 추가/제거</span>
+                        </label>
+                        <div class="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs">
+                            <button onclick="toggleTopping('cheese')" id="top-cheese" class="top-btn border border-slate-700 bg-slate-900 text-slate-300 p-2 rounded-xl hover:border-amber-400 transition flex items-center justify-center gap-1.5">
+                                <span>🧀 모짜렐라</span>
+                            </button>
+                            <button onclick="toggleTopping('egg')" id="top-egg" class="top-btn border border-slate-700 bg-slate-900 text-slate-300 p-2 rounded-xl hover:border-amber-400 transition flex items-center justify-center gap-1.5">
+                                <span>🥚 삶은계란/메추리</span>
+                            </button>
+                            <button onclick="toggleTopping('sausage')" id="top-sausage" class="top-btn border border-slate-700 bg-slate-900 text-slate-300 p-2 rounded-xl hover:border-amber-400 transition flex items-center justify-center gap-1.5">
+                                <span>🌭 비엔나 소시지</span>
+                            </button>
+                            <button onclick="toggleTopping('fried')" id="top-fried" class="top-btn border border-slate-700 bg-slate-900 text-slate-300 p-2 rounded-xl hover:border-amber-400 transition flex items-center justify-center gap-1.5">
+                                <span>🥟 바삭 김말이/만두</span>
+                            </button>
+                            <button onclick="toggleTopping('ramen')" id="top-ramen" class="top-btn border border-slate-700 bg-slate-900 text-slate-300 p-2 rounded-xl hover:border-amber-400 transition flex items-center justify-center gap-1.5">
+                                <span>🍜 라면 사리</span>
+                            </button>
+                            <button onclick="toggleTopping('sundae')" id="top-sundae" class="top-btn border border-slate-700 bg-slate-900 text-slate-300 p-2 rounded-xl hover:border-amber-400 transition flex items-center justify-center gap-1.5">
+                                <span>🍢 찰순대</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: RANDOM ROULETTE -->
+        <section id="tab-roulette" class="tab-content hidden space-y-6">
+            <div class="max-w-2xl mx-auto glass-card p-6 sm:p-8 rounded-3xl border border-slate-800 text-center space-y-6 shadow-2xl">
+                <div>
+                    <h2 class="text-2xl font-title text-white flex items-center justify-center gap-2">
+                        <span>🎰 오늘 뭐 먹지? 떡볶이 룰렛</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">고민은 이제 그만! 돌려돌려 돌림판으로 메뉴를 정해보세요.</p>
+                </div>
+
+                <!-- Roulette Canvas Container -->
+                <div class="relative w-72 h-72 sm:w-80 sm:h-80 mx-auto flex items-center justify-center">
+                    <!-- Pointer Arrow -->
+                    <div class="absolute -top-3 z-30 text-3xl text-red-500 drop-shadow-md transform -translate-x-1/2 left-1/2">
+                        <i class="fa-solid fa-caret-down"></i>
+                    </div>
+
+                    <!-- Canvas Wheel -->
+                    <canvas id="roulette-canvas" width="320" height="320" class="w-full h-full rounded-full shadow-2xl border-4 border-slate-700"></canvas>
+
+                    <!-- Center Start Button -->
+                    <button onclick="spinRoulette()" id="btn-spin" class="absolute w-20 h-20 bg-gradient-to-tr from-red-600 to-amber-500 rounded-full border-4 border-slate-900 text-white font-title text-lg shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition z-20">
+                        START!
+                    </button>
+                </div>
+
+                <!-- Result Box -->
+                <div id="roulette-result-box" class="hidden bg-slate-950 p-4 rounded-2xl border border-amber-500/50 space-y-2">
+                    <span class="text-xs text-amber-400 font-bold uppercase tracking-wider">오늘의 당첨 메뉴</span>
+                    <h3 id="roulette-winner-text" class="text-xl sm:text-2xl font-title text-white">🔥 매운 엽기 떡볶이</h3>
+                    <p id="roulette-winner-desc" class="text-xs text-slate-400">스트레스 풀기 딱 좋은 화끈한 매운맛!</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: IDEAL WORLD CUP -->
+        <section id="tab-worldcup" class="tab-content hidden space-y-6">
+            <div class="max-w-4xl mx-auto space-y-6">
+                <!-- World Cup Header -->
+                <div class="text-center space-y-2">
+                    <span class="text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full">떡볶이 취향검사</span>
+                    <h2 class="text-2xl font-title text-white">🏆 떡볶이 취향 이상형 월드컵 (8강)</h2>
+                    <p class="text-xs text-slate-400">둘 중 더 끌리는 최애 떡볶이를 클릭해 최종 우승자를 가려보세요!</p>
+                </div>
+
+                <!-- Match Progress Bar -->
+                <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex justify-between items-center text-xs font-bold">
+                    <span id="worldcup-round-text" class="text-amber-400">8강전 (1 / 4)</span>
+                    <div class="w-48 bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="worldcup-progress-bar" class="bg-gradient-to-r from-red-500 to-amber-400 h-full w-1/4 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Matchup Cards Container -->
+                <div id="worldcup-match-container" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <!-- Left Candidate -->
+                    <div onclick="selectWorldcupCandidate(0)" class="glass-card p-6 rounded-3xl border border-slate-800 hover:border-red-500 transition cursor-pointer flex flex-col items-center text-center space-y-4 group hover:scale-[1.02]">
+                        <div class="text-6xl p-4 bg-slate-950 rounded-2xl border border-slate-800 group-hover:scale-110 transition" id="wc-left-emoji">🍲</div>
+                        <div>
+                            <h3 id="wc-left-name" class="text-xl font-title text-white">원조 국물 떡볶이</h3>
+                            <p id="wc-left-desc" class="text-xs text-slate-400 mt-1">숟가락으로 국물과 함께 떠먹는 정통 스타일</p>
+                        </div>
+                    </div>
+
+                    <!-- Right Candidate -->
+                    <div onclick="selectWorldcupCandidate(1)" class="glass-card p-6 rounded-3xl border border-slate-800 hover:border-red-500 transition cursor-pointer flex flex-col items-center text-center space-y-4 group hover:scale-[1.02]">
+                        <div class="text-6xl p-4 bg-slate-950 rounded-2xl border border-slate-800 group-hover:scale-110 transition" id="wc-right-emoji">🧀</div>
+                        <div>
+                            <h3 id="wc-right-name" class="text-xl font-title text-white">꾸덕 꾸덕 로제 떡볶이</h3>
+                            <p id="wc-right-desc" class="text-xs text-slate-400 mt-1">크림의 부드러움과 매콤함의 완벽 조화</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Final Winner View (Hidden by default) -->
+                <div id="worldcup-winner-container" class="hidden glass-card p-8 rounded-3xl border border-amber-500/50 text-center space-y-6">
+                    <div class="text-6xl animate-bounce" id="wc-winner-emoji">👑</div>
+                    <div>
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-widest">최종 우승 떡볶이</span>
+                        <h2 id="wc-winner-name" class="text-3xl font-title text-white mt-1">꾸덕 꾸덕 로제 떡볶이</h2>
+                        <p id="wc-winner-desc" class="text-sm text-slate-400 mt-2">당신의 명예로운 최애 떡볶이로 선정되었습니다!</p>
+                    </div>
+                    <button onclick="resetWorldcup()" class="px-6 py-3 bg-gradient-to-r from-red-600 to-amber-500 text-white font-bold text-xs rounded-2xl shadow-lg hover:opacity-90 transition">
+                        다시 도전하기
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: GOLDEN RECIPE & TIMER -->
+        <section id="tab-timer" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Cooking Timer (Lg: 5 cols) -->
+                <div class="lg:col-span-5 glass-card p-6 rounded-3xl border border-slate-800 flex flex-col items-center justify-between space-y-6 text-center shadow-2xl">
+                    <div>
+                        <span class="text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full">조리 도우미</span>
+                        <h2 class="text-xl font-title text-white mt-2">⏱️ 떡볶이 황금 조리 타이머</h2>
+                        <p class="text-xs text-slate-400">떡이 알맞게 말랑해질 때까지의 시간을 측정하세요.</p>
+                    </div>
+
+                    <!-- Digital Clock Display -->
+                    <div class="w-64 h-64 rounded-full border-8 border-slate-800 bg-slate-950 flex flex-col items-center justify-center space-y-2 shadow-inner relative">
+                        <span id="timer-display" class="text-5xl font-black font-mono text-emerald-400 tracking-wider">07:00</span>
+                        <span id="timer-status-text" class="text-xs text-slate-500 font-bold">준비 완료</span>
+                    </div>
+
+                    <!-- Preset Time Buttons -->
+                    <div class="grid grid-cols-3 gap-2 w-full text-xs">
+                        <button onclick="setTimerPreset(300)" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700">5분 (밀떡)</button>
+                        <button onclick="setTimerPreset(420)" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700">7분 (황금조리)</button>
+                        <button onclick="setTimerPreset(600)" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl border border-slate-700">10분 (꾸덕조림)</button>
+                    </div>
+
+                    <!-- Timer Controls -->
+                    <div class="flex gap-3 w-full">
+                        <button id="btn-timer-toggle" onclick="toggleTimer()" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-2xl shadow-lg transition">
+                            타이머 시작
+                        </button>
+                        <button onclick="resetTimer()" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm rounded-2xl border border-slate-700 transition">
+                            리셋
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Golden Recipe Guide (Lg: 7 cols) -->
+                <div class="lg:col-span-7 glass-card p-6 rounded-3xl border border-slate-800 space-y-5">
+                    <h2 class="text-xl font-title text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <i class="fa-solid fa-book-open text-amber-400"></i>
+                        <span>백종원 표 황금 국물 떡볶이 레시피</span>
+                    </h2>
+
+                    <!-- Ingredients List -->
+                    <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
+                        <h3 class="font-bold text-amber-400">필수 재료 (2인분 기준)</h3>
+                        <p class="text-slate-300 leading-relaxed">
+                            떡 300g, 사각 어묵 2장, 대파 1대, 물 350ml (약 2컵)<br>
+                            양념장: 고추장 2T, 고춧가루 1.5T, 설탕 2T, 진간장 1T, 다진 마늘 0.5T
+                        </p>
+                    </div>
+
+                    <!-- Step-by-Step Cooking Guide -->
+                    <div class="space-y-3 text-xs">
+                        <div class="flex items-start space-x-3 p-3 bg-slate-900/80 rounded-xl border border-slate-800">
+                            <span class="w-6 h-6 rounded-lg bg-red-600 text-white font-bold flex items-center justify-center shrink-0">1</span>
+                            <p class="text-slate-300 leading-relaxed">
+                                냄비에 물 350ml와 설탕 2T를 넣고 먼저 끓여 단맛이 떡에 잘 배도록 합니다.
+                            </p>
+                        </div>
+                        <div class="flex items-start space-x-3 p-3 bg-slate-900/80 rounded-xl border border-slate-800">
+                            <span class="w-6 h-6 rounded-lg bg-red-600 text-white font-bold flex items-center justify-center shrink-0">2</span>
+                            <p class="text-slate-300 leading-relaxed">
+                                물이 끓기 시작하면 고추장, 고춧가루, 진간장을 넣고 잘 풀어줍니다.
+                            </p>
+                        </div>
+                        <div class="flex items-start space-x-3 p-3 bg-slate-900/80 rounded-xl border border-slate-800">
+                            <span class="w-6 h-6 rounded-lg bg-red-600 text-white font-bold flex items-center justify-center shrink-0">3</span>
+                            <p class="text-slate-300 leading-relaxed">
+                                씻어둔 떡과 어묵, 대파를 넣고 중불에서 약 7분간 국물이 졸아들 때까지 조려줍니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: POPULAR BRANDS GUIDE -->
+        <section id="tab-brands" class="tab-content hidden space-y-6">
+            <div class="space-y-4">
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                        <h2 class="text-2xl font-title text-white">🏪 대표 떡볶이 브랜드 & 대표 조합</h2>
+                        <p class="text-xs text-slate-400">유명 프랜차이즈 떡볶이의 시그니처 메뉴와 꿀조합 정보입니다.</p>
+                    </div>
+                </div>
+
+                <!-- Brand Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    <!-- Brand 1: 엽기떡볶이 -->
+                    <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-red-500/50 transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-3xl">🌶️</span>
+                                <div>
+                                    <h3 class="font-title text-lg text-white">동대문 엽기떡볶이</h3>
+                                    <span class="text-[11px] text-red-400 font-bold">화끈한 화마 매운맛</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            매운 떡볶이의 대명사. 치즈와 소시지 기본 탑재, 중독성 있는 강렬한 매운맛이 특징.
+                        </p>
+                        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] text-amber-300">
+                            <strong>💡 꿀조합:</strong> 엽떡 반반 + 베이컨 추가 + 주먹김밥 + 쿨피스
+                        </div>
+                    </div>
+
+                    <!-- Brand 2: 신전떡볶이 -->
+                    <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-amber-500/50 transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-3xl">🍟</span>
+                                <div>
+                                    <h3 class="font-title text-lg text-white">신전떡볶이</h3>
+                                    <span class="text-[11px] text-amber-400 font-bold">후추 카레 특제 소스</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            후추와 카레향이 가미된 자작한 국물 떡볶이. 바삭한 어묵튀김과 찰떡궁합.
+                        </p>
+                        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] text-amber-300">
+                            <strong>💡 꿀조합:</strong> 신전 치즈떡볶이 + 오뎅튀김 2세트 + 신전김밥
+                        </div>
+                    </div>
+
+                    <!-- Brand 3: 배떡 (배달떡볶이) -->
+                    <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-rose-500/50 transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-3xl">🌹</span>
+                                <div>
+                                    <h3 class="font-title text-lg text-white">배떡 (BAETTEOK)</h3>
+                                    <span class="text-[11px] text-rose-400 font-bold">원조 로제 떡볶이</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            국내 로제 떡볶이 열풍의 주역. 부드럽고 매콤한 크림 소스와 누들 밀떡의 조합.
+                        </p>
+                        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] text-amber-300">
+                            <strong>💡 꿀조합:</strong> 로제떡볶이(매콤한맛) + 분모자 변경 + 날치알밥
+                        </div>
+                    </div>
+
+                    <!-- Brand 4: 삼첩분식 -->
+                    <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-purple-500/50 transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-3xl">📦</span>
+                                <div>
+                                    <h3 class="font-title text-lg text-white">삼첩분식</h3>
+                                    <span class="text-[11px] text-purple-400 font-bold">감자폭탄 & 토핑 분식</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            레트로 빨간 상자 패키징과 고소한 맛이 일품인 바삭 감자 스파드 토핑.
+                        </p>
+                        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] text-amber-300">
+                            <strong>💡 꿀조합:</strong> 바질크림 떡볶이 + 감자폭탄 + 막창 세트
+                        </div>
+                    </div>
+
+                    <!-- Brand 5: 청년다방 -->
+                    <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-blue-500/50 transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-3xl">🥩</span>
+                                <div>
+                                    <h3 class="font-title text-lg text-white">청년다방</h3>
+                                    <span class="text-[11px] text-blue-400 font-bold">긴 차돌 롱떡볶이</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            30cm 기다란 떡을 직접 잘라먹는 재미와 불향 가득한 차돌박이의 완벽 만남.
+                        </p>
+                        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] text-amber-300">
+                            <strong>💡 꿀조합:</strong> 불향차돌 떡볶이 + 버터갈릭 감자튀김 + 청포도 에이드
+                        </div>
+                    </div>
+
+                    <!-- Brand 6: 우리동네 분식집 -->
+                    <div class="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-emerald-500/50 transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-3xl">🏫</span>
+                                <div>
+                                    <h3 class="font-title text-lg text-white">학교 앞 추억의 떡볶이</h3>
+                                    <span class="text-[11px] text-emerald-400 font-bold">달달한 판떡볶이</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            커다란 사각 판에서 은근하게 졸여 만든 달달하고 고소한 추억의 학창 시절 맛.
+                        </p>
+                        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-[11px] text-amber-300">
+                            <strong>💡 꿀조합:</strong> 컵떡볶이 + 떡꼬치 + 피카츄 돈까스
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 6: MY TTEOKBOKKI DIARY -->
+        <section id="tab-diary" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Add Diary Entry Form (Lg: 5 cols) -->
+                <div class="lg:col-span-5 glass-card p-6 rounded-3xl border border-slate-800 space-y-4">
+                    <div>
+                        <h2 class="text-xl font-title text-white flex items-center gap-2">
+                            <i class="fa-solid fa-pen-to-square text-purple-400"></i>
+                            <span>떡볶이 탐방 일지 쓰기</span>
+                        </h2>
+                        <p class="text-xs text-slate-400">오늘 먹은 떡볶이 맛집의 후기를 기록하세요.</p>
+                    </div>
+
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <label class="block font-bold text-slate-300 mb-1">상호명 / 메뉴명</label>
+                            <input type="text" id="diary-store-input" placeholder="예: 엽기떡볶이 강남점 / 로제떡볶이" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-purple-500 focus:outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block font-bold text-slate-300 mb-1">별점 평가</label>
+                                <select id="diary-rating-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-purple-500 focus:outline-none">
+                                    <option value="5">⭐⭐⭐⭐⭐ (인생 맛집)</option>
+                                    <option value="4">⭐⭐⭐⭐ (매우 만족)</option>
+                                    <option value="3">⭐⭐⭐ (무난함)</option>
+                                    <option value="2">⭐⭐ (아쉬움)</option>
+                                    <option value="1">⭐ (비추천)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-300 mb-1">날짜</label>
+                                <input type="date" id="diary-date-input" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:border-purple-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-slate-300 mb-1">솔직한 시식 후기</label>
+                            <textarea id="diary-memo-input" rows="3" placeholder="소스의 매콤함이나 떡의 식감, 추천 토핑을 적어주세요." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white focus:border-purple-500 focus:outline-none"></textarea>
+                        </div>
+
+                        <button onclick="addDiaryEntry()" class="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm rounded-2xl shadow-lg transition">
+                            일지 저장하기
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Diary Entries List (Lg: 7 cols) -->
+                <div class="lg:col-span-7 space-y-4">
+                    <h2 class="text-xl font-title text-white flex items-center justify-between">
+                        <span>📖 나의 떡볶이 기록 목록</span>
+                        <span id="diary-count-tag" class="text-xs bg-purple-500/20 text-purple-300 px-2.5 py-1 rounded-full border border-purple-500/30">총 0개 기록</span>
+                    </h2>
+
+                    <div id="diary-list-container" class="space-y-3">
+                        <!-- Entries dynamically populated -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom Toast Message Overlay -->
+    <div id="app-toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900 border border-red-500/50 text-white text-xs font-bold px-5 py-3 rounded-full shadow-2xl flex items-center gap-2 hidden transition-all duration-300">
+        <i class="fa-solid fa-circle-check text-red-400"></i>
+        <span id="toast-text-content">알림 메시지</span>
+    </div>
+
+    <script>
+        // Global App State
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        // Customizer State
+        let customBowl = {
+            sauce: 'red',
+            tteok: 'wheat',
+            spice: 2,
+            toppings: ['cheese', 'sausage']
+        };
+
+        const SAUCE_CONFIG = {
+            red: { name: "오리지널 고추장", bg: "from-red-600 via-red-700 to-amber-800", calories: 450 },
+            rose: { name: "크리미 로제", bg: "from-rose-500 via-pink-600 to-amber-700", calories: 580 },
+            mara: { name: "얼얼 마라", bg: "from-red-700 via-red-900 to-stone-900", calories: 620 },
+            black: { name: "달콤 짜장", bg: "from-stone-800 via-amber-950 to-stone-900", calories: 480 },
+            cream: { name: "고소 투움바", bg: "from-amber-100 via-amber-200 to-amber-400", calories: 610 },
+            soy: { name: "궁중 간장", bg: "from-amber-700 via-amber-800 to-stone-900", calories: 410 }
+        };
+
+        const TTEOK_CONFIG = {
+            wheat: { name: "쫀득 밀떡", calorieAdd: 120 },
+            rice: { name: "말랑 쌀떡", calorieAdd: 140 },
+            bunmoja: { name: "탱글 분모자", calorieAdd: 160 },
+            noodle: { name: "중국 당면", calorieAdd: 180 }
+        };
+
+        const TOPPING_CONFIG = {
+            cheese: { name: "모짜렐라 치즈", icon: "🧀", cal: 110 },
+            egg: { name: "삶은계란", icon: "🥚", cal: 70 },
+            sausage: { name: "비엔나 소시지", icon: "🌭", cal: 120 },
+            fried: { name: "바삭 김말이", icon: "🥟", cal: 150 },
+            ramen: { name: "라면 사리", icon: "🍜", cal: 180 },
+            sundae: { name: "찰순대", icon: "🍢", cal: 130 }
+        };
+
+        // World Cup Database
+        const WORLDCUP_CANDIDATES = [
+            { id: 1, name: "원조 국물 떡볶이", desc: "국물과 함께 떠먹는 정통 매콤달콤 스타일", emoji: "🍲" },
+            { id: 2, name: "꾸덕 로제 떡볶이", desc: "부드러운 크림과 고추장의 상타치 조화", emoji: "🧀" },
+            { id: 3, name: "얼얼 마라 떡볶이", desc: "중독성 넘치는 마라유와 분모자의 만남", emoji: "🌶️" },
+            { id: 4, name: "학교앞 달콤 판떡볶이", desc: "어릴 적 추억이 물씬 풍기는 달달함", emoji: "🏫" },
+            { id: 5, name: "불향 차돌 떡볶이", desc: "고소한 차돌박이 고기가 듬뿍 들어간 럭셔리 스타일", emoji: "🥩" },
+            { id: 6, name: "바삭 기름 떡볶이", desc: "통인시장 스타일 고소하고 바삭한 기름 양념", emoji: "🍳" },
+            { id: 7, name: "단짠 짜장 떡볶이", desc: "남녀노소 누구나 좋아하는 감칠맛 짜장 소스", emoji: "🥢" },
+            { id: 8, name: "알싸 후추 신전 떡볶이", desc: "카레와 후추 향이 입안 가득 감도는 국물 맛", emoji: "🍟" }
+        ];
+
+        let worldcupMatches = [];
+        let worldcupNextRound = [];
+        let worldcupCurrentIdx = 0;
+        let worldcupRoundName = "8강";
+
+        // Timer State
+        let timerDuration = 420; // 7 minutes
+        let timerRemaining = 420;
+        let timerInterval = null;
+        let timerRunning = false;
+
+        // Diary Array
+        let diaryEntries = [
+            {
+                id: 1,
+                store: "동대문 엽기떡볶이 강남점",
+                rating: 5,
+                date: "2026-09-28",
+                memo: "엽떡 착한맛에 치즈랑 중국당면 추가해서 먹었음. 언제 먹어도 양이 푸짐하고 최고!"
+            }
+        ];
+
+        // Web Audio Sound Synthesizer
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'win') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if (type === 'spin') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(220, now);
+                    gain.gain.setValueAtTime(0.03, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                }
+            } catch(e) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-icon').className = soundEnabled ? 'fa-solid fa-volume-high text-amber-400' : 'fa-solid fa-volume-xmark text-slate-500';
+            document.getElementById('sound-text').innerText = soundEnabled ? '효과음 켬' : '음소거';
+            showToast(soundEnabled ? "효과음이 켜졌습니다." : "음소거 되었습니다.");
+        }
+
+        // Tab Navigation Switcher
+        function switchTab(tabId) {
+            playSound('click');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = 'tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800';
+            });
+
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.className = 'tab-btn px-4 py-2 rounded-xl transition flex items-center gap-2 bg-red-600 text-white shadow-md font-bold';
+            }
+
+            if (tabId === 'roulette') {
+                drawRouletteWheel();
+            }
+        }
+
+        // Customizer Functions
+        function setSauce(sauceKey) {
+            playSound('click');
+            customBowl.sauce = sauceKey;
+            document.getElementById('selected-sauce-name').innerText = SAUCE_CONFIG[sauceKey].name;
+            renderBowl();
+        }
+
+        function setTteok(tteokKey) {
+            playSound('click');
+            customBowl.tteok = tteokKey;
+            document.getElementById('selected-tteok-name').innerText = TTEOK_CONFIG[tteokKey].name;
+            renderBowl();
+        }
+
+        function updateSpiceLevel(val) {
+            customBowl.spice = parseInt(val);
+            document.getElementById('spice-level-num').innerText = `LV ${val}`;
+            renderBowl();
+        }
+
+        function toggleTopping(topKey) {
+            playSound('click');
+            const idx = customBowl.toppings.indexOf(topKey);
+            if (idx > -1) {
+                customBowl.toppings.splice(idx, 1);
+                document.getElementById(`top-${topKey}`).classList.remove('border-amber-400', 'bg-amber-950/40', 'text-amber-300');
+            } else {
+                customBowl.toppings.push(topKey);
+                document.getElementById(`top-${topKey}`).classList.add('border-amber-400', 'bg-amber-950/40', 'text-amber-300');
+            }
+            renderBowl();
+        }
+
+        function renderBowl() {
+            const sauce = SAUCE_CONFIG[customBowl.sauce];
+            const tteok = TTEOK_CONFIG[customBowl.tteok];
+
+            // Update Sauce Liquid Color
+            const baseEl = document.getElementById('bowl-sauce-base');
+            baseEl.className = `absolute inset-6 rounded-full transition-all duration-500 bg-gradient-to-br ${sauce.bg} p-4 shadow-inner flex items-center justify-center overflow-hidden`;
+
+            // Spice Text
+            const spiceLabels = ["1단계 (순한맛)", "2단계 (보통 매운맛)", "3단계 (화끈한 매운맛)", "4단계 (아주 매운맛)", "5단계 (저세상 맵기🌶️)"];
+            document.getElementById('preview-spice-text').innerText = `🔥 ${spiceLabels[customBowl.spice - 1]}`;
+
+            // Calories Calculation
+            let totalCal = sauce.calories + tteok.calorieAdd;
+            customBowl.toppings.forEach(t => {
+                totalCal += TOPPING_CONFIG[t].cal;
+            });
+            document.getElementById('preview-calories').innerText = totalCal;
+
+            // Render Bowl Items HTML
+            const toppingsLayer = document.getElementById('bowl-toppings-layer');
+            toppingsLayer.innerHTML = '';
+
+            // Add Tteok items
+            for (let i = 0; i < 6; i++) {
+                const tteokSpan = document.createElement('span');
+                tteokSpan.className = 'text-2xl float-item drop-shadow-md';
+                tteokSpan.style.animationDelay = `${i * 0.2}s`;
+                tteokSpan.innerText = customBowl.tteok === 'bunmoja' ? '〰️' : '🥢';
+                toppingsLayer.appendChild(tteokSpan);
+            }
+
+            // Add Topping icons
+            customBowl.toppings.forEach((t, i) => {
+                const topSpan = document.createElement('span');
+                topSpan.className = 'text-3xl float-item drop-shadow-lg';
+                topSpan.style.animationDelay = `${(i + 1) * 0.3}s`;
+                topSpan.innerText = TOPPING_CONFIG[t].icon;
+                toppingsLayer.appendChild(topSpan);
+            });
+
+            // Update Title
+            document.getElementById('custom-title-display').innerText = `나만의 ${sauce.name} ${tteok.name}`;
+            document.getElementById('custom-desc-display').innerText = `${spiceLabels[customBowl.spice - 1]} + ${customBowl.toppings.map(t => TOPPING_CONFIG[t].name).join(', ') || '토핑 없음'}`;
+        }
+
+        function randomizeCustomizer() {
+            playSound('win');
+            const sauces = Object.keys(SAUCE_CONFIG);
+            const tteoks = Object.keys(TTEOK_CONFIG);
+            const toppings = Object.keys(TOPPING_CONFIG);
+
+            customBowl.sauce = sauces[Math.floor(Math.random() * sauces.length)];
+            customBowl.tteok = tteoks[Math.floor(Math.random() * tteoks.length)];
+            customBowl.spice = Math.floor(Math.random() * 5) + 1;
+            
+            customBowl.toppings = toppings.filter(() => Math.random() > 0.5);
+
+            document.getElementById('spice-range').value = customBowl.spice;
+            document.getElementById('spice-level-num').innerText = `LV ${customBowl.spice}`;
+            document.getElementById('selected-sauce-name').innerText = SAUCE_CONFIG[customBowl.sauce].name;
+            document.getElementById('selected-tteok-name').innerText = TTEOK_CONFIG[customBowl.tteok].name;
+
+            toppings.forEach(t => {
+                const btn = document.getElementById(`top-${t}`);
+                if (customBowl.toppings.includes(t)) {
+                    btn.classList.add('border-amber-400', 'bg-amber-950/40', 'text-amber-300');
+                } else {
+                    btn.classList.remove('border-amber-400', 'bg-amber-950/40', 'text-amber-300');
+                }
+            });
+
+            renderBowl();
+            showToast("🎲 새로운 떡볶이 랜덤 레시피가 완성되었습니다!");
+        }
+
+        function saveCustomToDiary() {
+            playSound('win');
+            const title = document.getElementById('custom-title-display').innerText;
+            const desc = document.getElementById('custom-desc-display').innerText;
+
+            diaryEntries.unshift({
+                id: Date.now(),
+                store: `[커스텀] ${title}`,
+                rating: 5,
+                date: new Date().toISOString().split('T')[0],
+                memo: `내가 직접 조합한 레시피! (${desc})`
+            });
+
+            renderDiaryList();
+            showToast("📖 '나의 떡스토리'에 레시피가 추가되었습니다!");
+        }
+
+        // Roulette Functions
+        const ROULETTE_ITEMS = [
+            { name: "매운 엽기떡볶이", color: "#ef4444" },
+            { name: "달콤 로제떡볶이", color: "#f43f5e" },
+            { name: "신전 국물떡볶이", color: "#f59e0b" },
+            { name: "알싸 마라떡볶이", color: "#b91c1c" },
+            { name: "청년다방 차돌떡볶이", color: "#3b82f6" },
+            { name: "삼첩분식 감자떡볶이", color: "#8b5cf6" },
+            { name: "학교앞 판떡볶이", color: "#10b981" },
+            { name: "단짠 짜장떡볶이", color: "#78350f" }
+        ];
+
+        let rouletteRotation = 0;
+        let isSpinning = false;
+
+        function drawRouletteWheel() {
+            const canvas = document.getElementById('roulette-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const numSlices = ROULETTE_ITEMS.length;
+            const sliceAngle = (Math.PI * 2) / numSlices;
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const radius = cx - 10;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < numSlices; i++) {
+                const angle = i * sliceAngle;
+                ctx.beginPath();
+                ctx.fillStyle = ROULETTE_ITEMS[i].color;
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, radius, angle, angle + sliceAngle);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Text Label
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle + sliceAngle / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 13px Noto Sans KR";
+                ctx.fillText(ROULETTE_ITEMS[i].name, radius - 15, 5);
+                ctx.restore();
+            }
+        }
+
+        function spinRoulette() {
+            if (isSpinning) return;
+            isSpinning = true;
+            playSound('click');
+
+            document.getElementById('roulette-result-box').classList.add('hidden');
+            const canvas = document.getElementById('roulette-canvas');
+
+            const randomDegree = 1800 + Math.floor(Math.random() * 360);
+            rouletteRotation += randomDegree;
+
+            canvas.style.transform = `rotate(${rouletteRotation}deg)`;
+
+            const soundInterval = setInterval(() => {
+                playSound('spin');
+            }, 150);
+
+            setTimeout(() => {
+                clearInterval(soundInterval);
+                isSpinning = false;
+                playSound('win');
+
+                const actualDegree = rouletteRotation % 360;
+                const numSlices = ROULETTE_ITEMS.length;
+                const sliceAngle = 360 / numSlices;
+                
+                // Adjust for top pointer location (270 deg offset)
+                const winningIndex = Math.floor((360 - (actualDegree % 360) + 270) % 360 / sliceAngle);
+                const winner = ROULETTE_ITEMS[winningIndex];
+
+                document.getElementById('roulette-winner-text').innerText = `🔥 ${winner.name}`;
+                document.getElementById('roulette-result-box').classList.remove('hidden');
+            }, 4000);
+        }
+
+        // World Cup Functions
+        function initWorldcup() {
+            // Shuffle
+            const shuffled = [...WORLDCUP_CANDIDATES].sort(() => 0.5 - Math.random());
+            worldcupMatches = shuffled;
+            worldcupNextRound = [];
+            worldcupCurrentIdx = 0;
+            worldcupRoundName = "8강전";
+            renderWorldcupMatch();
+        }
+
+        function renderWorldcupMatch() {
+            if (worldcupCurrentIdx >= worldcupMatches.length - 1) {
+                // Round Finished
+                if (worldcupNextRound.length === 1) {
+                    // Winner Found!
+                    showWorldcupWinner(worldcupNextRound[0]);
+                    return;
+                } else {
+                    worldcupMatches = [...worldcupNextRound];
+                    worldcupNextRound = [];
+                    worldcupCurrentIdx = 0;
+                    worldcupRoundName = worldcupMatches.length === 4 ? "4강전" : "결승전";
+                }
+            }
+
+            const left = worldcupMatches[worldcupCurrentIdx];
+            const right = worldcupMatches[worldcupCurrentIdx + 1];
+
+            document.getElementById('worldcup-winner-container').classList.add('hidden');
+            document.getElementById('worldcup-match-container').classList.remove('hidden');
+
+            const roundProgressText = `${worldcupRoundName} (${(worldcupCurrentIdx / 2) + 1} / ${worldcupMatches.length / 2})`;
+            document.getElementById('worldcup-round-text').innerText = roundProgressText;
+
+            // Left
+            document.getElementById('wc-left-emoji').innerText = left.emoji;
+            document.getElementById('wc-left-name').innerText = left.name;
+            document.getElementById('wc-left-desc').innerText = left.desc;
+
+            // Right
+            document.getElementById('wc-right-emoji').innerText = right.emoji;
+            document.getElementById('wc-right-name').innerText = right.name;
+            document.getElementById('wc-right-desc').innerText = right.desc;
+        }
+
+        function selectWorldcupCandidate(sideIdx) {
+            playSound('click');
+            const winner = worldcupMatches[worldcupCurrentIdx + sideIdx];
+            worldcupNextRound.push(winner);
+            worldcupCurrentIdx += 2;
+            renderWorldcupMatch();
+        }
+
+        function showWorldcupWinner(winner) {
+            playSound('win');
+            document.getElementById('worldcup-match-container').classList.add('hidden');
+            document.getElementById('worldcup-winner-container').classList.remove('hidden');
+
+            document.getElementById('wc-winner-emoji').innerText = winner.emoji;
+            document.getElementById('wc-winner-name').innerText = winner.name;
+            document.getElementById('wc-winner-desc').innerText = winner.desc;
+        }
+
+        function resetWorldcup() {
+            playSound('click');
+            initWorldcup();
+        }
+
+        // Timer Functions
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function setTimerPreset(sec) {
+            playSound('click');
+            timerDuration = sec;
+            timerRemaining = sec;
+            document.getElementById('timer-display').innerText = formatTime(timerRemaining);
+        }
+
+        function toggleTimer() {
+            playSound('click');
+            const btn = document.getElementById('btn-timer-toggle');
+            if (timerRunning) {
+                clearInterval(timerInterval);
+                timerRunning = false;
+                btn.innerText = "타이머 다시 시작";
+                btn.className = "flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-2xl shadow-lg transition";
+                document.getElementById('timer-status-text').innerText = "일시 정지";
+            } else {
+                timerRunning = true;
+                btn.innerText = "타이머 일시 정지";
+                btn.className = "flex-1 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm rounded-2xl shadow-lg transition";
+                document.getElementById('timer-status-text').innerText = "조리 중...";
+
+                timerInterval = setInterval(() => {
+                    timerRemaining--;
+                    document.getElementById('timer-display').innerText = formatTime(timerRemaining);
+
+                    if (timerRemaining <= 0) {
+                        clearInterval(timerInterval);
+                        timerRunning = false;
+                        playSound('win');
+                        btn.innerText = "타이머 시작";
+                        btn.className = "flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-2xl shadow-lg transition";
+                        document.getElementById('timer-status-text').innerText = "🎉 완벽 조리 완료!";
+                        showToast("🔔 떡볶이가 완벽하게 조리되었습니다! 즐거운 식사 되세요.");
+                    }
+                }, 1000);
+            }
+        }
+
+        function resetTimer() {
+            playSound('click');
+            clearInterval(timerInterval);
+            timerRunning = false;
+            timerRemaining = timerDuration;
+            document.getElementById('timer-display').innerText = formatTime(timerRemaining);
+            document.getElementById('btn-timer-toggle').innerText = "타이머 시작";
+            document.getElementById('timer-status-text').innerText = "준비 완료";
+        }
+
+        // Diary Functions
+        function addDiaryEntry() {
+            const store = document.getElementById('diary-store-input').value.trim();
+            const rating = document.getElementById('diary-rating-input').value;
+            const date = document.getElementById('diary-date-input').value;
+            const memo = document.getElementById('diary-memo-input').value.trim();
+
+            if (!store) {
+                showToast("상호명 또는 메뉴명을 입력해 주세요.");
+                return;
+            }
+
+            playSound('win');
+            diaryEntries.unshift({
+                id: Date.now(),
+                store: store,
+                rating: parseInt(rating),
+                date: date || new Date().toISOString().split('T')[0],
+                memo: memo || "별도의 설명 없음"
+            });
+
+            // Clear inputs
+            document.getElementById('diary-store-input').value = '';
+            document.getElementById('diary-memo-input').value = '';
+
+            renderDiaryList();
+            showToast("📖 탐방 일지가 저장되었습니다!");
+        }
+
+        function deleteDiaryEntry(id) {
+            playSound('click');
+            diaryEntries = diaryEntries.filter(e => e.id !== id);
+            renderDiaryList();
+            showToast("일지가 삭제되었습니다.");
+        }
+
+        function renderDiaryList() {
+            const container = document.getElementById('diary-list-container');
+            const countTag = document.getElementById('diary-count-tag');
+            countTag.innerText = `총 ${diaryEntries.length}개 기록`;
+
+            if (diaryEntries.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-card p-8 rounded-2xl border border-slate-800 text-center text-slate-500 text-xs">
+                        작성된 떡볶이 일지가 없습니다. 첫 번째 탐방 후기를 남겨보세요!
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = diaryEntries.map(e => `
+                <div class="glass-card p-4 rounded-2xl border border-slate-800 space-y-2 hover:border-purple-500/40 transition flex justify-between items-start">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-white text-sm">${e.store}</h3>
+                            <span class="text-xs text-amber-400 font-bold">${'⭐'.repeat(e.rating)}</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">${e.memo}</p>
+
+                        <div class="text-[10px] text-slate-500 font-mono">
+                            작성일: ${e.date}
+                        </div>
+                    </div>
+                    <button onclick="deleteDiaryEntry(${e.id})" class="text-slate-500 hover:text-red-400 p-1 text-xs">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Toast Helper
+        function showToast(msg) {
+            const toast = document.getElementById('app-toast');
+            document.getElementById('toast-text-content').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2500);
+        }
+
+        // Initialize App on Load
+        window.onload = () => {
+            renderBowl();
+            initWorldcup();
+            renderDiaryList();
+
+            // Default date
+            document.getElementById('diary-date-input').value = new Date().toISOString().split('T')[0];
+        };
+    </script>
+</body>
+</html>

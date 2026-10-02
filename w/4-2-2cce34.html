@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2026 KBO 프로 야구게임</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;700;900&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Gothic A1', 'Noto Sans KR', sans-serif;
+        }
+        body {
+            background-color: #0b132b;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .btn-kbo {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .btn-kbo:active {
+            transform: scale(0.95);
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="w-full h-screen relative flex flex-col justify-between select-none">
+
+    <!-- SCOREBOARD HEADER -->
+    <header class="w-full p-2 sm:p-3 bg-slate-900/90 border-b border-slate-700/80 z-20 flex flex-col gap-1.5 shadow-xl">
+        <div class="max-w-6xl w-full mx-auto flex items-center justify-between">
+            <!-- Left: Matchup & Inning Status -->
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-r from-red-600 to-blue-600 px-3 py-1 rounded-lg text-xs sm:text-sm font-black tracking-wider shadow">
+                    2026 KBO LEAGUE
+                </div>
+                <div class="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 space-x-2">
+                    <span id="inningDisplay" class="text-amber-400 font-bold text-xs sm:text-sm">1회초</span>
+                    <span id="inningTopBottom" class="text-xs text-slate-300">공격</span>
+                </div>
+            </div>
+
+            <!-- Center: Score Box -->
+            <div class="flex items-center space-x-2 sm:space-x-4 bg-slate-950/80 px-3 sm:px-6 py-1.5 rounded-xl border border-slate-800">
+                <!-- Away Team -->
+                <div class="flex items-center space-x-2">
+                    <span id="awayTeamName" class="font-black text-xs sm:text-base text-red-400">KIA</span>
+                    <span id="awayScore" class="font-black text-lg sm:text-2xl text-white">0</span>
+                </div>
+                <span class="text-slate-600 font-bold text-sm sm:text-lg">VS</span>
+                <!-- Home Team -->
+                <div class="flex items-center space-x-2">
+                    <span id="homeScore" class="font-black text-lg sm:text-2xl text-white">0</span>
+                    <span id="homeTeamName" class="font-black text-xs sm:text-base text-blue-400">LG</span>
+                </div>
+            </div>
+
+            <!-- Right: Action Buttons -->
+            <div class="flex items-center space-x-2">
+                <button onclick="openSubModal()" class="btn-kbo bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm flex items-center space-x-1.5">
+                    <i class="fa-solid fa-users-gear text-amber-300"></i>
+                    <span class="hidden sm:inline">선수 교체</span>
+                </button>
+                <button onclick="toggleAudio()" class="btn-kbo bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm">
+                    <i id="audioIcon" class="fa-solid fa-volume-high text-emerald-400"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- BSO & Runner Status Bar -->
+        <div class="max-w-6xl w-full mx-auto flex items-center justify-between text-xs sm:text-sm px-1">
+            <!-- Count Lights -->
+            <div class="flex items-center space-x-3 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-800">
+                <!-- Ball -->
+                <div class="flex items-center space-x-1">
+                    <span class="font-black text-emerald-400">B</span>
+                    <div class="flex space-x-1" id="ballIndicators">
+                        <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700"></div>
+                        <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700"></div>
+                        <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700"></div>
+                    </div>
+                </div>
+                <!-- Strike -->
+                <div class="flex items-center space-x-1">
+                    <span class="font-black text-amber-400">S</span>
+                    <div class="flex space-x-1" id="strikeIndicators">
+                        <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700"></div>
+                        <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700"></div>
+                    </div>
+                </div>
+                <!-- Out -->
+                <div class="flex items-center space-x-1">
+                    <span class="font-black text-rose-500">O</span>
+                    <div class="flex space-x-1" id="outIndicators">
+                        <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700"></div>
+                        <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Base Diamond Mini Graphic -->
+            <div class="flex items-center space-x-3 bg-slate-950/60 px-3 py-1 rounded-lg border border-slate-800">
+                <span class="text-slate-400 text-[11px] sm:text-xs">주자</span>
+                <div class="relative w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center">
+                    <div id="base2" class="absolute -top-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 rotate-45 bg-slate-700 border border-slate-500"></div>
+                    <div id="base3" class="absolute left-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rotate-45 bg-slate-700 border border-slate-500"></div>
+                    <div id="base1" class="absolute right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rotate-45 bg-slate-700 border border-slate-500"></div>
+                </div>
+            </div>
+
+            <!-- Current Pitcher & Batter Info -->
+            <div class="hidden md:flex items-center space-x-4 text-slate-300 text-xs">
+                <div>투수: <span id="currentPitcherName" class="font-bold text-sky-300">김광현</span> (<span id="pitcherPitches">0</span>구)</div>
+                <div>타자: <span id="currentBatterName" class="font-bold text-amber-300">김도영</span> (<span id="batterStats">.324 28홈런</span>)</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- GAME CANVAS AREA -->
+    <main class="relative w-full flex-1 overflow-hidden bg-slate-950 flex items-center justify-center">
+        <canvas id="gameCanvas" class="w-full h-full"></canvas>
+
+        <!-- On-Screen In-Game Dialogue / Umpire Call Popup -->
+        <div id="umpireCallBox" class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-all duration-200 transform scale-0 opacity-0 z-30">
+            <div id="umpireCallText" class="px-6 py-2.5 rounded-2xl font-black text-2xl sm:text-4xl text-white shadow-2xl tracking-wider text-center border-2 border-white/40 drop-shadow-lg">
+                STRIKE!
+            </div>
+        </div>
+
+        <!-- Match Result Overlay Banner -->
+        <div id="resultBanner" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 text-center">
+            <h2 id="resultTitle" class="text-3xl sm:text-5xl font-black text-amber-400 mb-2">경기 종료</h2>
+            <p id="resultSubtitle" class="text-lg text-slate-300 mb-6">최종 스코어</p>
+            <div id="finalScoreBox" class="text-3xl sm:text-5xl font-black text-white bg-slate-900 border-2 border-slate-700 px-8 py-4 rounded-2xl mb-8 shadow-2xl">
+                KIA 5 : 3 LG
+            </div>
+            <button onclick="restartGame()" class="btn-kbo bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-lg px-8 py-3.5 rounded-2xl shadow-xl">
+                <i class="fa-solid fa-rotate-right mr-2"></i>새 경기 시작
+            </button>
+        </div>
+    </main>
+
+    <!-- BOTTOM CONTROL BAR -->
+    <footer class="w-full p-3 sm:p-4 bg-slate-900/90 border-t border-slate-700/80 z-20 flex items-center justify-between max-w-6xl mx-auto rounded-t-2xl">
+        <!-- Batter/Pitcher Info Mobile -->
+        <div class="flex flex-col text-xs sm:text-sm">
+            <div class="text-slate-400">타순: <span id="batterOrderText" class="font-bold text-white">1번 타자</span></div>
+            <div class="text-amber-300 font-bold text-sm sm:text-base" id="batterInfoMini">김도영 (우타)</div>
+            <div class="text-slate-400 text-[11px] sm:text-xs">구종 팁: <span id="pitchTypeTip" class="text-sky-300">직구/슬라이더/커브</span></div>
+        </div>
+
+        <!-- Action Controls -->
+        <div class="flex items-center space-x-3">
+            <!-- Pitch Select (When Pitching/AI Auto) -->
+            <div id="pitchControls" class="hidden flex items-center space-x-2">
+                <button onclick="selectPitch('FASTBALL')" class="btn-kbo bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold px-3 py-2 rounded-xl">직구</button>
+                <button onclick="selectPitch('SLIDER')" class="btn-kbo bg-purple-600 hover:bg-purple-500 text-white text-xs sm:text-sm font-bold px-3 py-2 rounded-xl">슬라이더</button>
+                <button onclick="selectPitch('CURVE')" class="btn-kbo bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-bold px-3 py-2 rounded-xl">커브</button>
+            </div>
+
+            <!-- Swing Button (Main Interactive Target) -->
+            <button id="btnSwing" onclick="triggerSwing()" class="btn-kbo bg-gradient-to-r from-red-600 via-rose-500 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white font-black text-base sm:text-xl px-8 sm:px-12 py-3.5 sm:py-4 rounded-2xl shadow-xl flex items-center space-x-2 border-2 border-red-300/40">
+                <i class="fa-solid fa-baseball-bat-ball text-amber-200 text-xl sm:text-2xl animate-pulse"></i>
+                <span>타격 (SWING)</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- PLAYER SUBSTITUTION MODAL -->
+    <div id="subModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-2xl rounded-3xl p-5 sm:p-6 flex flex-col max-h-[90vh] border border-slate-700 shadow-2xl">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-700/80 pb-3 mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-users-gear text-2xl text-amber-400"></i>
+                    <h3 class="text-xl font-black text-white">선수 교체 & 라인업 관리</h3>
+                </div>
+                <button onclick="closeSubModal()" class="text-slate-400 hover:text-white p-2 rounded-full">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Tabs: Batter vs Pitcher -->
+            <div class="flex space-x-2 mb-4 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800">
+                <button id="tabBatterBtn" onclick="switchSubTab('BATTER')" class="flex-1 py-2 font-bold text-sm rounded-lg bg-indigo-600 text-white shadow">
+                    타자 (대타 교체)
+                </button>
+                <button id="tabPitcherBtn" onclick="switchSubTab('PITCHER')" class="flex-1 py-2 font-bold text-sm rounded-lg text-slate-400 hover:text-white">
+                    투수 (계투 교체)
+                </button>
+            </div>
+
+            <!-- List of Available Roster -->
+            <div id="rosterList" class="flex-1 overflow-y-auto space-y-2 pr-1 my-2">
+                <!-- Injected via JS -->
+            </div>
+
+            <div class="pt-3 border-t border-slate-700/80 flex justify-end">
+                <button onclick="closeSubModal()" class="btn-kbo bg-slate-700 hover:bg-slate-600 text-white font-bold px-5 py-2.5 rounded-xl text-sm">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // WEB AUDIO SYNTHESIZER (KBO SOUND ENGINE)
+        // =================================================================
+        let audioCtx = null;
+        let audioEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            if (audioEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-emerald-400';
+                initAudio();
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+            }
+        }
+
+        // Bat Crack Sound (Hit)
+        function playBatCrackSFX(power = 1.0) {
+            if (!audioEnabled) return;
+            initAudio();
+            try {
+                const now = audioCtx.currentTime;
+                // High pitch pop + noise burst
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
+
+                gain.gain.setValueAtTime(0.6 * power, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } catch (e) {}
+        }
+
+        // Catcher Glove Catch SFX (Strike / Catch)
+        function playCatchSFX() {
+            if (!audioEnabled) return;
+            initAudio();
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(60, now + 0.05);
+
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } catch (e) {}
+        }
+
+        // Crowd Cheer SFX (Home Run / Big Hit)
+        function playCheerSFX() {
+            if (!audioEnabled) return;
+            initAudio();
+            try {
+                const now = audioCtx.currentTime;
+                const bufferSize = audioCtx.sampleRate * 1.5;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.5));
+                }
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 1000;
+
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                noise.start(now);
+            } catch (e) {}
+        }
+
+        // =================================================================
+        // KBO TEAMS & ROSTERS DATA
+        // =================================================================
+        const KBO_TEAMS = [
+            {
+                id: 'KIA', name: 'KIA 타이거즈', color: '#e11d48',
+                batters: [
+                    { name: '박찬호', avg: '.301', hr: 5, power: 65, contact: 85, speed: 90 },
+                    { name: '김도영', avg: '.347', hr: 38, power: 95, contact: 92, speed: 95 },
+                    { name: '소크라테스', avg: '.310', hr: 26, power: 88, contact: 85, speed: 82 },
+                    { name: '최형우', avg: '.280', hr: 22, power: 90, contact: 82, speed: 60 },
+                    { name: '나성범', avg: '.295', hr: 21, power: 89, contact: 84, speed: 75 },
+                    { name: '김선빈', avg: '.315', hr: 6, power: 60, contact: 90, speed: 65 },
+                    { name: '이우성', avg: '.288', hr: 12, power: 78, contact: 80, speed: 70 },
+                    { name: '김태군', avg: '.260', hr: 7, power: 68, contact: 75, speed: 50 },
+                    { name: '최원준', avg: '.275', hr: 9, power: 72, contact: 78, speed: 88 }
+                ],
+                benchBatters: [
+                    { name: '변우혁', avg: '.265', hr: 8, power: 82, contact: 70, speed: 55 },
+                    { name: '고종욱', avg: '.310', hr: 3, power: 65, contact: 88, speed: 75 }
+                ],
+                pitchers: [
+                    { name: '양현종', velocity: 145, control: 88, stamina: 90, type: '선발' },
+                    { name: '네일', velocity: 153, control: 92, stamina: 85, type: '선발' },
+                    { name: '전상현', velocity: 148, control: 82, stamina: 60, type: '계투' },
+                    { name: '정해영', velocity: 152, control: 85, stamina: 55, type: '마무리' }
+                ]
+            },
+            {
+                id: 'LG', name: 'LG 트윈스', color: '#1e40af',
+                batters: [
+                    { name: '홍창기', avg: '.330', hr: 5, power: 62, contact: 94, speed: 85 },
+                    { name: '신민재', avg: '.298', hr: 2, power: 55, contact: 84, speed: 92 },
+                    { name: '오스틴', avg: '.318', hr: 32, power: 94, contact: 88, speed: 78 },
+                    { name: '문보경', avg: '.289', hr: 20, power: 85, contact: 82, speed: 68 },
+                    { name: '오지환', avg: '.272', hr: 14, power: 78, contact: 76, speed: 84 },
+                    { name: '박동원', avg: '.270', hr: 18, power: 86, contact: 74, speed: 55 },
+                    { name: '박해민', avg: '.268', hr: 6, power: 62, contact: 75, speed: 96 },
+                    { name: '구본혁', avg: '.280', hr: 5, power: 65, contact: 80, speed: 75 },
+                    { name: '문성주', avg: '.305', hr: 4, power: 64, contact: 88, speed: 80 }
+                ],
+                benchBatters: [
+                    { name: '김현수', avg: '.290', hr: 10, power: 80, contact: 85, speed: 50 },
+                    { name: '허도환', avg: '.230', hr: 2, power: 60, contact: 65, speed: 40 }
+                ],
+                pitchers: [
+                    { name: '임찬규', velocity: 143, control: 86, stamina: 88, type: '선발' },
+                    { name: '엔스', velocity: 151, control: 84, stamina: 82, type: '선발' },
+                    { name: '김진성', velocity: 145, control: 85, stamina: 65, type: '계투' },
+                    { name: '유영찬', velocity: 150, control: 86, stamina: 55, type: '마무리' }
+                ]
+            }
+        ];
+
+        // =================================================================
+        // GAME STATE ENGINE
+        // =================================================================
+        let gameState = {
+            awayTeam: KBO_TEAMS[0],
+            homeTeam: KBO_TEAMS[1],
+            inning: 1,
+            isTopInning: true, // true = Away Team Batting, false = Home Team Batting
+            balls: 0,
+            strikes: 0,
+            outs: 0,
+            awayScore: 0,
+            homeScore: 0,
+            runners: [null, null, null], // 1B, 2B, 3B
+            
+            // Batting & Pitching Indices
+            awayBatterIndex: 0,
+            homeBatterIndex: 0,
+            awayPitcherIndex: 0,
+            homePitcherIndex: 0,
+
+            // Ball Flight & Pitch State
+            pitchState: 'READY', // 'READY', 'PITCHING', 'IN_FLIGHT', 'HIT_IN_PLAY', 'RESULT'
+            ballPos: { x: 0, y: 0, z: 0 },
+            ballVel: { x: 0, y: 0, z: 0 },
+            pitchType: 'FASTBALL', // 'FASTBALL', 'SLIDER', 'CURVE'
+            targetZone: { x: 0, y: 0 }, // Target location in strikezone
+            
+            // Swing State
+            isSwinging: false,
+            swingProgress: 0, // 0 to 1
+            swingTiming: 0, // Difference from sweet spot
+            
+            // Camera & Play Field Mode
+            viewMode: 'BATTER_BOX', // 'BATTER_BOX', 'FIELD_OVERVIEW'
+            fieldBallPos: { x: 0, y: 0, height: 0 },
+            hitResultText: '',
+            
+            pitchesCount: 0
+        };
+
+        // Current active batter & pitcher helpers
+        function getCurrentBatter() {
+            const team = gameState.isTopInning ? gameState.awayTeam : gameState.homeTeam;
+            const idx = gameState.isTopInning ? gameState.awayBatterIndex : gameState.homeBatterIndex;
+            return team.batters[idx];
+        }
+
+        function getCurrentPitcher() {
+            const team = gameState.isTopInning ? gameState.homeTeam : gameState.awayTeam;
+            const idx = gameState.isTopInning ? gameState.homePitcherIndex : gameState.awayPitcherIndex;
+            return team.pitchers[idx];
+        }
+
+        // =================================================================
+        // CANVAS & GRAPHICS ENGINE
+        // =================================================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // Main Animation Loop
+        let lastTime = performance.now();
+
+        function gameLoop(now) {
+            const dt = (now - lastTime) / 1000;
+            lastTime = now;
+
+            updatePhysics(dt);
+            renderScene();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Physics & Animation Updates
+        function updatePhysics(dt) {
+            if (gameState.pitchState === 'PITCHING') {
+                // Ball traveling from Pitcher Mound to Home Plate
+                gameState.ballPos.z += dt * (1.2 + getCurrentPitcher().velocity / 100);
+
+                // Curve/Slider Trajectory bending
+                if (gameState.pitchType === 'SLIDER') {
+                    gameState.ballPos.x += dt * 0.18;
+                } else if (gameState.pitchType === 'CURVE') {
+                    gameState.ballPos.y += dt * 0.22;
+                }
+
+                // Check if reached home plate
+                if (gameState.ballPos.z >= 1.0) {
+                    if (!gameState.isSwinging) {
+                        // Check Strike or Ball
+                        evaluatePitchResult();
+                    }
+                }
+            } else if (gameState.pitchState === 'HIT_IN_PLAY') {
+                // Ball flying in the Field
+                gameState.fieldBallPos.x += gameState.ballVel.x * dt * 60;
+                gameState.fieldBallPos.y += gameState.ballVel.y * dt * 60;
+                gameState.fieldBallPos.height += gameState.ballVel.z * dt * 30;
+                gameState.ballVel.z -= dt * 25; // Gravity
+
+                if (gameState.fieldBallPos.height < 0) {
+                    gameState.fieldBallPos.height = 0;
+                    // Bounced or hit ground
+                }
+            }
+
+            // Swing Animation
+            if (gameState.isSwinging) {
+                gameState.swingProgress += dt * 8;
+                if (gameState.swingProgress >= 1.0) {
+                    gameState.isSwinging = false;
+                    gameState.swingProgress = 0;
+                }
+            }
+        }
+
+        // =================================================================
+        // RENDERING PIPELINE
+        // =================================================================
+        function renderScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState.viewMode === 'BATTER_BOX') {
+                renderBatterBoxView();
+            } else {
+                renderFieldOverview();
+            }
+        }
+
+        // Render Pitcher/Catcher Batter Box Perspective
+        function renderBatterBoxView() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // 1. Stadium Grass & Sky Gradient
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.45);
+            skyGrad.addColorStop(0, '#0f172a');
+            skyGrad.addColorStop(1, '#1e293b');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, h * 0.45);
+
+            // Stadium Lights
+            ctx.fillStyle = '#fef08a';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(w * 0.2, h * 0.1, 12, 0, Math.PI * 2);
+            ctx.arc(w * 0.8, h * 0.1, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Dirt Infield & Turf
+            const fieldGrad = ctx.createLinearGradient(0, h * 0.45, 0, h);
+            fieldGrad.addColorStop(0, '#15803d'); // Outfield Grass
+            fieldGrad.addColorStop(0.3, '#b45309'); // Dirt Mound
+            fieldGrad.addColorStop(1, '#92400e'); // Home Plate Dirt
+            ctx.fillStyle = fieldGrad;
+            ctx.fillRect(0, h * 0.45, w, h * 0.55);
+
+            // Pitcher Mound & Pitcher Model
+            const moundX = w * 0.5;
+            const moundY = h * 0.48;
+            ctx.fillStyle = '#78350f';
+            ctx.beginPath();
+            ctx.ellipse(moundX, moundY, 35, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pitcher Body Figure
+            ctx.fillStyle = gameState.isTopInning ? gameState.homeTeam.color : gameState.awayTeam.color;
+            ctx.beginPath();
+            ctx.arc(moundX, moundY - 22, 9, 0, Math.PI * 2); // Head
+            ctx.fillRect(moundX - 6, moundY - 13, 12, 16); // Torso
+            ctx.fill();
+
+            // 2. Strike Zone Frame
+            const zoneW = Math.min(w * 0.28, 160);
+            const zoneH = zoneW * 1.3;
+            const zoneX = w * 0.5 - zoneW * 0.5;
+            const zoneY = h * 0.65 - zoneH * 0.5;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([6, 4]);
+            ctx.strokeRect(zoneX, zoneY, zoneW, zoneH);
+            ctx.setLineDash([]);
+
+            // Inner Strike Grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(zoneX + zoneW / 3, zoneY); ctx.lineTo(zoneX + zoneW / 3, zoneY + zoneH);
+            ctx.moveTo(zoneX + (zoneW * 2) / 3, zoneY); ctx.lineTo(zoneX + (zoneW * 2) / 3, zoneY + zoneH);
+            ctx.moveTo(zoneX, zoneY + zoneH / 3); ctx.lineTo(zoneX + zoneW, zoneY + zoneH / 3);
+            ctx.moveTo(zoneX, zoneY + (zoneH * 2) / 3); ctx.lineTo(zoneX + zoneW, zoneY + (zoneH * 2) / 3);
+            ctx.stroke();
+
+            // Home Plate
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.5 - 20, h * 0.88);
+            ctx.lineTo(w * 0.5 + 20, h * 0.88);
+            ctx.lineTo(w * 0.5 + 20, h * 0.90);
+            ctx.lineTo(w * 0.5, h * 0.93);
+            ctx.lineTo(w * 0.5 - 20, h * 0.90);
+            ctx.closePath();
+            ctx.fill();
+
+            // 3. Batter Figure & Bat
+            const batterX = w * 0.5 + zoneW * 0.8;
+            const batterY = h * 0.82;
+            const batterColor = gameState.isTopInning ? gameState.awayTeam.color : gameState.homeTeam.color;
+
+            // Batter Torso & Head
+            ctx.fillStyle = batterColor;
+            ctx.beginPath();
+            ctx.arc(batterX, batterY - 40, 14, 0, Math.PI * 2); // Head
+            ctx.fillRect(batterX - 10, batterY - 26, 20, 32); // Body
+            ctx.fill();
+
+            // Bat Animation
+            ctx.save();
+            ctx.translate(batterX - 5, batterY - 20);
+            let batAngle = -Math.PI * 0.35;
+            if (gameState.isSwinging) {
+                batAngle += Math.sin(gameState.swingProgress * Math.PI) * Math.PI * 0.8;
+            }
+            ctx.rotate(batAngle);
+            ctx.fillStyle = '#d97706'; // Wooden bat
+            ctx.fillRect(-3, -45, 6, 45);
+            ctx.restore();
+
+            // 4. Ball Pitching Trajectory & Projection
+            if (gameState.pitchState === 'PITCHING' || gameState.pitchState === 'READY') {
+                const z = gameState.ballPos.z; // 0 (Mound) to 1 (Home Plate)
+                const ballX = moundX + (gameState.targetZone.x - moundX) * z + Math.sin(z * Math.PI) * (gameState.pitchType === 'SLIDER' ? 30 : 0);
+                const ballY = moundY + (zoneY + zoneH * 0.5 - moundY) * z + (gameState.pitchType === 'CURVE' ? Math.sin(z * Math.PI) * 40 : 0);
+                const ballRadius = 4 + z * 16;
+
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(ballX, ballY + 20 * (1 - z), ballRadius * 0.8, ballRadius * 0.3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ball
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowBlur = z > 0.7 ? 10 : 0;
+                ctx.shadowColor = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Red Seams on Ball
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(ballX, ballY, ballRadius * 0.6, 0, Math.PI * 0.8);
+                ctx.stroke();
+            }
+        }
+
+        // Render Full Outfield & Baserunner Tracker
+        function renderFieldOverview() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Grass Outfield
+            ctx.fillStyle = '#15803d';
+            ctx.fillRect(0, 0, w, h);
+
+            // Outfield Fence Arc
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.arc(w * 0.5, h * 0.85, Math.min(w, h) * 0.75, Math.PI * 1.15, Math.PI * 1.85);
+            ctx.stroke();
+
+            // Dirt Diamond
+            const homeX = w * 0.5;
+            const homeY = h * 0.8;
+            const baseDist = Math.min(w, h) * 0.25;
+
+            const b1X = homeX + baseDist;
+            const b1Y = homeY - baseDist * 0.7;
+            const b2X = homeX;
+            const b2Y = homeY - baseDist * 1.4;
+            const b3X = homeX - baseDist;
+            const b3Y = homeY - baseDist * 0.7;
+
+            // Infield Dirt Diamond
+            ctx.fillStyle = '#92400e';
+            ctx.beginPath();
+            ctx.moveTo(homeX, homeY);
+            ctx.lineTo(b1X, b1Y);
+            ctx.lineTo(b2X, b2Y);
+            ctx.lineTo(b3X, b3Y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Foul Lines
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(homeX, homeY); ctx.lineTo(homeX + baseDist * 2.2, homeY - baseDist * 1.5);
+            ctx.moveTo(homeX, homeY); ctx.lineTo(homeX - baseDist * 2.2, homeY - baseDist * 1.5);
+            ctx.stroke();
+
+            // Bases (White Squares)
+            ctx.fillStyle = '#ffffff';
+            [ {x: b1X, y: b1Y}, {x: b2X, y: b2Y}, {x: b3X, y: b3Y}, {x: homeX, y: homeY} ].forEach(b => {
+                ctx.fillRect(b.x - 6, b.y - 6, 12, 12);
+            });
+
+            // Baserunners (Orange Circles)
+            gameState.runners.forEach((runner, i) => {
+                if (runner) {
+                    const pos = i === 0 ? {x: b1X, y: b1Y} : i === 1 ? {x: b2X, y: b2Y} : {x: b3X, y: b3Y};
+                    ctx.fillStyle = '#f97316';
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 9, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            });
+
+            // Ball Flight Arc & Shadow
+            const bx = homeX + gameState.fieldBallPos.x;
+            const by = homeY - gameState.fieldBallPos.y;
+            const bh = gameState.fieldBallPos.height;
+
+            // Ball Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.beginPath();
+            ctx.arc(bx, by, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Flying Ball
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#fef08a';
+            ctx.beginPath();
+            ctx.arc(bx, by - bh, 8 + bh * 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Hit Result Banner Text
+            if (gameState.hitResultText) {
+                ctx.fillStyle = '#fef08a';
+                ctx.font = '900 32px "Gothic A1", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.shadowColor = '#000000';
+                ctx.shadowBlur = 10;
+                ctx.fillText(gameState.hitResultText, w * 0.5, h * 0.3);
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // =================================================================
+        // GAMEPLAY MECHANICS & PITCH / SWING LOGIC
+        // =================================================================
+        function startPitch() {
+            if (gameState.pitchState !== 'READY') return;
+
+            gameState.pitchState = 'PITCHING';
+            gameState.ballPos = { x: 0, y: 0, z: 0 };
+            
+            // Random Target Zone in Strikezone
+            const canvasW = canvas.width;
+            const zoneW = Math.min(canvasW * 0.28, 160);
+            const zoneX = canvasW * 0.5 - zoneW * 0.5;
+
+            // Pitch Type AI Selection
+            const types = ['FASTBALL', 'SLIDER', 'CURVE'];
+            gameState.pitchType = types[Math.floor(Math.random() * types.length)];
+            document.getElementById('pitchTypeTip').innerText = gameState.pitchType;
+
+            gameState.targetZone = {
+                x: zoneX + Math.random() * zoneW,
+                y: canvas.height * 0.65 + (Math.random() - 0.5) * 80
+            };
+
+            gameState.pitchesCount++;
+            document.getElementById('pitcherPitches').innerText = gameState.pitchesCount;
+        }
+
+        function triggerSwing() {
+            if (gameState.isSwinging) return;
+            initAudio();
+
+            gameState.isSwinging = true;
+            gameState.swingProgress = 0;
+
+            if (gameState.pitchState === 'PITCHING') {
+                const z = gameState.ballPos.z;
+
+                // Perfect Timing Window: z between 0.82 and 0.95
+                if (z >= 0.78 && z <= 0.98) {
+                    // Contact Made!
+                    const timingDiff = Math.abs(z - 0.88); // 0 = Perfect Center
+                    calculateHitOutcome(timingDiff);
+                } else if (z < 0.78) {
+                    // Swing Too Early
+                    showUmpireCall('SWING & MISS!', 'bg-rose-600');
+                    addStrike();
+                } else {
+                    // Swing Too Late
+                    showUmpireCall('TOO LATE!', 'bg-rose-600');
+                    addStrike();
+                }
+            } else {
+                // Swinging at Air / Ready state
+                playCatchSFX();
+            }
+        }
+
+        // Evaluate hit contact power & direction
+        function calculateHitOutcome(timingDiff) {
+            const batter = getCurrentBatter();
+            const power = batter.power + (1 - timingDiff * 10) * 30;
+
+            if (timingDiff < 0.03 && batter.power > 75 && Math.random() < 0.45) {
+                // HOME RUN!
+                processHit('HOMERUN', '🎉 대형 장외 홈런! (HOME RUN)', 180, 220);
+                playCheerSFX();
+            } else if (timingDiff < 0.06) {
+                // 2B or 3B Hit
+                const isTriple = Math.random() < 0.2;
+                processHit(isTriple ? 'TRIPLE' : 'DOUBLE', isTriple ? '3루타!' : '2루타!', 120, 150);
+            } else if (timingDiff < 0.10) {
+                // Single Hit
+                processHit('SINGLE', '1루타 안타!', 80, 100);
+            } else if (timingDiff < 0.14) {
+                // Foul Ball
+                showUmpireCall('FOUL!', 'bg-amber-600');
+                if (gameState.strikes < 2) gameState.strikes++;
+                updateBSOUI();
+                resetPitch();
+            } else {
+                // Ground Out / Fly Out
+                processOut('파울 팁 / 땅볼 아웃!');
+            }
+        }
+
+        function processHit(type, text, distMin, distMax) {
+            gameState.pitchState = 'HIT_IN_PLAY';
+            gameState.viewMode = 'FIELD_OVERVIEW';
+            gameState.hitResultText = text;
+
+            playBatCrackSFX(1.2);
+
+            // Ball Flight Vector
+            const angle = (Math.random() - 0.5) * 0.8;
+            const dist = distMin + Math.random() * (distMax - distMin);
+            gameState.ballVel = {
+                x: Math.sin(angle) * dist,
+                y: Math.cos(angle) * dist,
+                z: 20 + Math.random() * 15
+            };
+
+            showUmpireCall(text, 'bg-emerald-600');
+
+            setTimeout(() => {
+                advanceRunners(type);
+                resetPitch();
+            }, 3000);
+        }
+
+        function processOut(reason) {
+            showUmpireCall('OUT!', 'bg-rose-600');
+            gameState.outs++;
+            updateBSOUI();
+
+            if (gameState.outs >= 3) {
+                setTimeout(switchInning, 1500);
+            } else {
+                setTimeout(resetPitch, 1500);
+            }
+        }
+
+        function evaluatePitchResult() {
+            // Check if ball passed in Strike Zone
+            const zoneW = Math.min(canvas.width * 0.28, 160);
+            const zoneX = canvas.width * 0.5 - zoneW * 0.5;
+            const zoneY = canvas.height * 0.65 - zoneW * 0.65;
+
+            const isStrike = (
+                gameState.targetZone.x >= zoneX &&
+                gameState.targetZone.x <= zoneX + zoneW &&
+                gameState.targetZone.y >= zoneY &&
+                gameState.targetZone.y <= zoneY + zoneW * 1.3
+            );
+
+            playCatchSFX();
+
+            if (isStrike) {
+                showUmpireCall('STRIKE!', 'bg-amber-600');
+                addStrike();
+            } else {
+                showUmpireCall('BALL!', 'bg-emerald-600');
+                gameState.balls++;
+                if (gameState.balls >= 4) {
+                    showUmpireCall('WALK (볼넷)', 'bg-sky-600');
+                    advanceRunners('WALK');
+                } else {
+                    updateBSOUI();
+                    setTimeout(resetPitch, 1200);
+                }
+            }
+        }
+
+        function addStrike() {
+            gameState.strikes++;
+            updateBSOUI();
+            if (gameState.strikes >= 3) {
+                showUmpireCall('STRIKE OUT!', 'bg-rose-700');
+                gameState.outs++;
+                if (gameState.outs >= 3) {
+                    setTimeout(switchInning, 1500);
+                } else {
+                    setTimeout(resetPitch, 1500);
+                }
+            } else {
+                setTimeout(resetPitch, 1200);
+            }
+        }
+
+        // Runner Advancement & Score Updates
+        function advanceRunners(hitType) {
+            let runsScored = 0;
+
+            if (hitType === 'HOMERUN') {
+                runsScored = 1 + gameState.runners.filter(r => r !== null).length;
+                gameState.runners = [null, null, null];
+            } else if (hitType === 'SINGLE' || hitType === 'WALK') {
+                if (gameState.runners[2]) runsScored++;
+                gameState.runners = [true, gameState.runners[0], gameState.runners[1]];
+            } else if (hitType === 'DOUBLE') {
+                if (gameState.runners[2]) runsScored++;
+                if (gameState.runners[1]) runsScored++;
+                gameState.runners = [null, true, gameState.runners[0]];
+            } else if (hitType === 'TRIPLE') {
+                runsScored = gameState.runners.filter(r => r !== null).length;
+                gameState.runners = [null, null, true];
+            }
+
+            if (gameState.isTopInning) {
+                gameState.awayScore += runsScored;
+            } else {
+                gameState.homeScore += runsScored;
+            }
+
+            // Next Batter in Order
+            if (gameState.isTopInning) {
+                gameState.awayBatterIndex = (gameState.awayBatterIndex + 1) % 9;
+            } else {
+                gameState.homeBatterIndex = (gameState.homeBatterIndex + 1) % 9;
+            }
+
+            updateScoreboardUI();
+            updateBSOUI();
+        }
+
+        function resetPitch() {
+            gameState.pitchState = 'READY';
+            gameState.viewMode = 'BATTER_BOX';
+            gameState.fieldBallPos = { x: 0, y: 0, height: 0 };
+            gameState.hitResultText = '';
+            
+            updateBatterInfoUI();
+
+            // Auto Trigger Pitch after short delay
+            setTimeout(startPitch, 1000);
+        }
+
+        function switchInning() {
+            gameState.balls = 0;
+            gameState.strikes = 0;
+            gameState.outs = 0;
+            gameState.runners = [null, null, null];
+
+            if (!gameState.isTopInning) {
+                gameState.inning++;
+            }
+            gameState.isTopInning = !gameState.isTopInning;
+
+            if (gameState.inning > 9) {
+                endGame();
+                return;
+            }
+
+            updateScoreboardUI();
+            updateBSOUI();
+            showUmpireCall(`${gameState.inning}회${gameState.isTopInning ? '초' : '후'} 공수교대`, 'bg-indigo-600');
+
+            setTimeout(resetPitch, 2000);
+        }
+
+        function endGame() {
+            document.getElementById('resultBanner').classList.remove('hidden');
+            const winner = gameState.awayScore > gameState.homeScore ? gameState.awayTeam.name : gameState.homeTeam.name;
+            document.getElementById('resultTitle').innerText = `${winner} 승리!`;
+            document.getElementById('finalScoreBox').innerText = `${gameState.awayTeam.id} ${gameState.awayScore} : ${gameState.homeScore} ${gameState.homeTeam.id}`;
+        }
+
+        function restartGame() {
+            gameState.inning = 1;
+            gameState.isTopInning = true;
+            gameState.awayScore = 0;
+            gameState.homeScore = 0;
+            gameState.balls = 0;
+            gameState.strikes = 0;
+            gameState.outs = 0;
+            gameState.runners = [null, null, null];
+            document.getElementById('resultBanner').classList.add('hidden');
+            updateScoreboardUI();
+            updateBSOUI();
+            resetPitch();
+        }
+
+        // =================================================================
+        // UI UPDATERS & MODALS
+        // =================================================================
+        function showUmpireCall(text, bgColorClass) {
+            const box = document.getElementById('umpireCallBox');
+            const txt = document.getElementById('umpireCallText');
+
+            txt.innerText = text;
+            txt.className = `px-6 py-2.5 rounded-2xl font-black text-2xl sm:text-4xl text-white shadow-2xl tracking-wider text-center border-2 border-white/40 drop-shadow-lg ${bgColorClass}`;
+
+            box.classList.remove('scale-0', 'opacity-0');
+            box.classList.add('scale-100', 'opacity-100');
+
+            clearTimeout(window.callTimer);
+            window.callTimer = setTimeout(() => {
+                box.classList.remove('scale-100', 'opacity-100');
+                box.classList.add('scale-0', 'opacity-0');
+            }, 1200);
+        }
+
+        function updateBSOUI() {
+            // Balls
+            const bLights = document.getElementById('ballIndicators').children;
+            for (let i = 0; i < 3; i++) {
+                bLights[i].className = i < gameState.balls ? 'w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-400 shadow' : 'w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700';
+            }
+            // Strikes
+            const sLights = document.getElementById('strikeIndicators').children;
+            for (let i = 0; i < 2; i++) {
+                sLights[i].className = i < gameState.strikes ? 'w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-400 shadow' : 'w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700';
+            }
+            // Outs
+            const oLights = document.getElementById('outIndicators').children;
+            for (let i = 0; i < 2; i++) {
+                oLights[i].className = i < gameState.outs ? 'w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-rose-500 shadow' : 'w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-700';
+            }
+
+            // Runner Bases
+            document.getElementById('base1').className = gameState.runners[0] ? 'absolute right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rotate-45 bg-amber-400 border border-amber-200' : 'absolute right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rotate-45 bg-slate-700 border border-slate-500';
+            document.getElementById('base2').className = gameState.runners[1] ? 'absolute -top-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 rotate-45 bg-amber-400 border border-amber-200' : 'absolute -top-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 rotate-45 bg-slate-700 border border-slate-500';
+            document.getElementById('base3').className = gameState.runners[2] ? 'absolute left-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rotate-45 bg-amber-400 border border-amber-200' : 'absolute left-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rotate-45 bg-slate-700 border border-slate-500';
+        }
+
+        function updateScoreboardUI() {
+            document.getElementById('inningDisplay').innerText = `${gameState.inning}회${gameState.isTopInning ? '초' : '말'}`;
+            document.getElementById('inningTopBottom').innerText = gameState.isTopInning ? '공격' : '수비';
+            document.getElementById('awayScore').innerText = gameState.awayScore;
+            document.getElementById('homeScore').innerText = gameState.homeScore;
+
+            const pitcher = getCurrentPitcher();
+            const batter = getCurrentBatter();
+            document.getElementById('currentPitcherName').innerText = pitcher.name;
+            document.getElementById('currentBatterName').innerText = batter.name;
+            document.getElementById('batterStats').innerText = `${batter.avg} ${batter.hr}홈런`;
+        }
+
+        function updateBatterInfoUI() {
+            const idx = gameState.isTopInning ? gameState.awayBatterIndex : gameState.homeBatterIndex;
+            const batter = getCurrentBatter();
+            document.getElementById('batterOrderText').innerText = `${idx + 1}번 타자`;
+            document.getElementById('batterInfoMini').innerText = `${batter.name} (타율 ${batter.avg})`;
+        }
+
+        // Player Substitution Modal Handling
+        let currentSubTab = 'BATTER';
+
+        function openSubModal() {
+            document.getElementById('subModal').classList.remove('hidden');
+            renderRosterList();
+        }
+
+        function closeSubModal() {
+            document.getElementById('subModal').classList.add('hidden');
+        }
+
+        function switchSubTab(tab) {
+            currentSubTab = tab;
+            document.getElementById('tabBatterBtn').className = tab === 'BATTER' ? 'flex-1 py-2 font-bold text-sm rounded-lg bg-indigo-600 text-white shadow' : 'flex-1 py-2 font-bold text-sm rounded-lg text-slate-400 hover:text-white';
+            document.getElementById('tabPitcherBtn').className = tab === 'PITCHER' ? 'flex-1 py-2 font-bold text-sm rounded-lg bg-indigo-600 text-white shadow' : 'flex-1 py-2 font-bold text-sm rounded-lg text-slate-400 hover:text-white';
+            renderRosterList();
+        }
+
+        function renderRosterList() {
+            const listContainer = document.getElementById('rosterList');
+            listContainer.innerHTML = '';
+
+            const team = gameState.isTopInning ? gameState.awayTeam : gameState.homeTeam;
+
+            if (currentSubTab === 'BATTER') {
+                team.benchBatters.forEach((b, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-3 bg-slate-800/80 hover:bg-slate-700 rounded-xl border border-slate-700';
+                    item.innerHTML = `
+                        <div>
+                            <div class="font-bold text-white">${b.name} <span class="text-xs text-amber-400">대타</span></div>
+                            <div class="text-xs text-slate-400">타율: ${b.avg} | 파워: ${b.power} | 컨택: ${b.contact}</div>
+                        </div>
+                        <button onclick="substituteBatter(${idx})" class="btn-kbo bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3 py-1.5 rounded-lg">
+                            교체 출전
+                        </button>
+                    `;
+                    listContainer.appendChild(item);
+                });
+            } else {
+                team.pitchers.forEach((p, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-3 bg-slate-800/80 hover:bg-slate-700 rounded-xl border border-slate-700';
+                    item.innerHTML = `
+                        <div>
+                            <div class="font-bold text-white">${p.name} <span class="text-xs text-sky-400">(${p.type})</span></div>
+                            <div class="text-xs text-slate-400">구속: ${p.velocity}km/h | 제구: ${p.control}</div>
+                        </div>
+                        <button onclick="substitutePitcher(${idx})" class="btn-kbo bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3 py-1.5 rounded-lg">
+                            마운드 등판
+                        </button>
+                    `;
+                    listContainer.appendChild(item);
+                });
+            }
+        }
+
+        function substituteBatter(benchIdx) {
+            const team = gameState.isTopInning ? gameState.awayTeam : gameState.homeTeam;
+            const currentIdx = gameState.isTopInning ? gameState.awayBatterIndex : gameState.homeBatterIndex;
+
+            // Swap Bench Batter with Lineup Batter
+            const temp = team.batters[currentIdx];
+            team.batters[currentIdx] = team.benchBatters[benchIdx];
+            team.benchBatters[benchIdx] = temp;
+
+            closeSubModal();
+            updateScoreboardUI();
+            updateBatterInfoUI();
+            showUmpireCall(`대타 ${team.batters[currentIdx].name} 기용!`, 'bg-indigo-600');
+        }
+
+        function substitutePitcher(pitcherIdx) {
+            if (gameState.isTopInning) {
+                gameState.homePitcherIndex = pitcherIdx;
+            } else {
+                gameState.awayPitcherIndex = pitcherIdx;
+            }
+
+            closeSubModal();
+            updateScoreboardUI();
+            showUmpireCall(`투수 교체: ${getCurrentPitcher().name} 등판!`, 'bg-indigo-600');
+        }
+
+        // Keyboard Controls
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                triggerSwing();
+            }
+        });
+
+        // Initialize App on Load
+        window.onload = function() {
+            resizeCanvas();
+            updateScoreboardUI();
+            updateBSOUI();
+            updateBatterInfoUI();
+
+            // Start Animation Frame Loop
+            requestAnimationFrame(gameLoop);
+
+            // Start First Pitch
+            setTimeout(startPitch, 1200);
+        };
+    </script>
+</body>
+</html>

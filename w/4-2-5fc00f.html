@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>쫀득 말랑이야 - 3D 쫀득쫀득 촉감 스퀴시</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D Soft Body Graphics -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Cute Korean Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Jua', 'Gowun Dodum', sans-serif;
+            touch-action: none; /* Prevent browser scrolling on touch */
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #fce7f3 0%, #f3e8ff 50%, #e0f2fe 100%);
+        }
+
+        /* Glassmorphism UI Panels */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2.5px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 12px 32px rgba(244, 114, 182, 0.15);
+        }
+
+        /* Chewy Cute Buttons */
+        .chewy-btn {
+            box-shadow: 0 6px 0 #f472b6, 0 10px 20px rgba(244, 114, 182, 0.25);
+            transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .chewy-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 0 #f472b6, 0 14px 24px rgba(244, 114, 182, 0.3);
+        }
+
+        .chewy-btn:active {
+            transform: translateY(4px) scale(0.97);
+            box-shadow: 0 2px 0 #f472b6, 0 4px 10px rgba(244, 114, 182, 0.2);
+        }
+
+        .purple-btn {
+            box-shadow: 0 6px 0 #c084fc, 0 10px 20px rgba(192, 132, 252, 0.25);
+        }
+        .purple-btn:hover { box-shadow: 0 8px 0 #c084fc; }
+        .purple-btn:active { box-shadow: 0 2px 0 #c084fc; }
+
+        /* Floating Bobbing UI Elements */
+        @keyframes gentleJiggle {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-4px) rotate(-1.5deg); }
+            75% { transform: translateY(3px) rotate(1.5deg); }
+        }
+
+        .jiggle-anim {
+            animation: gentleJiggle 3s infinite ease-in-out;
+        }
+
+        /* Sparkle float up animation */
+        @keyframes floatSparkle {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.8); }
+        }
+
+        .sparkle-particle {
+            position: absolute;
+            pointer-events: none;
+            animation: floatSparkle 0.8s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="relative w-full h-full select-none overflow-hidden text-slate-800">
+
+    <div id="canvas-container" class="absolute inset-0 z-0 w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+    <!-- Container for visual sparkle effects on touch -->
+    <div id="sparkle-container" class="absolute inset-0 z-10 pointer-events-none"></div>
+
+    <div class="absolute top-4 left-0 w-full px-4 z-20 flex justify-between items-center pointer-events-none">
+        
+        <!-- App Title Badge -->
+        <div class="pointer-events-auto glass-panel px-5 py-3 rounded-3xl flex items-center space-x-3 jiggle-anim border-2 border-pink-200">
+            <div class="w-12 h-12 bg-gradient-to-tr from-pink-400 to-rose-300 rounded-2xl flex items-center justify-center text-2xl shadow-inner border-2 border-white">
+                🌸
+            </div>
+            <div>
+                <div class="flex items-center space-x-1">
+                    <span class="text-xs text-pink-500 font-extrabold uppercase tracking-widest">말랑이 전문 개발자</span>
+                    <span id="squish-mode-badge" class="bg-pink-100 text-pink-600 text-[10px] px-2 py-0.5 rounded-full font-bold">모찌 쫀득 모드</span>
+                </div>
+                <h1 class="text-2xl font-black bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                    쫀득 말랑이야
+                </h1>
+            </div>
+        </div>
+
+        <!-- ASMR Sound & Squish Stats HUD -->
+        <div class="pointer-events-auto flex items-center space-x-3">
+            <div class="glass-panel px-4 py-2.5 rounded-2xl border-2 border-purple-200 flex items-center space-x-2">
+                <span class="text-xl">✨</span>
+                <div>
+                    <div class="text-[10px] text-purple-600 font-bold">쫀득 만진 횟수</div>
+                    <span id="squish-count" class="text-lg font-black text-purple-700">0 번</span>
+                </div>
+            </div>
+
+            <!-- Audio Toggle Button -->
+            <button id="sound-btn" class="pointer-events-auto glass-panel w-12 h-12 rounded-2xl flex items-center justify-center text-xl text-pink-500 border-2 border-pink-200 hover:bg-white transition active:scale-95 shadow">
+                <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-lg px-4 pointer-events-none">
+        <div class="pointer-events-auto glass-panel p-4 rounded-3xl border-2 border-white flex flex-col space-y-3 shadow-2xl">
+            
+            <!-- Current Squishy Name & Feature Badge -->
+            <div class="flex justify-between items-center px-1">
+                <div class="flex items-center space-x-2">
+                    <span id="squishy-icon" class="text-2xl animate-bounce">🐾</span>
+                    <div>
+                        <span class="text-[10px] text-gray-500 font-bold block">현재 선택된 말랑이</span>
+                        <h2 id="squishy-name" class="text-lg font-black text-pink-600">말랑 냥이 발바닥</h2>
+                    </div>
+                </div>
+
+                <!-- Random Spawn Button -->
+                <button id="random-btn" class="bg-gradient-to-r from-pink-400 to-purple-400 border-2 border-white text-white font-black px-4 py-2 rounded-2xl chewy-btn flex items-center space-x-2 text-sm">
+                    <i class="fa-solid fa-dice animate-spin"></i>
+                    <span>🎲 다른 말랑이 뽑기!</span>
+                </button>
+            </div>
+
+            <hr class="border-pink-200/60">
+
+            <!-- Squishy Texture Density Control & Sparkle Switch -->
+            <div class="grid grid-cols-3 gap-2">
+                <button id="mode-mochi" class="bg-pink-500 text-white font-black py-2 px-3 rounded-xl text-xs border border-white shadow transition flex flex-col items-center justify-center">
+                    <span>🍡 찹쌀떡</span>
+                    <span class="text-[9px] font-normal text-pink-100">초부드러움</span>
+                </button>
+                <button id="mode-jelly" class="bg-white/80 hover:bg-pink-100 text-pink-700 font-black py-2 px-3 rounded-xl text-xs border border-pink-200 shadow transition flex flex-col items-center justify-center">
+                    <span>🍮 푸딩</span>
+                    <span class="text-[9px] font-normal text-gray-500">탱글탱글</span>
+                </button>
+                <button id="mode-rubber" class="bg-white/80 hover:bg-pink-100 text-pink-700 font-black py-2 px-3 rounded-xl text-xs border border-pink-200 shadow transition flex flex-col items-center justify-center">
+                    <span>🎈 쫀득고무</span>
+                    <span class="text-[9px] font-normal text-gray-500">강한 탄성</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onscreen Touch/Mouse Interaction Prompt -->
+    <div id="touch-hint" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 transition-opacity duration-700 opacity-90 flex flex-col items-center">
+        <div class="glass-panel px-6 py-3 rounded-full border-2 border-pink-300 text-pink-600 font-extrabold text-sm flex items-center space-x-2 shadow-lg animate-pulse">
+            <i class="fa-solid fa-hand-pointer text-lg"></i>
+            <span>손가락으로 꾹 누르고 주~욱 늘려보세요!</span>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio Sound Synthesizer for Rubbery ASMR Sound Effects
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSquishASMR(type = 'squish', intensity = 1.0) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'press') {
+                // Low wet squelch sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(140 * intensity, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.18);
+
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(400, now);
+
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.18);
+            } else if (type === 'stretch') {
+                // Pitch bend rubber stretch sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(320 * (1 + intensity * 0.5), now + 0.1);
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'release') {
+                // Cute bouncy wet pop sound!
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(250 * intensity, now);
+                osc.frequency.exponentialRampToValueAtTime(580, now + 0.12);
+
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.14);
+            } else if (type === 'pop') {
+                // Bubble pop when changing squishies
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.09);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.09);
+            }
+        }
+
+        // Cute Squishy Toy Definitions
+        const SQUISHY_TYPES = [
+            {
+                id: 'paw',
+                name: '말랑 냥이 발바닥',
+                icon: '🐾',
+                color: 0xffb7d5,
+                padColor: 0xff65a3,
+                materialType: 'jelly',
+                desc: '말랑말랑 핑크 젤리가 듬뿍 들어간 고양이 발바닥!'
+            },
+            {
+                id: 'bunny',
+                name: '몰랑몰랑 토끼',
+                icon: '🐰',
+                color: 0xffffff,
+                padColor: 0xff9ebb,
+                materialType: 'mochi',
+                desc: '포동포동한 볼살과 쫑긋한 귀가 귀여운 토끼 모찌!'
+            },
+            {
+                id: 'peach',
+                name: '달콤 복숭아',
+                icon: '🍑',
+                color: 0xffa07a,
+                padColor: 0xff5277,
+                materialType: 'mochi',
+                desc: '탐스러운 모양에 만지면 즙이 팡팡 터질 듯한 복숭아!'
+            },
+            {
+                id: 'bear',
+                name: '쫀득 곰돌이 젤리',
+                icon: '🐻',
+                color: 0xffb800,
+                padColor: 0xff7a00,
+                materialType: 'crystal',
+                desc: '투명하고 영롱한 젤리 성분의 쫀득 곰돌이!'
+            },
+            {
+                id: 'dumpling',
+                name: '몽글 찹쌀떡',
+                icon: '🥟',
+                color: 0xfdfbf7,
+                padColor: 0xe2d1c3,
+                materialType: 'mochi',
+                desc: '갓 구워내어 부드럽고 잘 늘어나는 찹쌀 만두!'
+            },
+            {
+                id: 'donut',
+                name: '알록달록 도넛',
+                icon: '🍩',
+                color: 0xb19ffb,
+                padColor: 0xf472b6,
+                materialType: 'rubber',
+                desc: '달콤한 달맞이 시럽이 얹어진 쫀득쫀득 도넛!'
+            }
+        ];
+
+        let currentSquishyIndex = 0;
+        let squishCount = 0;
+
+        // Physics Tuning Parameters for Spring Elasticity
+        const physicsConfig = {
+            stiffness: 0.12,  // Spring return force speed
+            damping: 0.82,    // Spring oscillation decay rate
+            deformRadius: 2.8, // Touch deformation influence radius
+            pullStrength: 0.45 // Drag factor
+        };
+
+        let scene, camera, renderer;
+        let squishyGroup, mainMesh, subMeshes = [];
+        let baseGeometry, originalPositions = [], currentPositions = [], velocities = [];
+        let raycaster, mouse;
+        let isDragging = false;
+        let grabbedVertexIndices = [];
+        let dragPlane, planeIntersect = new THREE.Vector3();
+        let touchStartPos = { x: 0, y: 0 };
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+
+            // 1. Scene Setup
+            scene = new THREE.Scene();
+
+            // 2. Camera Setup
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 8.5);
+
+            // 3. Renderer Setup with Shadows & Soft Pastel Background
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // 4. Soft Studio Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(5, 8, 6);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            scene.add(dirLight);
+
+            const fillLight = new THREE.DirectionalLight(0xfce7f3, 0.5);
+            fillLight.position.set(-5, -4, 4);
+            scene.add(fillLight);
+
+            // Raycaster & Intersect Plane
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+
+            // Create First Squishy
+            spawnSquishy(SQUISHY_TYPES[0]);
+
+            // Register Window Events
+            setupEvents();
+
+            // Start Animation Loop
+            animate();
+        }
+
+        function spawnSquishy(typeInfo) {
+            // Remove previous squishy group
+            if (squishyGroup) {
+                scene.remove(squishyGroup);
+            }
+
+            squishyGroup = new THREE.Group();
+            subMeshes = [];
+
+            // Define Base Material with Pastel Translucency Sheen
+            let matProps = {
+                color: typeInfo.color,
+                roughness: 0.2,
+                metalness: 0.05,
+                clearcoat: 0.6,
+                clearcoatRoughness: 0.1
+            };
+
+            if (typeInfo.materialType === 'crystal') {
+                matProps.transmission = 0.5;
+                matProps.opacity = 0.95;
+                matProps.transparent = true;
+            }
+
+            const mainMat = new THREE.MeshPhysicalMaterial(matProps);
+            const padMat = new THREE.MeshPhysicalMaterial({
+                color: typeInfo.padColor,
+                roughness: 0.35,
+                clearcoat: 0.4
+            });
+
+            // Construct 3D Geometry based on Squishy Type
+            if (typeInfo.id === 'paw') {
+                // Main Paw Pad Geometry
+                baseGeometry = new THREE.SphereGeometry(1.8, 48, 48);
+                baseGeometry.scale(1.2, 1.0, 0.65);
+
+                // Add 4 Toe Beans
+                const toePositions = [
+                    { x: -1.2, y: 1.4, z: 0.1, r: 0.48 },
+                    { x: -0.4, y: 1.8, z: 0.1, r: 0.52 },
+                    { x: 0.4, y: 1.8, z: 0.1, r: 0.52 },
+                    { x: 1.2, y: 1.4, z: 0.1, r: 0.48 }
+                ];
+
+                toePositions.forEach(p => {
+                    const toeGeo = new THREE.SphereGeometry(p.r, 24, 24);
+                    toeGeo.scale(1, 1, 0.7);
+                    const toeMesh = new THREE.Mesh(toeGeo, padMat);
+                    toeMesh.position.set(p.x, p.y, p.z);
+                    squishyGroup.add(toeMesh);
+                });
+
+                // Heart Center Pad Accent
+                const centerPadGeo = new THREE.SphereGeometry(0.7, 32, 32);
+                centerPadGeo.scale(1.2, 0.9, 0.4);
+                const centerPad = new THREE.Mesh(centerPadGeo, padMat);
+                centerPad.position.set(0, -0.2, 0.4);
+                squishyGroup.add(centerPad);
+
+            } else if (typeInfo.id === 'bunny') {
+                // Bunny Body Sphere
+                baseGeometry = new THREE.SphereGeometry(1.8, 48, 48);
+                baseGeometry.scale(1.1, 1.0, 0.9);
+
+                // Bunny Ears
+                const earGeo = new THREE.CylinderGeometry(0.2, 0.35, 1.4, 24);
+                earGeo.scale(1, 1, 0.5);
+
+                const leftEar = new THREE.Mesh(earGeo, mainMat);
+                leftEar.position.set(-0.6, 2.1, 0);
+                leftEar.rotation.z = -0.2;
+                squishyGroup.add(leftEar);
+
+                const rightEar = new THREE.Mesh(earGeo, mainMat);
+                rightEar.position.set(0.6, 2.1, 0);
+                rightEar.rotation.z = 0.2;
+                squishyGroup.add(rightEar);
+
+                // Cute Blush Cheeks
+                const cheekGeo = new THREE.SphereGeometry(0.25, 16, 16);
+                cheekGeo.scale(1, 0.6, 0.3);
+                const leftCheek = new THREE.Mesh(cheekGeo, padMat);
+                leftCheek.position.set(-0.8, -0.1, 1.4);
+                squishyGroup.add(leftCheek);
+
+                const rightCheek = leftCheek.clone();
+                rightCheek.position.x = 0.8;
+                squishyGroup.add(rightCheek);
+
+            } else if (typeInfo.id === 'peach') {
+                // Peach Geometry with Center Crevice
+                baseGeometry = new THREE.SphereGeometry(1.9, 48, 48);
+                const pos = baseGeometry.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    let x = pos.getX(i);
+                    let y = pos.getY(i);
+                    let z = pos.getZ(i);
+
+                    // Vertical Peach Indentation
+                    if (z > 0) {
+                        const indent = Math.cos(x * 1.5) * 0.25;
+                        pos.setZ(i, z - Math.max(0, indent));
+                    }
+                }
+                baseGeometry.computeVertexNormals();
+
+                // Cute Leaf
+                const leafGeo = new THREE.ConeGeometry(0.4, 0.8, 16);
+                const leafMat = new THREE.MeshPhysicalMaterial({ color: 0x4ade80, roughness: 0.3 });
+                const leaf = new THREE.Mesh(leafGeo, leafMat);
+                leaf.position.set(0.2, 1.9, 0);
+                leaf.rotation.z = -0.8;
+                squishyGroup.add(leaf);
+
+            } else if (typeInfo.id === 'bear') {
+                // Gummy Bear Geometry
+                baseGeometry = new THREE.SphereGeometry(1.7, 48, 48);
+                baseGeometry.scale(1.0, 1.15, 0.85);
+
+                // Ears
+                const earGeo = new THREE.SphereGeometry(0.5, 24, 24);
+                earGeo.scale(1, 1, 0.6);
+
+                const lEar = new THREE.Mesh(earGeo, mainMat);
+                lEar.position.set(-1.1, 1.5, 0);
+                squishyGroup.add(lEar);
+
+                const rEar = lEar.clone();
+                rEar.position.x = 1.1;
+                squishyGroup.add(rEar);
+
+                // Bear Snout
+                const snoutGeo = new THREE.SphereGeometry(0.5, 24, 24);
+                snoutGeo.scale(1.1, 0.8, 0.6);
+                const snout = new THREE.Mesh(snoutGeo, padMat);
+                snout.position.set(0, -0.2, 1.2);
+                squishyGroup.add(snout);
+
+            } else if (typeInfo.id === 'dumpling') {
+                // Dumpling Mochi
+                baseGeometry = new THREE.SphereGeometry(1.8, 48, 48);
+                baseGeometry.scale(1.25, 0.85, 1.25);
+
+            } else if (typeInfo.id === 'donut') {
+                // Ring Torus Donut
+                baseGeometry = new THREE.TorusGeometry(1.3, 0.75, 32, 64);
+            }
+
+            // Prepare Deformable Vertex Arrays
+            mainMesh = new THREE.Mesh(baseGeometry, mainMat);
+            mainMesh.castShadow = true;
+            mainMesh.receiveShadow = true;
+            squishyGroup.add(mainMesh);
+
+            const posAttr = baseGeometry.attributes.position;
+            const vertexCount = posAttr.count;
+
+            originalPositions = new Float32Array(vertexCount * 3);
+            currentPositions = new Float32Array(vertexCount * 3);
+            velocities = new Float32Array(vertexCount * 3);
+
+            for (let i = 0; i < vertexCount * 3; i++) {
+                originalPositions[i] = posAttr.array[i];
+                currentPositions[i] = posAttr.array[i];
+                velocities[i] = 0;
+            }
+
+            scene.add(squishyGroup);
+
+            // Update UI Labels
+            document.getElementById('squishy-name').innerText = typeInfo.name;
+            document.getElementById('squishy-icon').innerText = typeInfo.icon;
+        }
+
+        function setupEvents() {
+            const container = document.getElementById('canvas-container');
+
+            function getPointerPos(e) {
+                if (e.touches && e.touches.length > 0) {
+                    return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+                return { x: e.clientX, y: e.clientY };
+            }
+
+            function onPointerDown(e) {
+                const pos = getPointerPos(e);
+                touchStartPos = pos;
+
+                // Hide touch hint on first tap
+                const hint = document.getElementById('touch-hint');
+                if (hint) hint.style.opacity = '0';
+
+                mouse.x = (pos.x / window.innerWidth) * 2 - 1;
+                mouse.y = -(pos.y / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(mainMesh);
+
+                if (intersects.length > 0) {
+                    isDragging = true;
+                    const hitPoint = intersects[0].point;
+
+                    // Set drag plane at hit depth
+                    dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(dragPlane.normal).negate(), hitPoint);
+
+                    // Find surrounding vertices within deformation radius
+                    const posAttr = baseGeometry.attributes.position;
+                    const localHit = mainMesh.worldToLocal(hitPoint.clone());
+                    grabbedVertexIndices = [];
+
+                    for (let i = 0; i < posAttr.count; i++) {
+                        const vx = posAttr.getX(i);
+                        const vy = posAttr.getY(i);
+                        const vz = posAttr.getZ(i);
+                        const dist = Math.hypot(vx - localHit.x, vy - localHit.y, vz - localHit.z);
+
+                        if (dist < physicsConfig.deformRadius) {
+                            grabbedVertexIndices.push({ index: i, weight: 1 - (dist / physicsConfig.deformRadius) });
+                        }
+                    }
+
+                    // Play Squish Sound & Count
+                    playSquishASMR('press', 1.0);
+                    spawnSparkles(pos.x, pos.y);
+
+                    squishCount++;
+                    document.getElementById('squish-count').innerText = `${squishCount} 번`;
+                }
+            }
+
+            function onPointerMove(e) {
+                if (!isDragging || grabbedVertexIndices.length === 0) return;
+
+                const pos = getPointerPos(e);
+                mouse.x = (pos.x / window.innerWidth) * 2 - 1;
+                mouse.y = -(pos.y / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                raycaster.ray.intersectPlane(dragPlane, planeIntersect);
+
+                const localPlaneIntersect = mainMesh.worldToLocal(planeIntersect.clone());
+
+                // Apply vertex pull forces
+                const posAttr = baseGeometry.attributes.position;
+                grabbedVertexIndices.forEach(item => {
+                    const idx = item.index;
+                    const w = item.weight * physicsConfig.pullStrength;
+
+                    const i3 = idx * 3;
+                    const targetX = THREE.MathUtils.lerp(originalPositions[i3], localPlaneIntersect.x, w);
+                    const targetY = THREE.MathUtils.lerp(originalPositions[i3 + 1], localPlaneIntersect.y, w);
+                    const targetZ = THREE.MathUtils.lerp(originalPositions[i3 + 2], localPlaneIntersect.z, w);
+
+                    velocities[i3] += (targetX - currentPositions[i3]) * 0.4;
+                    velocities[i3 + 1] += (targetY - currentPositions[i3 + 1]) * 0.4;
+                    velocities[i3 + 2] += (targetZ - currentPositions[i3 + 2]) * 0.4;
+                });
+
+                if (Math.random() < 0.25) {
+                    playSquishASMR('stretch', 0.8);
+                    spawnSparkles(pos.x, pos.y);
+                }
+            }
+
+            function onPointerUp() {
+                if (isDragging) {
+                    isDragging = false;
+                    grabbedVertexIndices = [];
+                    playSquishASMR('release', 1.2);
+                }
+            }
+
+            // Mouse Events
+            container.addEventListener('mousedown', onPointerDown);
+            window.addEventListener('mousemove', onPointerMove);
+            window.addEventListener('mouseup', onPointerUp);
+
+            // Mobile Touch Events
+            container.addEventListener('touchstart', onPointerDown, { passive: false });
+            window.addEventListener('touchmove', onPointerMove, { passive: false });
+            window.addEventListener('touchend', onPointerUp);
+
+            // UI Button Handlers
+            document.getElementById('random-btn').addEventListener('click', () => {
+                currentSquishyIndex = (currentSquishyIndex + 1) % SQUISHY_TYPES.length;
+                spawnSquishy(SQUISHY_TYPES[currentSquishyIndex]);
+                playSquishASMR('pop');
+            });
+
+            // Density Mode Controls
+            document.getElementById('mode-mochi').addEventListener('click', (e) => setDensityMode('mochi', e.currentTarget));
+            document.getElementById('mode-jelly').addEventListener('click', (e) => setDensityMode('jelly', e.currentTarget));
+            document.getElementById('mode-rubber').addEventListener('click', (e) => setDensityMode('rubber', e.currentTarget));
+
+            // Sound Toggle Handler
+            document.getElementById('sound-btn').addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                const icon = document.getElementById('sound-icon');
+                if (soundEnabled) {
+                    icon.className = 'fa-solid fa-volume-high';
+                } else {
+                    icon.className = 'fa-solid fa-volume-xmark text-gray-400';
+                }
+            });
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function setDensityMode(mode, btnEl) {
+            // Reset button active styles
+            ['mode-mochi', 'mode-jelly', 'mode-rubber'].forEach(id => {
+                const b = document.getElementById(id);
+                b.className = 'bg-white/80 hover:bg-pink-100 text-pink-700 font-black py-2 px-3 rounded-xl text-xs border border-pink-200 shadow transition flex flex-col items-center justify-center';
+            });
+
+            btnEl.className = 'bg-pink-500 text-white font-black py-2 px-3 rounded-xl text-xs border border-white shadow transition flex flex-col items-center justify-center';
+
+            if (mode === 'mochi') {
+                physicsConfig.stiffness = 0.08;
+                physicsConfig.damping = 0.78;
+                document.getElementById('squish-mode-badge').innerText = '모찌 쫀득 모드';
+            } else if (mode === 'jelly') {
+                physicsConfig.stiffness = 0.16;
+                physicsConfig.damping = 0.85;
+                document.getElementById('squish-mode-badge').innerText = '푸딩 탱글 모드';
+            } else if (mode === 'rubber') {
+                physicsConfig.stiffness = 0.28;
+                physicsConfig.damping = 0.90;
+                document.getElementById('squish-mode-badge').innerText = '고무 탄성 모드';
+            }
+
+            playSquishASMR('pop');
+        }
+
+        function spawnSparkles(x, y) {
+            const container = document.getElementById('sparkle-container');
+            const icons = ['✨', '🌸', '💖', '⭐', '🐾'];
+
+            for (let i = 0; i < 3; i++) {
+                const p = document.createElement('div');
+                p.className = 'sparkle-particle text-xl';
+                p.innerText = icons[Math.floor(Math.random() * icons.length)];
+                p.style.left = `${x}px`;
+                p.style.top = `${y}px`;
+
+                const dx = (Math.random() - 0.5) * 80;
+                const dy = (Math.random() - 0.5) * 80 - 20;
+                p.style.setProperty('--dx', `${dx}px`);
+                p.style.setProperty('--dy', `${dy}px`);
+
+                container.appendChild(p);
+                setTimeout(() => p.remove(), 800);
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update Spring-Mass Soft Body Physics for Vertices
+            if (baseGeometry && mainMesh) {
+                const posAttr = baseGeometry.attributes.position;
+                const vertexCount = posAttr.count;
+
+                for (let i = 0; i < vertexCount; i++) {
+                    const i3 = i * 3;
+
+                    // Spring Restoration Force towards original vertex position
+                    const forceX = (originalPositions[i3] - currentPositions[i3]) * physicsConfig.stiffness;
+                    const forceY = (originalPositions[i3 + 1] - currentPositions[i3 + 1]) * physicsConfig.stiffness;
+                    const forceZ = (originalPositions[i3 + 2] - currentPositions[i3 + 2]) * physicsConfig.stiffness;
+
+                    velocities[i3] = (velocities[i3] + forceX) * physicsConfig.damping;
+                    velocities[i3 + 1] = (velocities[i3 + 1] + forceY) * physicsConfig.damping;
+                    velocities[i3 + 2] = (velocities[i3 + 2] + forceZ) * physicsConfig.damping;
+
+                    currentPositions[i3] += velocities[i3];
+                    currentPositions[i3 + 1] += velocities[i3 + 1];
+                    currentPositions[i3 + 2] += velocities[i3 + 2];
+
+                    posAttr.setXYZ(i, currentPositions[i3], currentPositions[i3 + 1], currentPositions[i3 + 2]);
+                }
+
+                posAttr.needsUpdate = true;
+                baseGeometry.computeVertexNormals();
+            }
+
+            // Gentle Idle Bobbing Rotation
+            if (squishyGroup && !isDragging) {
+                squishyGroup.rotation.y = Math.sin(Date.now() * 0.001) * 0.15;
+                squishyGroup.rotation.x = Math.cos(Date.now() * 0.0008) * 0.08;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Initialize on Load
+        window.onload = function() {
+            init3D();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>환상 RPG: 히든 직업과 공포의 PK</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Noto+Sans+KR:wght@400;600;700;900&display=swap" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            cinzel: ['Cinzel', 'serif'],
+            sans: ['Noto Sans KR', 'sans-serif'],
+          },
+          colors: {
+            fantasy: {
+              dark: '#0d0f17',
+              card: '#161926',
+              gold: '#fbbf24',
+              crimson: '#dc2626',
+              purple: '#8b5cf6',
+              cyan: '#06b6d4',
+            }
+          },
+          animation: {
+            'shake-terror': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+            'pulse-red': 'pulseRed 2s infinite',
+            'float': 'float 3s ease-in-out infinite',
+          },
+          keyframes: {
+            shake: {
+              '10%, 90%': { transform: 'translate3d(-2px, 0, 0)' },
+              '20%, 80%': { transform: 'translate3d(4px, 0, 0)' },
+              '30%, 50%, 70%': { transform: 'translate3d(-6px, 0, 0)' },
+              '40%, 60%': { transform: 'translate3d(6px, 0, 0)' },
+            },
+            pulseRed: {
+              '0%, 100%': { boxShadow: '0 0 15px rgba(220, 38, 38, 0.2)' },
+              '50%': { boxShadow: '0 0 30px rgba(220, 38, 38, 0.7)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-6px)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      background-color: #08090f;
+      color: #e2e8f0;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15), transparent 70%),
+        radial-gradient(circle at 80% 80%, rgba(220, 38, 38, 0.1), transparent 50%);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(139, 92, 246, 0.3);
+      border-radius: 4px;
+    }
+    .pk-vignette {
+      box-shadow: inset 0 0 60px rgba(220, 38, 38, 0.35);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-4 font-sans text-slate-100">
+
+  <!-- HEADER & PLAYER MINI DASHBOARD -->
+  <header class="w-full max-w-4xl bg-fantasy-card/90 border border-slate-700/60 rounded-2xl p-4 mb-4 backdrop-blur-md shadow-2xl relative overflow-hidden">
+    <!-- PK High Infamy Aura Effect -->
+    <div id="pk-bg-aura" class="absolute inset-0 bg-red-900/10 opacity-0 transition-opacity duration-500 pointer-events-none"></div>
+
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4 relative z-10">
+      
+      <!-- Player Profile & Job Title -->
+      <div class="flex items-center space-x-3 w-full md:w-auto">
+        <div class="relative">
+          <div id="avatar-container" class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-900 to-purple-600 flex items-center justify-center text-2xl border-2 border-amber-400/60 shadow-lg">
+            ⚔️
+          </div>
+          <span id="pk-badge" class="hidden absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-red-300 animate-pulse">
+            PK 수배
+          </span>
+        </div>
+
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 id="player-name" class="font-bold text-lg text-slate-100">모험가 아크</h1>
+            <span id="player-level" class="bg-amber-500/20 text-amber-300 text-xs font-bold px-2 py-0.5 rounded-md border border-amber-500/40">
+              Lv.1
+            </span>
+          </div>
+          <div class="flex items-center space-x-2 mt-0.5">
+            <span id="job-badge" class="bg-purple-900/60 text-purple-300 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-purple-500/30">
+              견습 기사
+            </span>
+            <span id="alignment-badge" class="bg-emerald-900/60 text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">
+              성향: 평화로움
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vital Bars (HP / MP / EXP / PK Count) -->
+      <div class="w-full md:w-80 space-y-1.5 text-xs">
+        <!-- HP -->
+        <div>
+          <div class="flex justify-between font-bold mb-0.5 text-slate-300">
+            <span>HP</span>
+            <span id="hp-text">100 / 100</span>
+          </div>
+          <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+            <div id="hp-bar" class="h-full bg-gradient-to-r from-red-600 to-emerald-500 transition-all duration-300" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- MP -->
+        <div>
+          <div class="flex justify-between font-bold mb-0.5 text-slate-300">
+            <span>MP</span>
+            <span id="mp-text">50 / 50</span>
+          </div>
+          <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+            <div id="mp-bar" class="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-300" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- EXP -->
+        <div>
+          <div class="flex justify-between text-[10px] text-slate-400 mb-0.5">
+            <span>EXP</span>
+            <span id="exp-text">0%</span>
+          </div>
+          <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+            <div id="exp-bar" class="h-full bg-amber-400 transition-all duration-300" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Currency & PK Infamy Gauge -->
+      <div class="flex items-center justify-between md:flex-col md:items-end w-full md:w-auto text-xs space-y-1 border-t md:border-t-0 pt-2 md:pt-0 border-slate-800">
+        <div class="flex items-center space-x-1.5 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
+          <i class="fa-solid fa-coins text-amber-400"></i>
+          <span id="player-gold" class="font-bold text-amber-300">100 골드</span>
+        </div>
+        <div class="flex items-center space-x-1.5 bg-red-950/40 px-3 py-1.5 rounded-xl border border-red-900/40">
+          <i class="fa-solid fa-skull text-red-500"></i>
+          <span id="pk-count-text" class="font-bold text-red-400">PK: 0회 (악명 0)</span>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN GAME SCREEN CONTAINER -->
+  <main id="main-card" class="w-full max-w-4xl bg-fantasy-card/95 border border-slate-700/60 rounded-2xl shadow-2xl flex flex-col overflow-hidden min-h-[520px] relative transition-all duration-300">
+    
+    <!-- NAVIGATION TAB BAR -->
+    <nav class="flex border-b border-slate-800 bg-slate-950/80 text-xs sm:text-sm font-bold">
+      <button onclick="switchTab('battle')" id="tab-btn-battle" class="flex-1 py-3 px-2 text-center border-b-2 border-amber-400 text-amber-400 transition-colors flex items-center justify-center space-x-1.5">
+        <i class="fa-solid fa-dungeon"></i>
+        <span>던전 탐험</span>
+      </button>
+      <button onclick="switchTab('town')" id="tab-btn-town" class="flex-1 py-3 px-2 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center space-x-1.5 relative">
+        <i class="fa-solid fa-city"></i>
+        <span>마을 (주민 반응)</span>
+        <span id="town-fear-indicator" class="hidden w-2 h-2 rounded-full bg-red-500 animate-ping absolute top-2 right-4"></span>
+      </button>
+      <button onclick="switchTab('job')" id="tab-btn-job" class="flex-1 py-3 px-2 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center space-x-1.5">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <span>전직 / 히든 직업</span>
+      </button>
+      <button onclick="switchTab('stats')" id="tab-btn-stats" class="flex-1 py-3 px-2 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center space-x-1.5">
+        <i class="fa-solid fa-user-gear"></i>
+        <span>캐릭터 정보</span>
+      </button>
+    </nav>
+
+    <!-- CONTENT PANELS -->
+    <div class="p-4 sm:p-6 flex-1 flex flex-col justify-between">
+      
+      <!-- TAB 1: DUNGEON & COMBAT -->
+      <section id="view-battle" class="space-y-4">
+        <!-- Stage / Monster Display Card -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-center relative overflow-hidden min-h-[220px]">
+          
+          <!-- Dungeon Stage Banner -->
+          <div class="absolute top-3 left-4 text-xs font-semibold text-slate-400 flex items-center space-x-2">
+            <span id="stage-name" class="text-purple-400 font-bold">단계 1: 고블린의 숲</span>
+          </div>
+
+          <!-- PK Target Switcher Option -->
+          <button onclick="togglePKMode()" id="pk-toggle-btn" class="absolute top-3 right-4 px-3 py-1 rounded-xl text-xs font-bold border bg-slate-800 text-slate-400 border-slate-700 hover:border-red-500 transition-all flex items-center space-x-1">
+            <i class="fa-solid fa-crosshairs text-red-400"></i>
+            <span id="pk-mode-label">무차별 PK OFF</span>
+          </button>
+
+          <!-- Monster / Victim Sprite -->
+          <div id="monster-container" class="relative my-4 flex flex-col items-center cursor-pointer transition-transform duration-200 hover:scale-105" onclick="playerAttack()">
+            <div id="monster-avatar" class="text-7xl filter drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] animate-float">
+              👺
+            </div>
+            <div id="monster-name" class="font-bold text-base mt-2 text-amber-300">
+              숲 고블린 (Lv.1)
+            </div>
+          </div>
+
+          <!-- Monster HP Bar -->
+          <div class="w-full max-w-md space-y-1">
+            <div class="flex justify-between text-xs text-slate-400">
+              <span>적 체력</span>
+              <span id="monster-hp-text">30 / 30</span>
+            </div>
+            <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+              <div id="monster-hp-bar" class="h-full bg-red-500 transition-all duration-200" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Control Buttons -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button onclick="playerAttack()" class="py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center space-x-1.5">
+            <i class="fa-solid fa-sword"></i>
+            <span>일반 공격</span>
+          </button>
+          
+          <button onclick="useSkill()" class="py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center space-x-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span id="skill-btn-label">직업 스킬 (10 MP)</span>
+          </button>
+
+          <button onclick="performPKAttack()" class="py-3 px-4 rounded-xl bg-gradient-to-r from-rose-900 to-red-700 border border-red-500/50 font-bold text-sm shadow-lg hover:brightness-120 active:scale-95 transition-all flex items-center justify-center space-x-1.5 text-red-200">
+            <i class="fa-solid fa-skull"></i>
+            <span>지나가는 용사 PK!</span>
+          </button>
+
+          <button onclick="nextDungeonStage()" class="py-3 px-4 rounded-xl bg-slate-800 border border-slate-700 hover:border-slate-500 font-bold text-sm text-slate-300 active:scale-95 transition-all flex items-center justify-center space-x-1.5">
+            <i class="fa-solid fa-arrow-right"></i>
+            <span>다음 스테이지</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- TAB 2: TOWN & FEAR SYSTEM (핵심 조건: PK 시 사람들이 무서워함) -->
+      <section id="view-town" class="space-y-4 hidden">
+        <div id="town-header-bg" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-500">
+          
+          <!-- Town Atmosphere Status -->
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h2 id="town-name" class="text-xl font-bold text-amber-300">평화로운 루미나 마을 🏰</h2>
+              <p id="town-subtitle" class="text-xs text-slate-400 mt-1">
+                평범한 상인들과 여행자들이 모여드는 안락한 휴식처.
+              </p>
+            </div>
+            
+            <div id="town-fear-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-950 border border-emerald-500/40 text-emerald-300 flex items-center space-x-1">
+              <i class="fa-solid fa-face-smile"></i>
+              <span id="fear-status-text">평화로움 (공포도 0%)</span>
+            </div>
+          </div>
+
+          <!-- NPC Interactive Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-2">
+            
+            <!-- NPC 1: Merchant -->
+            <div id="npc-card-1" class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col items-center text-center transition-all">
+              <div id="npc-avatar-1" class="text-4xl my-1 transition-transform">🏪</div>
+              <div class="font-bold text-sm text-slate-200">상인 잡화상</div>
+              <div id="npc-dialogue-1" class="text-[11px] text-amber-200/80 my-2 h-10 flex items-center justify-center font-medium">
+                "어서오게 용사님! 좋은 포션과 재료가 많다네."
+              </div>
+              <button onclick="interactNPC(1)" id="npc-btn-1" class="w-full py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold hover:bg-amber-500/30">
+                물약 구매 (20G)
+              </button>
+            </div>
+
+            <!-- NPC 2: Village Chief -->
+            <div id="npc-card-2" class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col items-center text-center transition-all">
+              <div id="npc-avatar-2" class="text-4xl my-1 transition-transform">👴</div>
+              <div class="font-bold text-sm text-slate-200">마을 촌장</div>
+              <div id="npc-dialogue-2" class="text-[11px] text-amber-200/80 my-2 h-10 flex items-center justify-center font-medium">
+                "마을의 평화를 위해 힘써주게나."
+              </div>
+              <button onclick="interactNPC(2)" id="npc-btn-2" class="w-full py-1.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-lg text-xs font-bold hover:bg-purple-500/30">
+                마축 축복 받기
+              </button>
+            </div>
+
+            <!-- NPC 3: Town Guard -->
+            <div id="npc-card-3" class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col items-center text-center transition-all">
+              <div id="npc-avatar-3" class="text-4xl my-1 transition-transform">🛡️</div>
+              <div class="font-bold text-sm text-slate-200">경비대장</div>
+              <div id="npc-dialogue-3" class="text-[11px] text-amber-200/80 my-2 h-10 flex items-center justify-center font-medium">
+                "오늘도 루미나 마을은 안전하다!"
+              </div>
+              <button onclick="interactNPC(3)" id="npc-btn-3" class="w-full py-1.5 bg-blue-500/20 text-blue-300 border border-blue-500/40 rounded-lg text-xs font-bold hover:bg-blue-500/30">
+                경비대 치안 확인
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Town Action Buttons (Terrorize / Rest / Pay Bounty) -->
+          <div class="pt-3 border-t border-slate-800 flex flex-wrap gap-2">
+            <button onclick="commitTownPK()" class="flex-1 py-2.5 px-3 bg-red-950 hover:bg-red-900 border border-red-600/60 text-red-200 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5">
+              <i class="fa-solid fa-skull-crossbones text-red-400"></i>
+              <span>마을 주민 위협 / PK 하기 😱</span>
+            </button>
+            
+            <button onclick="payBountyToClearPK()" id="clear-pk-btn" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 rounded-xl font-bold text-xs flex items-center space-x-1">
+              <i class="fa-solid fa-hand-holding-dollar text-amber-400"></i>
+              <span>면죄부 구매 (악명 세척)</span>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 3: HIDDEN JOB ADVANCEMENT -->
+      <section id="view-job" class="space-y-4 hidden">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5">
+          <div class="mb-4">
+            <h2 class="text-lg font-bold text-amber-300 flex items-center space-x-2">
+              <i class="fa-solid fa-hat-wizard text-purple-400"></i>
+              <span>직업 전직 및 히든 직업 연구소</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              조건을 만족하면 숨겨진 전설의 히든 직업으로 전직할 수 있습니다!
+            </p>
+          </div>
+
+          <!-- Job Cards List -->
+          <div id="job-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-3 custom-scrollbar max-h-[320px] overflow-y-auto pr-1">
+            <!-- Dynamically populated job cards -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: CHARACTER STATS & INVENTORY -->
+      <section id="view-stats" class="space-y-4 hidden">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <!-- Character Stat Distribution -->
+          <div class="space-y-3">
+            <h3 class="font-bold text-sm text-amber-300 border-b border-slate-800 pb-2 flex justify-between items-center">
+              <span>스탯 배분</span>
+              <span id="stat-points-text" class="text-xs text-purple-400">잔여 포인트: 0</span>
+            </h3>
+
+            <div class="space-y-2 text-xs">
+              <!-- STR -->
+              <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-red-400 font-bold"><i class="fa-solid fa-hand-fist mr-1"></i> 근력 (STR)</span>
+                <div class="flex items-center space-x-2">
+                  <span id="stat-str" class="font-bold">10</span>
+                  <button onclick="addStat('str')" class="w-6 h-6 rounded-lg bg-purple-600 hover:bg-purple-500 font-bold text-white text-xs">+</button>
+                </div>
+              </div>
+
+              <!-- DEX -->
+              <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-emerald-400 font-bold"><i class="fa-solid fa-person-running mr-1"></i> 민첩 (DEX)</span>
+                <div class="flex items-center space-x-2">
+                  <span id="stat-dex" class="font-bold">10</span>
+                  <button onclick="addStat('dex')" class="w-6 h-6 rounded-lg bg-purple-600 hover:bg-purple-500 font-bold text-white text-xs">+</button>
+                </div>
+              </div>
+
+              <!-- INT -->
+              <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                <span class="text-cyan-400 font-bold"><i class="fa-solid fa-brain mr-1"></i> 지능 (INT)</span>
+                <div class="flex items-center space-x-2">
+                  <span id="stat-int" class="font-bold">10</span>
+                  <button onclick="addStat('int')" class="w-6 h-6 rounded-lg bg-purple-600 hover:bg-purple-500 font-bold text-white text-xs">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Titles & Accomplishments -->
+          <div class="space-y-3">
+            <h3 class="font-bold text-sm text-amber-300 border-b border-slate-800 pb-2">
+              칭호 및 평판 기록
+            </h3>
+
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-xs">
+              <div class="flex justify-between">
+                <span class="text-slate-400">현재 칭호:</span>
+                <span id="stat-title-display" class="font-bold text-slate-200">초보 모험가</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">누적 처치 몬스터:</span>
+                <span id="stat-monsters-killed" class="font-bold text-amber-300">0 마리</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">누적 PK 횟수:</span>
+                <span id="stat-pk-killed" class="font-bold text-red-400">0 회</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">마을 주민 공포 지수:</span>
+                <span id="stat-fear-index" class="font-bold text-red-500">0% (평화)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ACTION LOG CONSOLE AREA -->
+      <div class="mt-4 bg-slate-950 border border-slate-800 rounded-xl p-3">
+        <div class="flex justify-between items-center mb-1 text-xs text-slate-400 font-bold border-b border-slate-800 pb-1">
+          <span><i class="fa-solid fa-scroll text-purple-400 mr-1"></i> 모험 일지</span>
+          <button onclick="clearLogs()" class="text-[10px] text-slate-500 hover:text-slate-300">기록 삭제</button>
+        </div>
+        <div id="game-log-box" class="h-28 overflow-y-auto text-xs font-mono space-y-1 custom-scrollbar leading-relaxed">
+          <div class="text-amber-300">[시스템] 환상 RPG에 오신 것을 환영합니다! 당신의 선택이 세계를 변화시킵니다.</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="w-full max-w-4xl mt-4 text-center text-slate-500 text-xs py-2">
+    <span>🔮 환상 RPG - 히든 직업 & PK 공포 시스템 엔진</span>
+  </footer>
+
+  <!-- JAVASCRIPT GAME LOGIC -->
+  <script>
+    /* ===================================================================
+       1. WEB AUDIO SYNTHESIZER (Sound Effects Engine)
+       =================================================================== */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+
+        if (type === 'attack') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 0.1);
+        } 
+        else if (type === 'skill') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(1200, now + 0.25);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 0.25);
+        }
+        else if (type === 'scream') { // PK Terror Fear scream
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(800, now);
+          osc.frequency.exponentialRampToValueAtTime(200, now + 0.4);
+          gain.gain.setValueAtTime(0.5, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.start(now); osc.stop(now + 0.4);
+        }
+        else if (type === 'jobChange') {
+          for (let i = 0; i < 4; i++) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300 + i * 200, now + i * 0.08);
+            gain.gain.setValueAtTime(0.3, now + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.3);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.08); osc.stop(now + i * 0.08 + 0.3);
+          }
+        }
+      } catch (e) {}
+    }
+
+    /* ===================================================================
+       2. GAME DATA STRUCTURE (Jobs, Hidden Jobs, Monsters)
+       =================================================================== */
+    const JOBS = [
+      {
+        id: 'novice',
+        name: '견습 기사',
+        isHidden: false,
+        icon: '⚔️',
+        desc: '기본적인 검술을 구사하는 모험가.',
+        skillName: '강격 (10 MP)',
+        skillMp: 10,
+        reqDesc: '기본 시작 직업',
+        unlocked: true,
+        bonusStr: 0, bonusDex: 0, bonusInt: 0
+      },
+      {
+        id: 'mage',
+        name: '원소 마법사',
+        isHidden: false,
+        icon: '🔮',
+        desc: '강력한 화염 마법을 구사합니다.',
+        skillName: '파이어볼 (15 MP)',
+        skillMp: 15,
+        reqDesc: '지능(INT) 15 이상',
+        checkUnlock: (p) => p.int >= 15,
+        bonusStr: 0, bonusDex: 2, bonusInt: 8
+      },
+      {
+        id: 'assassin',
+        name: '그림자 자객',
+        isHidden: false,
+        icon: '🗡️',
+        desc: '보이지 않는 곳에서 치명상을 입힙니다.',
+        skillName: '암습 (12 MP)',
+        skillMp: 12,
+        reqDesc: '민첩(DEX) 15 이상',
+        checkUnlock: (p) => p.dex >= 15,
+        bonusStr: 3, bonusDex: 8, bonusInt: 0
+      },
+
+      // --- HIDDEN JOBS (조건 충족 시 해금!) ---
+      {
+        id: 'blood_slayer',
+        name: '핏빛 마검사',
+        isHidden: true,
+        icon: '🩸⚔️',
+        desc: '피와 악명 속에서 힘을 얻는 금단의 히든 직업.',
+        skillName: '혈풍참 (20 MP)',
+        skillMp: 20,
+        reqDesc: '🔥 히든 조건: PK 5회 이상 달성하기',
+        checkUnlock: (p) => p.pkCount >= 5,
+        bonusStr: 15, bonusDex: 10, bonusInt: 5
+      },
+      {
+        id: 'void_monarch',
+        name: '공포의 마왕',
+        isHidden: true,
+        icon: '👑💀',
+        desc: '온 세상을 공포에 빠뜨린 군주. 마을 사람들의 비명이 에너지가 됩니다.',
+        skillName: '멸망의 파동 (30 MP)',
+        skillMp: 30,
+        reqDesc: '🔥 히든 조건: 마을 공포도 100% 달성 + PK 10회',
+        checkUnlock: (p) => p.pkCount >= 10 && p.townFear >= 100,
+        bonusStr: 25, bonusDex: 15, bonusInt: 25
+      },
+      {
+        id: 'chrono_sage',
+        name: '시공의 현자',
+        isHidden: true,
+        icon: '⏳✨',
+        desc: '시간을 조율하는 신비로운 히든 대마도사.',
+        skillName: '시간 정지 (25 MP)',
+        skillMp: 25,
+        reqDesc: '🔥 히든 조건: 지능(INT) 30 이상 & 골드 500개 보유',
+        checkUnlock: (p) => p.int >= 30 && p.gold >= 500,
+        bonusStr: 5, bonusDex: 10, bonusInt: 30
+      },
+      {
+        id: 'holy_paladin',
+        name: '성황 기사',
+        isHidden: true,
+        icon: '🛡️✨',
+        desc: '단 한번의 PK도 없이 정의를 지켜낸 숭고한 자의 히든 직업.',
+        skillName: '천상의 심판 (20 MP)',
+        skillMp: 20,
+        reqDesc: '🔥 히든 조건: 레벨 10 달성 + PK 0회 유지 (완전 평화)',
+        checkUnlock: (p) => p.level >= 10 && p.pkCount === 0,
+        bonusStr: 20, bonusDex: 10, bonusInt: 10
+      }
+    ];
+
+    const MONSTERS = [
+      { name: '숲 고블린', emoji: '👺', hp: 35, maxHp: 35, atk: 5, exp: 20, gold: 15 },
+      { name: '사나운 늑대', emoji: '🐺', hp: 60, maxHp: 60, atk: 10, exp: 35, gold: 25 },
+      { name: '해골 병사', emoji: '💀', hp: 100, maxHp: 100, atk: 18, exp: 60, gold: 50 },
+      { name: '암흑 오크', emoji: '👹', hp: 180, maxHp: 180, atk: 28, exp: 100, gold: 90 },
+      { name: '심연의 드래곤', emoji: '🐉', hp: 350, maxHp: 350, atk: 45, exp: 250, gold: 250 }
+    ];
+
+    /* ===================================================================
+       3. PLAYER STATE & GAME ENGINE
+       =================================================================== */
+    let player = {
+      name: '모험가 아크',
+      level: 1,
+      hp: 100, maxHp: 100,
+      mp: 50, maxMp: 50,
+      exp: 0, maxExp: 100,
+      str: 10, dex: 10, int: 10,
+      statPoints: 0,
+      gold: 100,
+      job: JOBS[0],
+      pkCount: 0,
+      townFear: 0, // 0 ~ 100%
+      monstersKilled: 0,
+      stage: 0,
+      unlockedJobs: ['novice']
+    };
+
+    let currentMonster = null;
+    let pkModeActive = false;
+
+    /* Initialize Game */
+    window.onload = function() {
+      spawnMonster(player.stage);
+      renderAll();
+      logMessage('게임이 시작되었습니다. 마을을 탐험하거나 던전에서 수련하세요!', 'text-amber-300');
+    };
+
+    /* ===================================================================
+       4. PK & TOWN FEAR MECHANICS (조건: PK시 사람들이 무서워함)
+       =================================================================== */
+    function commitTownPK() {
+      player.pkCount++;
+      player.townFear = Math.min(100, player.townFear + 25);
+      playSound('scream');
+
+      // Trigger fear shake effect on card
+      const mainCard = document.getElementById('main-card');
+      mainCard.classList.add('animate-shake-terror');
+      setTimeout(() => mainCard.classList.remove('animate-shake-terror'), 500);
+
+      logMessage(`💥 [마을 PK 발생!] 무고한 마을 주민을 공격했습니다! (PK 수치: ${player.pkCount}, 마을 공포도: ${player.townFear}%)`, 'text-red-400 font-bold');
+
+      // Check Hidden Job Unlocks
+      checkHiddenJobConditions();
+      renderAll();
+    }
+
+    function performPKAttack() {
+      player.pkCount++;
+      player.townFear = Math.min(100, player.townFear + 15);
+      playSound('scream');
+
+      const rivalGold = Math.floor(Math.random() * 40 + 30);
+      player.gold += rivalGold;
+
+      logMessage(`🗡️️ [무차별 PK] 지나가던 다른 용사를 기습하여 처단했습니다! 골드 +${rivalGold}G 획득!`, 'text-red-400 font-bold');
+      
+      checkHiddenJobConditions();
+      renderAll();
+    }
+
+    function togglePKMode() {
+      pkModeActive = !pkModeActive;
+      const btn = document.getElementById('pk-toggle-btn');
+      const label = document.getElementById('pk-mode-label');
+
+      if (pkModeActive) {
+        btn.className = "absolute top-3 right-4 px-3 py-1 rounded-xl text-xs font-bold border bg-red-950 text-red-300 border-red-500 hover:border-red-400 transition-all flex items-center space-x-1 animate-pulse";
+        label.innerText = "무차별 PK ON 🔥";
+        logMessage("⚠️ 무차별 PK 모드가 활성화되었습니다. 공격 시 인근 존재에게 큰 공포를 줍니다.", "text-red-400");
+      } else {
+        btn.className = "absolute top-3 right-4 px-3 py-1 rounded-xl text-xs font-bold border bg-slate-800 text-slate-400 border-slate-700 hover:border-red-500 transition-all flex items-center space-x-1";
+        label.innerText = "무차별 PK OFF";
+      }
+    }
+
+    function payBountyToClearPK() {
+      const cost = player.pkCount * 100;
+      if (player.pkCount === 0) {
+        logMessage("지은 죄가 없습니다. 면죄부가 필요하지 않습니다.", "text-slate-400");
+        return;
+      }
+
+      if (player.gold >= cost) {
+        player.gold -= cost;
+        player.pkCount = 0;
+        player.townFear = Math.max(0, player.townFear - 50);
+        logMessage(`✨ 면죄부를 구매하여 악명을 세척했습니다! (${cost}G 소모)`, "text-emerald-300");
+        renderAll();
+      } else {
+        logMessage(`골드가 부족합니다! (필요 골드: ${cost}G)`, "text-red-400");
+      }
+    }
+
+    /* Update Town NPC Reactions based on Fear Level */
+    function updateTownNPCReactions() {
+      const fear = player.townFear;
+      const fearBadge = document.getElementById('town-fear-badge');
+      const fearStatusText = document.getElementById('fear-status-text');
+      const townSubtitle = document.getElementById('town-subtitle');
+
+      // Card elements
+      const npc1 = { avatar: document.getElementById('npc-avatar-1'), dialogue: document.getElementById('npc-dialogue-1'), btn: document.getElementById('npc-btn-1') };
+      const npc2 = { avatar: document.getElementById('npc-avatar-2'), dialogue: document.getElementById('npc-dialogue-2'), btn: document.getElementById('npc-btn-2') };
+      const npc3 = { avatar: document.getElementById('npc-avatar-3'), dialogue: document.getElementById('npc-dialogue-3'), btn: document.getElementById('npc-btn-3') };
+
+      if (fear === 0) {
+        fearBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-950 border border-emerald-500/40 text-emerald-300 flex items-center space-x-1";
+        fearStatusText.innerText = "평화로움 (공포도 0%)";
+        townSubtitle.innerText = "평범한 상인들과 여행자들이 모여드는 안락한 휴식처.";
+
+        npc1.avatar.innerText = "🏪";
+        npc1.dialogue.innerText = '"어서오게 용사님! 좋은 포션과 재료가 많다네."';
+        npc1.btn.innerText = "물약 구매 (20G)";
+
+        npc2.avatar.innerText = "👴";
+        npc2.dialogue.innerText = '"마을의 평화를 위해 힘써주게나."';
+
+        npc3.avatar.innerText = "🛡️";
+        npc3.dialogue.innerText = '"오늘도 루미나 마을은 안전하다!"';
+      }
+      else if (fear > 0 && fear < 50) {
+        fearBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-amber-950 border border-amber-500/40 text-amber-300 flex items-center space-x-1";
+        fearStatusText.innerText = `경계 중 (공포도 ${fear}%)`;
+        townSubtitle.innerText = "주민들이 당신을 두려운 눈빛으로 바라보며 경계하고 있습니다.";
+
+        npc1.avatar.innerText = "😰";
+        npc1.dialogue.innerText = '"히익...! 조, 칼은 거두고 말하게... 바가지 안 씌울게..."';
+        npc1.btn.innerText = "협박하여 할인 구매 (10G)";
+
+        npc2.avatar.innerText = "😨";
+        npc2.dialogue.innerText = '"제발 우리 마을 사람들을 해치지 말아주게..."';
+
+        npc3.avatar.innerText = "⚔️";
+        npc3.dialogue.innerText = '"너... 수상한 행동을 하면 즉시 체포하겠다!"';
+      }
+      else { // High Fear (>= 50%) - Total Terror Condition
+        fearBadge.className = "px-3 py-1 rounded-full text-xs font-bold bg-red-950 border border-red-500/40 text-red-300 flex items-center space-x-1 animate-pulse";
+        fearStatusText.innerText = `공포의 도가니 (공포도 ${fear}%) 😱`;
+        townSubtitle.innerText = "살인마의 등장에 주민들이 혼비백산하여 비명을 지르고 문을 잠급니다!";
+
+        npc1.avatar.innerText = "😱";
+        npc1.dialogue.innerText = '"으아아악! 살인마다!! 제발 목숨만은 내버려둬!!"';
+        npc1.btn.innerText = "강탈하기 (무료 수색)";
+
+        npc2.avatar.innerText = "🚪";
+        npc2.dialogue.innerText = '(문이 덜덜 떨리며 잠겨있다) "살려주세요! 마왕이다!"';
+
+        npc3.avatar.innerText = "🚨";
+        npc3.dialogue.innerText = '"경비대 총원 출동! 악당을 처단하라!!"';
+      }
+    }
+
+    function interactNPC(id) {
+      if (id === 1) { // Merchant
+        if (player.townFear >= 50) {
+          // Free loot by fear!
+          const loot = 30;
+          player.gold += loot;
+          logMessage(`😱 겁에 질린 상인이 가방을 버리고 도망쳤습니다! +${loot}G 강탈!`, "text-red-400");
+        } else {
+          const cost = player.townFear > 0 ? 10 : 20;
+          if (player.gold >= cost) {
+            player.gold -= cost;
+            player.hp = Math.min(player.maxHp, player.hp + 40);
+            logMessage(`🧪 포션을 구매하여 마셨습니다! HP +40 회복 (${cost}G 소모)`, "text-emerald-300");
+          } else {
+            logMessage("골드가 부족합니다!", "text-red-400");
+          }
+        }
+      } else if (id === 2) { // Village Chief
+        if (player.townFear >= 50) {
+          logMessage("👴 촌장이 공포에 질려 문을 열어주지 않습니다!", "text-red-400");
+        } else {
+          player.mp = player.maxMp;
+          logMessage("✨ 촌장의 축복을 받아 MP가 모두 회복되었습니다!", "text-purple-300");
+        }
+      } else if (id === 3) { // Guard
+        if (player.townFear >= 50) {
+          // Guard attacks player due to high fear/crime!
+          const dmg = 20;
+          player.hp = Math.max(0, player.hp - dmg);
+          logMessage(`⚔️ 경비대장이 마을을 지키기 위해 당신을 공격했습니다! HP -${dmg}`, "text-red-500 font-bold");
+        } else {
+          logMessage("🛡️ 경비대장: '마을 치안은 이상 없다! 수고하게.'", "text-slate-300");
+        }
+      }
+
+      renderAll();
+    }
+
+    /* ===================================================================
+       5. COMBAT ENGINE
+       =================================================================== */
+    function spawnMonster(index) {
+      const template = MONSTERS[Math.min(index, MONSTERS.length - 1)];
+      currentMonster = {
+        name: template.name,
+        emoji: template.emoji,
+        hp: template.hp,
+        maxHp: template.hp,
+        atk: template.atk,
+        exp: template.exp,
+        gold: template.gold
+      };
+      updateMonsterUI();
+    }
+
+    function playerAttack() {
+      if (!currentMonster || currentMonster.hp <= 0) return;
+
+      playSound('attack');
+      
+      // Calculate Damage
+      const baseDmg = player.str * 1.5 + player.dex * 0.5 + player.job.bonusStr;
+      const dmg = Math.floor(baseDmg + Math.random() * 5);
+
+      currentMonster.hp = Math.max(0, currentMonster.hp - dmg);
+      logMessage(`⚔️ ${player.name}의 공격! ${currentMonster.name}에게 ${dmg}의 피해!`, 'text-slate-200');
+
+      if (currentMonster.hp <= 0) {
+        monsterDefeated();
+      } else {
+        monsterAttack();
+      }
+
+      updateMonsterUI();
+      renderAll();
+    }
+
+    function useSkill() {
+      if (!currentMonster || currentMonster.hp <= 0) return;
+
+      if (player.mp < player.job.skillMp) {
+        logMessage("MP가 부족하여 스킬을 사용할 수 없습니다!", "text-cyan-400");
+        return;
+      }
+
+      playSound('skill');
+      player.mp -= player.job.skillMp;
+
+      // Skill Damage Scaling
+      const skillDmg = Math.floor((player.int * 2 + player.str * 1.2 + 20) * (player.job.isHidden ? 1.8 : 1.2));
+      currentMonster.hp = Math.max(0, currentMonster.hp - skillDmg);
+
+      logMessage(`✨ [${player.job.skillName}] 발동! ${currentMonster.name}에게 ${skillDmg}의 메가 데미지!`, 'text-purple-300 font-bold');
+
+      if (currentMonster.hp <= 0) {
+        monsterDefeated();
+      } else {
+        monsterAttack();
+      }
+
+      updateMonsterUI();
+      renderAll();
+    }
+
+    function monsterAttack() {
+      const dmg = Math.max(1, Math.floor(currentMonster.atk - (player.dex * 0.2)));
+      player.hp = Math.max(0, player.hp - dmg);
+
+      logMessage(`🩸 ${currentMonster.name}의 반격! HP -${dmg}`, 'text-red-400');
+
+      if (player.hp <= 0) {
+        logMessage("☠️ 당신은 쓰러졌습니다... 마을에서 부활합니다.", "text-red-600 font-bold");
+        player.hp = player.maxHp;
+        player.gold = Math.floor(player.gold * 0.8);
+        switchTab('town');
+      }
+    }
+
+    function monsterDefeated() {
+      player.monstersKilled++;
+      player.gold += currentMonster.gold;
+      player.exp += currentMonster.exp;
+
+      logMessage(`🎉 ${currentMonster.name} 처치 완료! +${currentMonster.exp} EXP, +${currentMonster.gold} 골드`, 'text-amber-300 font-bold');
+
+      // Check Level Up
+      if (player.exp >= player.maxExp) {
+        levelUp();
+      }
+
+      checkHiddenJobConditions();
+
+      // Respawn next
+      setTimeout(() => {
+        spawnMonster(player.stage);
+      }, 500);
+    }
+
+    function levelUp() {
+      player.level++;
+      player.exp -= player.maxExp;
+      player.maxExp = Math.floor(player.maxExp * 1.5);
+      player.maxHp += 20;
+      player.hp = player.maxHp;
+      player.maxMp += 10;
+      player.mp = player.maxMp;
+      player.statPoints += 3;
+
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+      logMessage(`🌟 축하합니다! 레벨 업! (Lv.${player.level}) 스탯 포인트 +3 획득!`, 'text-amber-300 font-black');
+    }
+
+    function nextDungeonStage() {
+      player.stage = (player.stage + 1) % MONSTERS.length;
+      spawnMonster(player.stage);
+      logMessage(`🚩 스테이지 변경: ${MONSTERS[player.stage].name}의 영토`, 'text-purple-400');
+    }
+
+    /* ===================================================================
+       6. HIDDEN JOB SYSTEM & ADVANCEMENT
+       =================================================================== */
+    function checkHiddenJobConditions() {
+      JOBS.forEach((j) => {
+        if (!player.unlockedJobs.includes(j.id) && j.checkUnlock) {
+          if (j.checkUnlock(player)) {
+            player.unlockedJobs.push(j.id);
+            confetti({ particleCount: 100, spread: 80 });
+            playSound('jobChange');
+            logMessage(`🔮 [히든 직업 발견!] 해금 조건 달성: <${j.name}> 직업이 해금되었습니다!`, 'text-amber-300 font-black text-sm');
+          }
+        }
+      });
+      renderJobsUI();
+    }
+
+    function changeJob(jobId) {
+      const selectedJob = JOBS.find(j => j.id === jobId);
+      if (!selectedJob) return;
+
+      player.job = selectedJob;
+      playSound('jobChange');
+      confetti({ particleCount: 70, spread: 50 });
+
+      logMessage(`✨ [전직 성공] <${selectedJob.name}> (으)로 전직했습니다!`, 'text-purple-300 font-bold');
+      renderAll();
+    }
+
+    function renderJobsUI() {
+      const container = document.getElementById('job-cards-container');
+      container.innerHTML = '';
+
+      JOBS.forEach((j) => {
+        const isUnlocked = player.unlockedJobs.includes(j.id);
+        const isCurrent = player.job.id === j.id;
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl border flex flex-col justify-between transition-all ${
+          isCurrent 
+            ? 'bg-purple-950/80 border-purple-400 ring-2 ring-purple-500/50' 
+            : isUnlocked 
+              ? 'bg-slate-950 border-slate-700 hover:border-slate-500' 
+              : 'bg-slate-950/40 border-slate-900 opacity-60'
+        }`;
+
+        card.innerHTML = `
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-sm text-slate-100 flex items-center space-x-1">
+                <span>${j.icon}</span>
+                <span>${j.name}</span>
+              </span>
+              ${j.isHidden ? '<span class="bg-red-950 text-red-400 border border-red-800 text-[10px] px-2 py-0.5 rounded-full font-bold">히든 직업</span>' : ''}
+            </div>
+            <p class="text-xs text-slate-400 mt-1">${j.desc}</p>
+            <div class="text-[11px] text-amber-300/90 mt-2">
+              <span class="font-bold">전직 조건:</span> ${j.reqDesc}
+            </div>
+          </div>
+
+          <div class="mt-3 pt-2 border-t border-slate-800/80 flex justify-between items-center">
+            <span class="text-[10px] text-purple-300">스킬: ${j.skillName}</span>
+            ${
+              isCurrent 
+                ? '<span class="text-xs font-bold text-emerald-400">현재 직업</span>' 
+                : isUnlocked 
+                  ? `<button onclick="changeJob('${j.id}')" class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-xs">전직하기</button>` 
+                  : '<span class="text-xs text-slate-500 font-bold">잠김 🔒</span>'
+            }
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    /* ===================================================================
+       7. STATS DISTRIBUTION & UI RENDER
+       =================================================================== */
+    function addStat(stat) {
+      if (player.statPoints > 0) {
+        player.statPoints--;
+        player[stat]++;
+        renderAll();
+      }
+    }
+
+    function updateMonsterUI() {
+      if (!currentMonster) return;
+      document.getElementById('monster-avatar').innerText = currentMonster.emoji;
+      document.getElementById('monster-name').innerText = `${currentMonster.name} (Lv.${player.stage + 1})`;
+      document.getElementById('monster-hp-text').innerText = `${currentMonster.hp} / ${currentMonster.maxHp}`;
+      document.getElementById('monster-hp-bar').style.width = `${(currentMonster.hp / currentMonster.maxHp) * 100}%`;
+      document.getElementById('stage-name').innerText = `단계 ${player.stage + 1}: ${currentMonster.name}의 수풀`;
+    }
+
+    function renderAll() {
+      // Player Info
+      document.getElementById('player-level').innerText = `Lv.${player.level}`;
+      document.getElementById('job-badge').innerText = player.job.name;
+      document.getElementById('skill-btn-label').innerText = `${player.job.skillName}`;
+
+      // HP / MP / EXP
+      document.getElementById('hp-text').innerText = `${player.hp} / ${player.maxHp}`;
+      document.getElementById('hp-bar').style.width = `${(player.hp / player.maxHp) * 100}%`;
+
+      document.getElementById('mp-text').innerText = `${player.mp} / ${player.maxMp}`;
+      document.getElementById('mp-bar').style.width = `${(player.mp / player.maxMp) * 100}%`;
+
+      const expPct = Math.floor((player.exp / player.maxExp) * 100);
+      document.getElementById('exp-text').innerText = `${expPct}%`;
+      document.getElementById('exp-bar').style.width = `${expPct}%`;
+
+      // Gold & PK
+      document.getElementById('player-gold').innerText = `${player.gold} 골드`;
+      document.getElementById('pk-count-text').innerText = `PK: ${player.pkCount}회 (악명 ${player.pkCount * 10})`;
+
+      // Alignment & PK Aura Badge
+      const alignmentBadge = document.getElementById('alignment-badge');
+      const pkBadge = document.getElementById('pk-badge');
+      const pkAura = document.getElementById('pk-bg-aura');
+
+      if (player.pkCount === 0) {
+        alignmentBadge.className = "bg-emerald-900/60 text-emerald-300 text-[11px] font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30";
+        alignmentBadge.innerText = "성향: 평화로운 모험가";
+        pkBadge.classList.add('hidden');
+        pkAura.style.opacity = '0';
+      } else if (player.pkCount < 5) {
+        alignmentBadge.className = "bg-amber-900/60 text-amber-300 text-[11px] font-semibold px-2 py-0.5 rounded-full border border-amber-500/30";
+        alignmentBadge.innerText = "성향: 무법자";
+        pkBadge.classList.remove('hidden');
+        pkBadge.innerText = "PK 주의";
+        pkAura.style.opacity = '0.3';
+      } else {
+        alignmentBadge.className = "bg-red-900/80 text-red-200 text-[11px] font-semibold px-2 py-0.5 rounded-full border border-red-500/50 animate-pulse";
+        alignmentBadge.innerText = "성향: 공포의 살인마 💀";
+        pkBadge.classList.remove('hidden');
+        pkBadge.innerText = "PK 수배범";
+        pkAura.style.opacity = '0.8';
+      }
+
+      // Stats Panel
+      document.getElementById('stat-points-text').innerText = `잔여 포인트: ${player.statPoints}`;
+      document.getElementById('stat-str').innerText = player.str + (player.job.bonusStr || 0);
+      document.getElementById('stat-dex').innerText = player.dex + (player.job.bonusDex || 0);
+      document.getElementById('stat-int').innerText = player.int + (player.job.bonusInt || 0);
+
+      document.getElementById('stat-monsters-killed').innerText = `${player.monstersKilled} 마리`;
+      document.getElementById('stat-pk-killed').innerText = `${player.pkCount} 회`;
+      document.getElementById('stat-fear-index').innerText = `${player.townFear}% (${player.townFear >= 50 ? '공포의 도가니' : '일반'})`;
+
+      // Update Town & Jobs
+      updateTownNPCReactions();
+      renderJobsUI();
+    }
+
+    function switchTab(tab) {
+      ['battle', 'town', 'job', 'stats'].forEach((t) => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        const btn = document.getElementById(`tab-btn-${t}`);
+        btn.className = "flex-1 py-3 px-2 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-colors flex items-center justify-center space-x-1.5";
+      });
+
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tab}`);
+      activeBtn.className = "flex-1 py-3 px-2 text-center border-b-2 border-amber-400 text-amber-400 transition-colors flex items-center justify-center space-x-1.5 font-bold";
+    }
+
+    function logMessage(msg, colorClass = 'text-slate-200') {
+      const box = document.getElementById('game-log-box');
+      const line = document.createElement('div');
+      line.className = colorClass;
+      line.innerText = `> ${msg}`;
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('game-log-box').innerHTML = '';
+    }
+  </script>
+</body>
+</html>

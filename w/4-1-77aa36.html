@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>슬랑이 나라의 왕: 슬랑이 창조 왕국</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'Jua', sans-serif;
+            background: #2e1065;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        .font-gaegu { font-family: 'Gaegu', cursive; }
+
+        /* Royal Glowing Effects */
+        .glow-gold { filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.6)); }
+        .glow-pink { filter: drop-shadow(0 0 12px rgba(244, 114, 182, 0.6)); }
+
+        /* Glassmorphism Panel */
+        .royal-panel {
+            background: rgba(46, 16, 101, 0.75);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(234, 179, 8, 0.4);
+        }
+
+        /* Bounce Animation for Buttons */
+        @keyframes crown-float {
+            0%, 100% { transform: translateY(0) rotate(-3deg); }
+            50% { transform: translateY(-8px) rotate(3deg); }
+        }
+        .animate-crown { animation: crown-float 2.5s ease-in-out infinite; }
+
+        @keyframes pulse-btn {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+        }
+        .animate-pulse-btn { animation: pulse-btn 1.8s ease-in-out infinite; }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col items-center justify-between p-2 sm:p-4 bg-gradient-to-b from-slate-950 via-purple-950 to-indigo-950">
+
+    <!-- ROYAL TOP HUD BAR -->
+    <header class="w-full max-w-4xl royal-panel rounded-3xl px-4 py-3 flex items-center justify-between z-20 shadow-xl border-amber-400/50">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-amber-400/20 border-2 border-amber-400 rounded-2xl flex items-center justify-center text-amber-300 text-2xl glow-gold animate-crown">
+                👑
+            </div>
+            <div>
+                <div class="text-xs text-amber-300 font-mono tracking-widest uppercase flex items-center gap-1">
+                    <i class="fa-solid fa-sparkles text-amber-400"></i> 슬랑이 왕국 제1법칙
+                </div>
+                <h1 class="text-xl sm:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-300 to-purple-200">
+                    슬랑이 소환 왕국
+                </h1>
+            </div>
+        </div>
+
+        <!-- Kingdom Stats Counter & Sound Controls -->
+        <div class="flex items-center gap-3">
+            <div class="bg-purple-900/80 border border-purple-400/40 rounded-2xl px-4 py-1.5 text-center">
+                <div class="text-[10px] text-purple-300">현재 백성 수</div>
+                <div class="text-lg sm:text-2xl text-amber-300 font-bold flex items-center justify-center gap-1">
+                    <span id="slangCount">0</span> <span class="text-xs">마리</span>
+                </div>
+            </div>
+
+            <button id="btnSoundToggle" onclick="toggleMute()" class="w-10 h-10 bg-purple-900/80 border border-purple-400/40 hover:bg-purple-800 rounded-2xl flex items-center justify-center text-purple-200 transition active:scale-95">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-amber-300"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN INTERACTIVE KINGDOM CANVAS AREA -->
+    <main class="relative w-full max-w-4xl flex-1 my-2 rounded-3xl overflow-hidden royal-panel border-2 border-purple-500/30 flex items-center justify-center shadow-2xl">
+        
+        <!-- Canvas for Dynamic Moving Slang-is -->
+        <canvas id="slangCanvas" class="w-full h-full block cursor-pointer"></canvas>
+
+        <!-- Floating King NPC Speech Bubble -->
+        <div id="kingSpeechBox" class="absolute top-4 left-4 max-w-xs bg-slate-950/80 border border-amber-400/60 rounded-2xl p-3 shadow-lg backdrop-blur-md flex items-start gap-2 text-xs transition-all duration-300 pointer-events-none">
+            <div class="text-2xl">👑</div>
+            <div>
+                <div class="text-amber-300 font-bold mb-0.5">국왕 슬랑왕 1세</div>
+                <div id="kingSpeechText" class="text-slate-200 font-gaegu text-base leading-tight">
+                    "버튼을 눌러 새로운 슬랑이를 연못에 소환해보거라! 움직이는 슬랑이를 누르면 귀여운 소리가 난단다!"
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Interaction Hint -->
+        <div class="absolute bottom-3 right-4 pointer-events-none text-purple-300/60 text-xs flex items-center gap-1.5 font-mono">
+            <i class="fa-solid fa-hand-pointer animate-bounce"></i> 슬랑이를 직접 터치해보세요!
+        </div>
+    </main>
+
+    <!-- BOTTOM ROYAL ACTION BUTTON BAR -->
+    <footer class="w-full max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-3 z-20">
+        
+        <!-- Main Summon Button -->
+        <button id="btnSummon" onclick="summonSlang()" class="w-full sm:flex-1 bg-gradient-to-r from-amber-400 via-pink-500 to-purple-600 hover:from-amber-300 hover:to-purple-500 text-slate-950 font-bold text-xl sm:text-2xl py-3.5 px-6 rounded-3xl shadow-lg shadow-pink-500/30 border-2 border-amber-200 active:scale-95 transition transform flex items-center justify-center gap-3 animate-pulse-btn">
+            <span class="text-2xl">✨</span>
+            <span>슬랑이 소환하기!</span>
+            <span class="text-xs bg-slate-950/30 text-amber-200 px-2.5 py-1 rounded-full border border-amber-300/40">1마리</span>
+        </button>
+
+        <!-- Extra Kingdom Utility Buttons -->
+        <div class="flex w-full sm:w-auto gap-2">
+            <button onclick="summonBurst(5)" class="flex-1 sm:flex-none bg-purple-900/90 hover:bg-purple-800 border border-purple-400/50 text-amber-300 font-bold text-sm py-3 px-4 rounded-2xl flex items-center justify-center gap-1.5 transition active:scale-95">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 5마리 연속
+            </button>
+            <button onclick="triggerPartyDance()" class="flex-1 sm:flex-none bg-indigo-900/90 hover:bg-indigo-800 border border-indigo-400/50 text-pink-300 font-bold text-sm py-3 px-4 rounded-2xl flex items-center justify-center gap-1.5 transition active:scale-95">
+                <i class="fa-solid fa-music"></i> 댄스 타임!
+            </button>
+            <button onclick="clearAllSlangs()" class="bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs py-3 px-3 rounded-2xl flex items-center justify-center transition active:scale-95" title="왕국 초기화">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        /* ===================================================================
+         * WEB AUDIO SYNTHESIZER FOR SOUND EFFECTS
+         * =================================================================== */
+        let audioCtx = null;
+        let isMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('soundIcon').className = isMuted ? 
+                'fa-solid fa-volume-xmark text-rose-400' : 'fa-solid fa-volume-high text-amber-300';
+            speakKing("소리가 " + (isMuted ? "꺼졌도다!" : "켜졌도다!"));
+        }
+
+        function playSlangSound(type, pitch = 1.0) {
+            if (isMuted) return;
+            try {
+                initAudio();
+                if (!audioCtx) return;
+
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'summon') {
+                    // Magic chime sweep
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300 * pitch, now);
+                    osc.frequency.exponentialRampToValueAtTime(800 * pitch, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'pop') {
+                    // Cute squishy pop sound
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(500 * pitch, now);
+                    osc.frequency.exponentialRampToValueAtTime(1200 * pitch, now + 0.08);
+                    osc.frequency.exponentialRampToValueAtTime(200 * pitch, now + 0.16);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                    osc.start(now);
+                    osc.stop(now + 0.18);
+                } else if (type === 'royal') {
+                    // Arpeggio royal chime
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.08);
+                    osc.frequency.setValueAtTime(783.99, now + 0.16);
+                    osc.frequency.setValueAtTime(1046.50, now + 0.24);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if (type === 'bounce') {
+                    // Soft rubber bounce sound
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(180 * pitch, now);
+                    osc.frequency.linearRampToValueAtTime(320 * pitch, now + 0.05);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                }
+            } catch(e) {}
+        }
+
+        /* ===================================================================
+         * SLANG-I DATA & VARIETY GENERATOR
+         * =================================================================== */
+        const SLANG_TYPES = [
+            {
+                name: '말랑 분홍 슬랑이',
+                color: '#f472b6',
+                accentColor: '#fbcfe8',
+                face: '( • o • )',
+                rarity: 'Common',
+                phrases: ["슬랑!", "말랑말랑~", "왕님 안녕!"]
+            },
+            {
+                name: '민트 젤리 슬랑이',
+                color: '#2dd4bf',
+                accentColor: '#99f6e4',
+                face: '( ◡ ‿ ◡ )',
+                rarity: 'Common',
+                phrases: ["뽀용!", "상큼해!", "통통통~"]
+            },
+            {
+                name: '바나나 버터 슬랑이',
+                color: '#facc15',
+                accentColor: '#fef08a',
+                face: '( 𝜔 )',
+                rarity: 'Common',
+                phrases: ["달콤슬랑!", "버터처럼 스르륵!", "헤헤~"]
+            },
+            {
+                name: '국왕 황금 슬랑이',
+                color: '#fbbf24',
+                accentColor: '#ffffff',
+                face: '(👑 ◡ 👑)',
+                accessory: 'crown',
+                rarity: 'Legendary',
+                phrases: ["짐이 바로 슬랑왕이다!", "황금빛 영광!", "왕국의 축복!"]
+            },
+            {
+                name: '고양이 귀 슬랑이',
+                color: '#a78bfa',
+                accentColor: '#f472b6',
+                face: '(=^•ω•^=)',
+                accessory: 'catEars',
+                rarity: 'Rare',
+                phrases: ["야옹슬랑!", "골골골~", "털실 좋아!"]
+            },
+            {
+                name: '별빛 별 슬랑이',
+                color: '#38bdf8',
+                accentColor: '#fef08a',
+                face: '(⭐ v ⭐)',
+                accessory: 'star',
+                rarity: 'Rare',
+                phrases: ["반짝반짝!", "소원을 빌어봐!", "별빛 파티!"]
+            },
+            {
+                name: '장난꾸러기 악마 슬랑이',
+                color: '#c084fc',
+                accentColor: '#f43f5e',
+                face: '( > 𝜔 < )',
+                accessory: 'horns',
+                rarity: 'Rare',
+                phrases: ["메롱~!", "내가 제일 빠르지!", "메롱메롱!"]
+            },
+            {
+                name: '무지개 포션 슬랑이',
+                color: '#ec4899',
+                accentColor: '#06b6d4',
+                face: '(🌈 ◡ 🌈)',
+                isRainbow: true,
+                rarity: 'Epic',
+                phrases: ["알록달록 슬랑!", "신비로운 환상!", "무지개 뿅!"]
+            },
+            {
+                name: '초코 칩 슬랑이',
+                color: '#b45309',
+                accentColor: '#fde68a',
+                face: '( 🍪 𝜔 🍪 )',
+                rarity: 'Common',
+                phrases: ["바삭바삭!", "초코 향기!", "우유 주세요!"]
+            },
+            {
+                name: '사이버 네온 슬랑이',
+                color: '#10b981',
+                accentColor: '#22d3ee',
+                face: '( ⌐■_■ )',
+                accessory: 'visor',
+                rarity: 'Epic',
+                phrases: ["시스템 가동!", "사이버 슬랑 로딩...", "삐빅!"]
+            }
+        ];
+
+        const KING_SPEECHES = [
+            "짐의 나라에 참으로 귀여운 슬랑이가 태어났도다!",
+            "슬랑이들을 손가락으로 누르면 기분이 좋아서 소리를 낸단다!",
+            "왕국에 슬랑이가 가득 차니 짐의 마음도 풍족해지는구나!",
+            "더 많은 슬랑이를 소환하여 최고의 슬랑이 동산을 만들어보거라!",
+            "댄스 타임 버튼을 누르면 모든 슬랑이가 신나게 출렁인단다!"
+        ];
+
+        /* ===================================================================
+         * SLANG-I CLASS ENGINE & PHYSICS
+         * =================================================================== */
+        const canvas = document.getElementById('slangCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let slangs = [];
+        let particles = [];
+        let floatingTexts = [];
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        class Slang {
+            constructor(x, y, template) {
+                this.x = x || Math.random() * (canvas.width - 100) + 50;
+                this.y = y || Math.random() * (canvas.height - 100) + 50;
+                this.radius = Math.floor(Math.random() * 12) + 28; // Size
+                
+                // Physics setup
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 2 + 1.2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+
+                // Template properties
+                this.type = template;
+                this.color = template.color;
+                this.accentColor = template.accentColor;
+                this.face = template.face;
+                this.accessory = template.accessory;
+                this.isRainbow = template.isRainbow || false;
+                this.phrases = template.phrases;
+
+                // Squish & Bounce Physics variables
+                this.squishX = 1.0;
+                this.squishY = 1.0;
+                this.wobbleAngle = Math.random() * Math.PI;
+                this.rainbowHue = Math.random() * 360;
+
+                // Audio Pitch based on size
+                this.pitch = 1.5 - (this.radius / 50);
+            }
+
+            update() {
+                // Rainbow color cycling
+                if (this.isRainbow) {
+                    this.rainbowHue = (this.rainbowHue + 2) % 360;
+                    this.color = `hsl(${this.rainbowHue}, 90%, 65%)`;
+                }
+
+                // Bounce against Walls
+                let bounced = false;
+                if (this.x - this.radius < 0) {
+                    this.x = this.radius;
+                    this.vx *= -1;
+                    bounced = true;
+                } else if (this.x + this.radius > canvas.width) {
+                    this.x = canvas.width - this.radius;
+                    this.vx *= -1;
+                    bounced = true;
+                }
+
+                if (this.y - this.radius < 0) {
+                    this.y = this.radius;
+                    this.vy *= -1;
+                    bounced = true;
+                } else if (this.y + this.radius > canvas.height) {
+                    this.y = canvas.height - this.radius;
+                    this.vy *= -1;
+                    bounced = true;
+                }
+
+                if (bounced) {
+                    this.squishX = 1.3;
+                    this.squishY = 0.7;
+                    playSlangSound('bounce', this.pitch * 0.8);
+                }
+
+                // Movement
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Wobble Animation recovery (Squish & Stretch)
+                this.wobbleAngle += 0.08;
+                const naturalSquish = Math.sin(this.wobbleAngle) * 0.06;
+                this.squishX += (1.0 + naturalSquish - this.squishX) * 0.12;
+                this.squishY += (1.0 - naturalSquish - this.squishY) * 0.12;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.scale(this.squishX, this.squishY);
+
+                // Glow aura for rare slangs
+                if (this.type.rarity === 'Legendary') {
+                    ctx.shadowColor = '#facc15';
+                    ctx.shadowBlur = 18;
+                } else if (this.type.rarity === 'Epic') {
+                    ctx.shadowColor = '#ec4899';
+                    ctx.shadowBlur = 14;
+                }
+
+                // Slime Body (Soft Rounded Drop)
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Inner Highlight/Shine
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.beginPath();
+                ctx.arc(-this.radius * 0.3, -this.radius * 0.3, this.radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Accessories
+                if (this.accessory === 'crown') {
+                    ctx.font = `${this.radius * 0.7}px "Jua"`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText('👑', 0, -this.radius * 0.85);
+                } else if (this.accessory === 'catEars') {
+                    ctx.fillStyle = this.accentColor;
+                    // Left ear
+                    ctx.beginPath();
+                    ctx.moveTo(-this.radius * 0.7, -this.radius * 0.4);
+                    ctx.lineTo(-this.radius * 0.3, -this.radius * 0.9);
+                    ctx.lineTo(-this.radius * 0.1, -this.radius * 0.5);
+                    ctx.fill();
+                    // Right ear
+                    ctx.beginPath();
+                    ctx.moveTo(this.radius * 0.7, -this.radius * 0.4);
+                    ctx.lineTo(this.radius * 0.3, -this.radius * 0.9);
+                    ctx.lineTo(this.radius * 0.1, -this.radius * 0.5);
+                    ctx.fill();
+                } else if (this.accessory === 'star') {
+                    ctx.font = `${this.radius * 0.5}px "Jua"`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText('⭐', 0, -this.radius * 0.8);
+                } else if (this.accessory === 'horns') {
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath();
+                    ctx.arc(-this.radius * 0.5, -this.radius * 0.7, 5, 0, Math.PI * 2);
+                    ctx.arc(this.radius * 0.5, -this.radius * 0.7, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (this.accessory === 'visor') {
+                    ctx.fillStyle = '#22d3ee';
+                    ctx.fillRect(-this.radius * 0.6, -this.radius * 0.25, this.radius * 1.2, 8);
+                }
+
+                // Face Expression
+                ctx.fillStyle = '#0f172a';
+                ctx.font = `bold ${Math.floor(this.radius * 0.45)}px "Jua", sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.face, 0, 2);
+
+                ctx.restore();
+            }
+
+            onClick() {
+                // High Squish Pop Effect
+                this.squishX = 1.5;
+                this.squishY = 0.5;
+
+                // Random speed boost
+                this.vx = (Math.random() - 0.5) * 8;
+                this.vy = (Math.random() - 0.5) * 8;
+
+                // Sound Effect
+                if (this.type.rarity === 'Legendary') {
+                    playSlangSound('royal', this.pitch);
+                } else {
+                    playSlangSound('pop', this.pitch);
+                }
+
+                // Spawn Heart & Star Particles
+                createHeartParticles(this.x, this.y, this.color);
+
+                // Show Cute Text Popup
+                const phrase = this.phrases[Math.floor(Math.random() * this.phrases.length)];
+                addFloatingText(this.x, this.y - this.radius, phrase, this.color);
+
+                speakKing(`"${phrase}" 하고 슬랑이가 반응하는구나!`);
+            }
+        }
+
+        /* ===================================================================
+         * PARTICLES & FLOATING TEXTS
+         * =================================================================== */
+        function createHeartParticles(x, y, color) {
+            const count = 8;
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6 - 2,
+                    size: Math.random() * 12 + 8,
+                    color: color,
+                    alpha: 1.0,
+                    symbol: Math.random() > 0.5 ? '💖' : '✨'
+                });
+            }
+        }
+
+        function addFloatingText(x, y, text, color) {
+            floatingTexts.push({
+                x: x,
+                y: y,
+                text: text,
+                color: color,
+                alpha: 1.0,
+                vy: -1.5
+            });
+        }
+
+        /* ===================================================================
+         * GAME LOGIC & USER ACTIONS
+         * =================================================================== */
+        function summonSlang(customX = null, customY = null) {
+            initAudio();
+            const template = SLANG_TYPES[Math.floor(Math.random() * SLANG_TYPES.length)];
+            const newSlang = new Slang(customX, customY, template);
+            slangs.push(newSlang);
+
+            if (template.rarity === 'Legendary') {
+                playSlangSound('royal');
+                speakKing(`🎉 보아라! 전설의 [${template.name}]이(가) 강림하셨도다!`);
+            } else {
+                playSlangSound('summon', newSlang.pitch);
+            }
+
+            // Spawn Particles at creation
+            createHeartParticles(newSlang.x, newSlang.y, newSlang.color);
+
+            updateHUDCount();
+
+            // Dynamic King Comment occasionally
+            if (Math.random() < 0.2) {
+                const randomSpeech = KING_SPEECHES[Math.floor(Math.random() * KING_SPEECHES.length)];
+                speakKing(randomSpeech);
+            }
+        }
+
+        function summonBurst(count) {
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    summonSlang();
+                }, i * 80);
+            }
+        }
+
+        function triggerPartyDance() {
+            if (slangs.length === 0) {
+                speakKing("왕국에 슬랑이가 없도다! 먼저 슬랑이를 소환해주게나!");
+                return;
+            }
+            speakKing("💃 신나는 슬랑이 댄스 타임 개막!");
+            playSlangSound('royal');
+
+            slangs.forEach(s => {
+                s.vx = (Math.random() - 0.5) * 12;
+                s.vy = (Math.random() - 0.5) * 12;
+                s.squishX = 1.4;
+                s.squishY = 0.6;
+                createHeartParticles(s.x, s.y, s.color);
+            });
+        }
+
+        function clearAllSlangs() {
+            if (slangs.length === 0) return;
+            slangs = [];
+            updateHUDCount();
+            speakKing("슬랑이들이 잠시 쉬러 왕국 동굴로 들어갔도다.");
+        }
+
+        function updateHUDCount() {
+            document.getElementById('slangCount').innerText = slangs.length;
+        }
+
+        function speakKing(message) {
+            const box = document.getElementById('kingSpeechText');
+            box.innerText = message;
+        }
+
+        /* ===================================================================
+         * INPUT TOUCH & CLICK LISTENERS
+         * =================================================================== */
+        canvas.addEventListener('mousedown', (e) => handleCanvasInput(e));
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (e.touches.length > 0) {
+                handleCanvasInput(e.touches[0]);
+            }
+        });
+
+        function handleCanvasInput(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            let hitAny = false;
+            // Iterate backwards so top slangs are clicked first
+            for (let i = slangs.length - 1; i >= 0; i--) {
+                const s = slangs[i];
+                const dist = Math.hypot(clickX - s.x, clickY - s.y);
+                if (dist <= s.radius * 1.2) {
+                    s.onClick();
+                    hitAny = true;
+                    break;
+                }
+            }
+
+            // Clicked empty field: Spawn a small heart effect
+            if (!hitAny && slangs.length > 0) {
+                createHeartParticles(clickX, clickY, '#f472b6');
+            }
+        }
+
+        /* ===================================================================
+         * MAIN ANIMATION LOOP
+         * =================================================================== */
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Subtle Kingdom Pond Background Elements
+            ctx.fillStyle = 'rgba(124, 58, 237, 0.08)';
+            ctx.beginPath();
+            ctx.arc(canvas.width * 0.3, canvas.height * 0.4, 180, 0, Math.PI * 2);
+            ctx.arc(canvas.width * 0.7, canvas.height * 0.7, 220, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Update & Draw Slangs
+            slangs.forEach(s => {
+                s.update();
+                s.draw();
+            });
+
+            // Update & Render Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.025;
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.font = `${p.size}px "Jua"`;
+                ctx.fillText(p.symbol, p.x, p.y);
+                ctx.restore();
+            }
+
+            // Update & Render Floating Damage/Speech Text
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y += ft.vy;
+                ft.alpha -= 0.02;
+
+                if (ft.alpha <= 0) {
+                    floatingTexts.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = ft.alpha;
+                ctx.font = 'bold 18px "Jua", sans-serif';
+                ctx.fillStyle = ft.color;
+                ctx.textAlign = 'center';
+                ctx.shadowColor = '#000000';
+                ctx.shadowBlur = 4;
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        /* Window Onload Initialization */
+        window.onload = function() {
+            resizeCanvas();
+            // Start with 3 default initial Slang-is
+            summonSlang(canvas.width * 0.3, canvas.height * 0.5);
+            summonSlang(canvas.width * 0.5, canvas.height * 0.4);
+            summonSlang(canvas.width * 0.7, canvas.height * 0.6);
+            
+            // Start Game Loop
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>나의 미래운 🔮 - 당신의 운명을 관측하고 기운을 발동하세요</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;500;700;900&display=swap" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            batang: ['"Gowun Batang"', 'serif'],
+            sans: ['"Noto Sans KR"', 'sans-serif']
+          },
+          colors: {
+            mystic: {
+              900: '#0c0714',
+              800: '#180e29',
+              700: '#2a1745',
+              glow: '#a855f7',
+              gold: '#fbbf24',
+              cyan: '#06b6d4',
+              energy: '#22c55e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #1e0b36 0%, #080312 100%);
+      color: #f3e8ff;
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .glass-panel {
+      background: rgba(24, 14, 41, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(168, 85, 247, 0.25);
+    }
+
+    .glass-card {
+      background: rgba(42, 23, 69, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(251, 191, 36, 0.2);
+    }
+
+    /* Orb Pulse Animation */
+    @keyframes orbGlow {
+      0%, 100% {
+        box-shadow: 0 0 30px rgba(168, 85, 247, 0.5), inset 0 0 20px rgba(168, 85, 247, 0.8);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 60px rgba(168, 85, 247, 0.9), 0 0 90px rgba(6, 182, 212, 0.6), inset 0 0 40px rgba(251, 191, 36, 0.9);
+        transform: scale(1.03);
+      }
+    }
+
+    .orb-pulse {
+      animation: orbGlow 3s infinite ease-in-out;
+    }
+
+    /* Energy Bar Fill Animation */
+    .energy-bar-glow {
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+    }
+
+    /* Floating card animation */
+    @keyframes floatCard {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .float-anim {
+      animation: floatCard 4s ease-in-out infinite;
+    }
+
+    /* Floating Text Animation */
+    @keyframes floatUpText {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.9); }
+      50% { transform: translate(-50%, -100%) scale(1.1); }
+      100% { opacity: 0; transform: translate(-50%, -150%) scale(1); }
+    }
+
+    .float-text {
+      position: absolute;
+      animation: floatUpText 1s forwards ease-out;
+      pointer-events: none;
+      z-index: 100;
+      font-weight: 900;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(12, 7, 20, 0.8);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(168, 85, 247, 0.5);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-between pb-6 relative select-none">
+
+  <!-- Top Navigation / Energy Status Bar -->
+  <header class="w-full max-w-md px-4 pt-4 pb-3 sticky top-0 z-40 glass-panel rounded-b-3xl border-t-0 shadow-2xl">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 via-mystic-glow to-amber-400 p-0.5 shadow-lg flex items-center justify-center">
+          <span class="text-xl animate-pulse">🔮</span>
+        </div>
+        <div>
+          <h1 class="text-base font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-purple-200 to-cyan-300 font-batang">
+            나의 미래운
+          </h1>
+          <p class="text-[10px] text-purple-300/80 font-sans">미래를 관측하고 기운을 지불하세요</p>
+        </div>
+      </div>
+
+      <!-- Sound & Info Controls -->
+      <div class="flex items-center space-x-2">
+        <button id="btn-sound" onclick="toggleSound()" class="w-9 h-9 rounded-xl bg-purple-950/80 border border-purple-500/40 flex items-center justify-center text-amber-300 hover:text-white active:scale-95 transition-all">
+          <i id="sound-icon" class="fa-solid fa-volume-high text-sm"></i>
+        </button>
+        <button onclick="toggleModal('modal-info')" class="w-9 h-9 rounded-xl bg-purple-950/80 border border-purple-500/40 flex items-center justify-center text-amber-300 hover:text-white active:scale-95 transition-all">
+          <i class="fa-solid fa-circle-question text-sm"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Energy Gauge (기운) -->
+    <div class="mt-3 bg-purple-950/80 p-2.5 rounded-2xl border border-purple-500/30">
+      <div class="flex justify-between items-center text-xs mb-1.5">
+        <span class="font-bold text-emerald-400 flex items-center gap-1.5">
+          <i class="fa-solid fa-bolt text-amber-400 animate-pulse"></i> 보유 기운 (Energy)
+        </span>
+        <span id="energy-text" class="font-black text-amber-300 tracking-wider">100 / 100 Ki</span>
+      </div>
+      <div class="w-full h-3 bg-slate-950/90 rounded-full overflow-hidden border border-emerald-500/40 p-0.5">
+        <div id="energy-bar" class="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-amber-400 rounded-full transition-all duration-300 energy-bar-glow w-full"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container Viewports -->
+  <main class="w-full max-w-md flex-1 px-4 mt-3 space-y-4 relative z-10">
+
+    <!-- NAVIGATION TABS -->
+    <div class="grid grid-cols-3 gap-2 bg-purple-950/60 p-1.5 rounded-2xl border border-purple-500/30">
+      <button id="tab-btn-observe" onclick="switchTab('observe')" class="py-2 rounded-xl text-xs font-bold transition-all bg-purple-600 text-white shadow-lg flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-eye"></i> 미래 관측
+      </button>
+      <button id="tab-btn-inventory" onclick="switchTab('inventory')" class="py-2 rounded-xl text-xs font-bold transition-all text-purple-300 hover:text-white flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-scroll"></i> 소장 운명
+      </button>
+      <button id="tab-btn-charge" onclick="switchTab('charge')" class="py-2 rounded-xl text-xs font-bold transition-all text-purple-300 hover:text-white flex items-center justify-center gap-1.5">
+        <i class="fa-solid fa-bolt-lightning text-amber-400"></i> 기 수련
+      </button>
+    </div>
+
+    <!-- TAB 1: OBSERVE FUTURE (미래 관측) -->
+    <section id="tab-observe" class="space-y-4">
+      
+      <!-- Crystal Orb Stage Canvas -->
+      <div class="glass-panel rounded-3xl p-6 relative flex flex-col items-center justify-center overflow-hidden border-2 border-purple-500/40 shadow-2xl min-h-[340px]">
+        <!-- Background Canvas Particle Effect -->
+        <canvas id="bgCanvas" class="absolute inset-0 w-full h-full pointer-events-none z-0"></canvas>
+
+        <div class="relative z-10 flex flex-col items-center text-center">
+          <!-- Interactive Mystic Orb -->
+          <div 
+            id="mystic-orb" 
+            onclick="observeFuture()"
+            class="w-40 h-40 rounded-full bg-gradient-to-tr from-purple-900 via-mystic-glow to-cyan-400 orb-pulse flex items-center justify-center cursor-pointer transition-transform active:scale-95 relative group shadow-2xl"
+          >
+            <div class="w-32 h-32 rounded-full bg-slate-950/60 backdrop-blur-sm flex items-center justify-center border border-amber-300/40">
+              <span id="orb-icon" class="text-6xl filter drop-shadow-[0_0_15px_rgba(251,191,36,0.8)] transition-all">🔮</span>
+            </div>
+            <!-- Orb Ripple Rings -->
+            <div class="absolute inset-0 rounded-full border border-purple-400/30 animate-ping pointer-events-none"></div>
+          </div>
+
+          <!-- Status Message -->
+          <p id="orb-status-text" class="mt-5 text-sm font-bold text-purple-200 font-batang tracking-wide drop-shadow">
+            "구슬을 터치하거나 아래 버튼을 눌러 미래를 읽어보세요."
+          </p>
+
+          <!-- Primary Observe Action Button -->
+          <button 
+            id="btn-observe"
+            onclick="observeFuture()"
+            class="mt-4 px-8 py-3.5 bg-gradient-to-r from-purple-600 via-amber-500 to-cyan-500 hover:brightness-110 active:scale-95 rounded-2xl font-black text-sm text-slate-950 border border-amber-200 shadow-xl flex items-center space-x-2 transition-all cursor-pointer"
+          >
+            <span>🔮 미래 관측하기</span>
+            <span class="text-xs bg-black/30 px-2 py-0.5 rounded-full text-white font-normal">(소모: 10 기운)</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 2: INVENTORY / ACQUIRED FUTURES (소장한 미래) -->
+    <section id="tab-inventory" class="hidden space-y-3">
+      <div class="glass-panel rounded-2xl p-4 border border-purple-500/30">
+        <div class="flex items-center justify-between border-b border-purple-500/30 pb-2.5 mb-3">
+          <h2 class="text-sm font-bold text-amber-300 flex items-center gap-2">
+            <i class="fa-solid fa-box-archive text-amber-400"></i>
+            <span>내가 소장한 미래 운명 보관함</span>
+          </h2>
+          <span id="inventory-count" class="text-xs text-purple-300">총 0개 소장</span>
+        </div>
+
+        <p class="text-xs text-purple-200/70 mb-3 font-sans">
+          습득한 미래는 언제든 보유 기운(기)을 추가로 지불하여 능력을 실제로 발동할 수 있습니다.
+        </p>
+
+        <!-- Inventory List Container -->
+        <div id="inventory-list" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+          <!-- Dynamically populated inventory -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: CHARGE KI (기 수련 / 충전) -->
+    <section id="tab-charge" class="hidden space-y-3">
+      <div class="glass-panel rounded-2xl p-5 border border-purple-500/30 text-center space-y-4">
+        <div>
+          <h2 class="text-base font-black text-amber-300 font-batang flex items-center justify-center gap-2">
+            <i class="fa-solid fa-spa text-emerald-400"></i> 우주 기운 명상 수련소
+          </h2>
+          <p class="text-xs text-purple-200/80 mt-1">
+            터치하여 기운을 집중하거나 수련하여 최대 기운을 회복하세요.
+          </p>
+        </div>
+
+        <!-- Charging Sphere Trigger -->
+        <div 
+          id="charge-sphere"
+          onclick="chargeKiManual(event)"
+          class="w-32 h-32 mx-auto rounded-full bg-gradient-to-tr from-emerald-600 via-teal-400 to-amber-300 p-1 flex items-center justify-center cursor-pointer active:scale-90 transition-transform shadow-[0_0_40px_rgba(34,197,94,0.6)] group"
+        >
+          <div class="w-full h-full rounded-full bg-slate-950/80 flex flex-col items-center justify-center p-2">
+            <i class="fa-solid fa-hand-holding-hand text-3xl text-emerald-400 group-hover:scale-110 transition-transform"></i>
+            <span class="text-[10px] font-bold text-emerald-300 mt-1">기운 모으기</span>
+            <span class="text-[9px] text-amber-300">+5 Ki</span>
+          </div>
+        </div>
+
+        <!-- Auto Zen Mode Button -->
+        <div class="pt-2">
+          <button 
+            id="btn-zen"
+            onclick="toggleZenMeditation()"
+            class="w-full py-3 bg-purple-900/80 hover:bg-purple-800 border border-purple-400/40 rounded-xl text-xs font-bold text-purple-200 transition-all flex items-center justify-center space-x-2"
+          >
+            <i class="fa-solid fa-yin-yang animate-spin text-amber-400"></i>
+            <span id="zen-btn-text">심호흡 자동 명상 모드 시작 (+2 Ki / 초)</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: FUTURE REVEAL RESULT -->
+  <div id="modal-reveal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm glass-panel border-2 border-amber-400/60 rounded-3xl p-6 shadow-2xl relative text-center space-y-4 float-anim">
+      
+      <!-- Close Button -->
+      <button onclick="toggleModal('modal-reveal')" class="absolute top-4 right-4 text-purple-300 hover:text-white text-lg w-8 h-8 rounded-full bg-purple-950/80 flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <!-- Rarity Badge -->
+      <div id="reveal-rarity-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-400/50">
+        ✨ 전설적인 미래
+      </div>
+
+      <!-- Icon Display -->
+      <div id="reveal-icon" class="text-6xl my-2 filter drop-shadow-[0_0_20px_rgba(251,191,36,0.8)]">
+        🏆
+      </div>
+
+      <!-- Title & Description -->
+      <div>
+        <h3 id="reveal-title" class="text-lg font-black text-amber-200 font-batang tracking-wide">
+          뜻밖의 엄청난 재물 운명
+        </h3>
+        <p id="reveal-desc" class="text-xs text-purple-100/90 leading-relaxed mt-2.5 font-sans bg-purple-950/70 p-3.5 rounded-2xl border border-purple-500/30 text-left">
+          조만간 예상치 못한 귀인을 만나 생각지 못한 보상을 얻게 됩니다.
+        </p>
+      </div>
+
+      <!-- Cost & Acquisition Buttons -->
+      <div class="pt-2 space-y-2">
+        <button 
+          id="btn-acquire"
+          onclick="acquireCurrentFuture()"
+          class="w-full py-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-amber-400 hover:brightness-110 active:scale-95 text-slate-950 font-black text-sm rounded-2xl shadow-xl border border-emerald-200 flex items-center justify-center space-x-2 cursor-pointer transition-all"
+        >
+          <span>✨ 기운을 지불하고 미래 습득하기</span>
+          <span id="acquire-cost-tag" class="text-xs bg-slate-950/30 px-2 py-0.5 rounded-full text-slate-900 font-bold">(소모: 25 Ki)</span>
+        </button>
+
+        <button 
+          onclick="toggleModal('modal-reveal')"
+          class="w-full py-2.5 bg-purple-950/80 hover:bg-purple-900 text-purple-300 font-bold text-xs rounded-xl border border-purple-500/30"
+        >
+          미래를 받아들이지 않고 흘려보내기
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: APP INFO / HOW TO PLAY -->
+  <div id="modal-info" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-sm glass-panel border-2 border-purple-500/60 rounded-3xl p-6 shadow-2xl relative text-center space-y-4">
+      <button onclick="toggleModal('modal-info')" class="absolute top-4 right-4 text-purple-300 hover:text-white text-lg w-8 h-8 rounded-full bg-purple-950/80 flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-purple-600 to-amber-400 p-0.5 flex items-center justify-center text-3xl shadow-lg">
+        🔮
+      </div>
+      <h2 class="text-xl font-black text-amber-300 font-batang">나의 미래운 이용 가이드</h2>
+
+      <div class="text-left text-xs text-purple-100 space-y-3 bg-purple-950/80 p-4 rounded-2xl border border-purple-500/30 font-sans">
+        <p class="flex items-start gap-2">
+          <span class="bg-amber-400 text-slate-950 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">1</span>
+          <span><b>미래 관측:</b> 신비로운 구슬을 관측하여 무작위로 다가올 미래의 운명을 시공간 너머로 확인합니다.</span>
+        </p>
+        <p class="flex items-start gap-2">
+          <span class="bg-amber-400 text-slate-950 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">2</span>
+          <span><b>운명 습득:</b> 마음에 드는 미래가 나오면 <b>보유 기운(Ki)</b>을 지불하여 자신의 운명 보관함에 습득할 수 있습니다.</span>
+        </p>
+        <p class="flex items-start gap-2">
+          <span class="bg-amber-400 text-slate-950 rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">3</span>
+          <span><b>기운 지불 & 발동:</b> 보관함에 저장된 미래 능력은 언제든 추가 기운을 소모하여 실제 효과와 기운 버프를 즉시 발동할 수 있습니다.</span>
+        </p>
+      </div>
+
+      <button onclick="toggleModal('modal-info')" class="w-full py-3 bg-gradient-to-r from-purple-600 to-amber-500 text-slate-950 font-black text-sm rounded-2xl shadow-lg border border-amber-200 active:scale-95 transition-all">
+        운명 관측 시작하기 ✨
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* ===================================================================
+       1. WEB AUDIO SYNTHESIZER (신비로운 효과음 음원 생성기)
+       =================================================================== */
+    let soundEnabled = true;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'observe') {
+          // Mystic Arpeggio
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else if (type === 'reveal') {
+          // High Chime
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.1);
+          osc.frequency.setValueAtTime(783.99, now + 0.2);
+          osc.frequency.setValueAtTime(1046.50, now + 0.3);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        } else if (type === 'charge') {
+          // Energy pulse sound
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.exponentialRampToValueAtTime(440, now + 0.12);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'activate') {
+          // Power explosion
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.linearRampToValueAtTime(1200, now + 0.4);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.45);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } else if (type === 'error') {
+          // Low warning note
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(180, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        }
+      } catch(e) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-icon').className = soundEnabled 
+        ? 'fa-solid fa-volume-high text-sm' 
+        : 'fa-solid fa-volume-xmark text-sm text-rose-400';
+    }
+
+    function toggleModal(id) {
+      const el = document.getElementById(id);
+      el.classList.toggle('hidden');
+    }
+
+    /* ===================================================================
+       2. DATABASE OF RANDOM FUTURES (무작위 미래 운명 데이터베이스)
+       =================================================================== */
+    const RANDOM_FUTURES = [
+      {
+        id: 'fut_1',
+        title: '💎 황금빛 횡재의 운명',
+        desc: '3일 이내에 지갑이나 뜻밖의 장소에서 생각지 못한 돈이나 유용한 선물을 발견하게 됩니다.',
+        icon: '💰',
+        rarity: '전설',
+        rarityClass: 'bg-amber-500/20 text-amber-300 border-amber-400/50',
+        acquireCost: 30,
+        useCost: 20,
+        effectDesc: '즉시 40 Ki 기운 환원 및 일주일간 재물운 대폭 증가!'
+      },
+      {
+        id: 'fut_2',
+        title: '⚡ 텔레파시 직감의 능력',
+        desc: '오늘 하루 누군가 나에게 연락하려고 할 때 순간적으로 상대의 생각이 머릿속에 스쳐 지나갑니다.',
+        icon: '🧠',
+        rarity: '희귀',
+        rarityClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50',
+        acquireCost: 20,
+        useCost: 15,
+        effectDesc: '중요한 선택 순간 최선의 직감 힌트를 발동합니다.'
+      },
+      {
+        id: 'fut_3',
+        title: '🌟 운명의 귀인과의 만남',
+        desc: '곧 나의 오랜 고민을 한 번에 해결해 줄 능력 있는 조력자가 우연히 찾아옵니다.',
+        icon: '🤝',
+        rarity: '전설',
+        rarityClass: 'bg-amber-500/20 text-amber-300 border-amber-400/50',
+        acquireCost: 35,
+        useCost: 25,
+        effectDesc: '대인관계 대길 버프 및 기운 최대치 +20 증가!'
+      },
+      {
+        id: 'fut_4',
+        title: '🍀 위기탈출 순간의 기적',
+        desc: '실수로 저지를 뻔한 아찔한 실수를 신기하게도 간발의 차이로 모면하게 됩니다.',
+        icon: '🛡️',
+        rarity: '희귀',
+        rarityClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50',
+        acquireCost: 25,
+        useCost: 15,
+        effectDesc: '액운 방어막을 형성하여 불운을 기운으로 변환합니다.'
+      },
+      {
+        id: 'fut_5',
+        title: '👑 천재적 영감 분출',
+        desc: '막혔던 프로젝트나 공부, 아이디어가 순식간에 술술 풀리는 번뜩이는 지혜가 깃듭니다.',
+        icon: '💡',
+        rarity: '신화',
+        rarityClass: 'bg-purple-500/20 text-purple-300 border-purple-400/50',
+        acquireCost: 50,
+        useCost: 30,
+        effectDesc: '모든 수련 효율 2배 및 몰입도 최고조 발동!'
+      },
+      {
+        id: 'fut_6',
+        title: '🍗 야식 무료 당첨 운명',
+        desc: '주변 사람이 맛있는 음식이나 음료수를 기분 좋게 선뜻 대접해 줄 운명입니다.',
+        icon: '🍕',
+        rarity: '일반',
+        rarityClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50',
+        acquireCost: 15,
+        useCost: 10,
+        effectDesc: '소소한 행복감을 주며 15 Ki 기운 회복!'
+      },
+      {
+        id: 'fut_7',
+        title: '⏳ 10분 전으로 돌아가는 직감',
+        desc: '중요한 물건을 두고 온 것을 딱 떠올려 되돌아갈 기회를 얻습니다.',
+        icon: '⏱️',
+        rarity: '희귀',
+        rarityClass: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50',
+        acquireCost: 25,
+        useCost: 15,
+        effectDesc: '실수 방지 및 집중력 강화 효과 발동.'
+      },
+      {
+        id: 'fut_8',
+        title: '🔥 만사형통 대박 피버',
+        desc: '오늘 시도하는 모든 소소한 도전들이 생각보다 훨씬 더 좋은 결과로 이어집니다.',
+        icon: '🚀',
+        rarity: '신화',
+        rarityClass: 'bg-purple-500/20 text-purple-300 border-purple-400/50',
+        acquireCost: 60,
+        useCost: 40,
+        effectDesc: '황금빛 폭죽과 함께 모든 미래 관측 비용 50% 할인!'
+      }
+    ];
+
+    /* ===================================================================
+       3. GLOBAL GAME STATE
+       =================================================================== */
+    let gameState = {
+      energy: 100,
+      maxEnergy: 100,
+      observeCost: 10,
+      currentRevealedFuture: null,
+      inventory: [],
+      isZenActive: false,
+      zenInterval: null
+    };
+
+    /* ===================================================================
+       4. CANVAS PARTICLE BACKGROUND ENGINE
+       =================================================================== */
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      if (!canvas.parentElement) return;
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function createParticles() {
+      particles = [];
+      for (let i = 0; i < 25; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: Math.random() * 2 + 1,
+          color: ['#a855f7', '#fbbf24', '#06b6d4', '#22c55e'][Math.floor(Math.random() * 4)],
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: -Math.random() * 0.8 - 0.2,
+          alpha: Math.random()
+        });
+      }
+    }
+
+    function animateParticles() {
+      if (!canvas.width) resizeCanvas();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha += (Math.random() - 0.5) * 0.02;
+
+        if (p.alpha < 0.1) p.alpha = 0.1;
+        if (p.alpha > 0.9) p.alpha = 0.9;
+
+        if (p.y < 0) {
+          p.y = canvas.height;
+          p.x = Math.random() * canvas.width;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = p.color;
+        ctx.fill();
+        ctx.restore();
+      });
+
+      requestAnimationFrame(animateParticles);
+    }
+
+    /* ===================================================================
+       5. CORE OBSERVE & ACQUIRE MECHANICS
+       =================================================================== */
+    function observeFuture() {
+      if (gameState.energy < gameState.observeCost) {
+        playSound('error');
+        spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2, "기운(Ki)이 부족합니다! 기 수련에서 충전하세요.", "text-rose-400");
+        return;
+      }
+
+      // Deduct Observe Cost
+      gameState.energy -= gameState.observeCost;
+      updateUI();
+      playSound('observe');
+
+      // Animate Orb
+      const orb = document.getElementById('mystic-orb');
+      const statusText = document.getElementById('orb-status-text');
+      
+      orb.classList.add('scale-110', 'brightness-150');
+      statusText.innerText = "🌀 시공간의 기운을 모아 미래를 관측하는 중...";
+
+      setTimeout(() => {
+        orb.classList.remove('scale-110', 'brightness-150');
+        statusText.innerText = "🔮 관측 완료! 다가올 미래 운명이 밝혀졌습니다.";
+
+        // Pick Random Future
+        const randomIndex = Math.floor(Math.random() * RANDOM_FUTURES.length);
+        const selected = RANDOM_FUTURES[randomIndex];
+        gameState.currentRevealedFuture = selected;
+
+        // Populate Reveal Modal
+        document.getElementById('reveal-rarity-badge').className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${selected.rarityClass}`;
+        document.getElementById('reveal-rarity-badge').innerText = `✨ ${selected.rarity} 등급 운명`;
+        document.getElementById('reveal-icon').innerText = selected.icon;
+        document.getElementById('reveal-title').innerText = selected.title;
+        document.getElementById('reveal-desc').innerText = selected.desc;
+        document.getElementById('acquire-cost-tag').innerText = `(소모: ${selected.acquireCost} Ki)`;
+
+        playSound('reveal');
+        toggleModal('modal-reveal');
+      }, 1000);
+    }
+
+    function acquireCurrentFuture() {
+      const fut = gameState.currentRevealedFuture;
+      if (!fut) return;
+
+      if (gameState.energy < fut.acquireCost) {
+        playSound('error');
+        spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2, `기운이 부족합니다! (필요: ${fut.acquireCost} Ki)`, "text-rose-400");
+        return;
+      }
+
+      // Deduct Acquire Cost
+      gameState.energy -= fut.acquireCost;
+      
+      // Add to inventory with unique instance id
+      const acquiredItem = {
+        ...fut,
+        instanceId: Date.now() + Math.random(),
+        acquiredAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isActivated: false
+      };
+
+      gameState.inventory.unshift(acquiredItem);
+
+      playSound('reveal');
+      confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
+      spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2, `✨ '${fut.title}' 습득 완료!`, "text-amber-300");
+
+      toggleModal('modal-reveal');
+      updateUI();
+    }
+
+    function useAcquiredFuture(instanceId) {
+      const item = gameState.inventory.find(i => i.instanceId === instanceId);
+      if (!item) return;
+
+      if (item.isActivated) {
+        spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2, "이미 발동된 미래운입니다!", "text-purple-300");
+        return;
+      }
+
+      if (gameState.energy < item.useCost) {
+        playSound('error');
+        spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2, `발동 기운이 부족합니다! (${item.useCost} Ki 필요)`, "text-rose-400");
+        return;
+      }
+
+      // Deduct Use Cost
+      gameState.energy -= item.useCost;
+      item.isActivated = true;
+
+      // Reward bonus effect
+      if (item.id === 'fut_1') {
+        gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 40);
+      } else if (item.id === 'fut_3') {
+        gameState.maxEnergy += 20;
+        gameState.energy += 20;
+      } else if (item.id === 'fut_6') {
+        gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 15);
+      }
+
+      playSound('activate');
+      confetti({ particleCount: 100, spread: 100, origin: { y: 0.5 } });
+      spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2, `🔥 '${item.title}' 기운 발동 성공!`, "text-emerald-300");
+
+      updateUI();
+    }
+
+    /* ===================================================================
+       6. KI CHARGING & ZEN MEDITATION LOGIC
+       =================================================================== */
+    function chargeKiManual(e) {
+      if (gameState.energy >= gameState.maxEnergy) {
+        spawnFloatingText(e.clientX, e.clientY, "기운이 이미 가득 차 있습니다!", "text-emerald-300");
+        return;
+      }
+
+      gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 5);
+      playSound('charge');
+      spawnFloatingText(e.clientX || window.innerWidth/2, e.clientY || window.innerHeight/2, "+5 Ki 충전!", "text-emerald-400");
+      updateUI();
+    }
+
+    function toggleZenMeditation() {
+      const btnText = document.getElementById('zen-btn-text');
+      
+      if (!gameState.isZenActive) {
+        gameState.isZenActive = true;
+        btnText.innerText = "🧘 명상 중... (+2 Ki / 초 수련 중) [클릭 시 중단]";
+        playSound('charge');
+
+        gameState.zenInterval = setInterval(() => {
+          if (gameState.energy < gameState.maxEnergy) {
+            gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + 2);
+            updateUI();
+          } else {
+            toggleZenMeditation();
+          }
+        }, 1000);
+      } else {
+        gameState.isZenActive = false;
+        clearInterval(gameState.zenInterval);
+        btnText.innerText = "심호흡 자동 명상 모드 시작 (+2 Ki / 초)";
+      }
+    }
+
+    /* ===================================================================
+       7. UI NAVIGATION & RENDERING
+       =================================================================== */
+    function switchTab(tabName) {
+      ['observe', 'inventory', 'charge'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        const btn = document.getElementById(`tab-btn-${t}`);
+        btn.className = "py-2 rounded-xl text-xs font-bold transition-all text-purple-300 hover:text-white flex items-center justify-center gap-1.5";
+      });
+
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+      activeBtn.className = "py-2 rounded-xl text-xs font-bold transition-all bg-purple-600 text-white shadow-lg flex items-center justify-center gap-1.5";
+
+      playSound('observe');
+    }
+
+    function updateUI() {
+      // Energy gauge sync
+      document.getElementById('energy-text').innerText = `${Math.floor(gameState.energy)} / ${gameState.maxEnergy} Ki`;
+      const percent = Math.min(100, (gameState.energy / gameState.maxEnergy) * 100);
+      document.getElementById('energy-bar').style.width = `${percent}%`;
+
+      // Inventory list render
+      renderInventory();
+    }
+
+    function renderInventory() {
+      const container = document.getElementById('inventory-list');
+      document.getElementById('inventory-count').innerText = `총 ${gameState.inventory.length}개 소장`;
+      container.innerHTML = '';
+
+      if (gameState.inventory.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-purple-300/60 text-xs">
+            아직 소장한 미래가 없습니다.<br/>'미래 관측' 탭에서 새로운 운명을 확인해보세요.
+          </div>
+        `;
+        return;
+      }
+
+      gameState.inventory.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-2xl border transition-all flex flex-col space-y-2 ${
+          item.isActivated 
+            ? 'bg-purple-950/40 border-purple-500/30 opacity-75' 
+            : 'glass-card border-amber-400/40 hover:border-amber-300'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-2xl">${item.icon}</span>
+              <div>
+                <h4 class="text-xs font-bold text-amber-200 font-batang">${item.title}</h4>
+                <span class="text-[9px] text-purple-300 font-sans">관측 시각: ${item.acquiredAt}</span>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${item.rarityClass}">
+              ${item.rarity}
+            </span>
+          </div>
+
+          <p class="text-[11px] text-purple-100/80 font-sans leading-snug">${item.desc}</p>
+          <div class="text-[10px] text-emerald-300 font-bold bg-purple-950/80 p-2 rounded-xl border border-emerald-500/20">
+            ⚡ 발동 효과: ${item.effectDesc}
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-[10px] text-amber-300">발동 필요 기운: ${item.useCost} Ki</span>
+            <button 
+              onclick="useAcquiredFuture(${item.instanceId})"
+              ${item.isActivated ? 'disabled' : ''}
+              class="px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                item.isActivated 
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-emerald-400 to-amber-400 text-slate-950 hover:brightness-110 active:scale-95 cursor-pointer shadow-md'
+              }"
+            >
+              ${item.isActivated ? '✓ 이미 발동됨' : '⚡ 기운 지불하고 능력 발동'}
+            </button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function spawnFloatingText(x, y, text, colorClass = 'text-amber-300') {
+      const el = document.createElement('div');
+      el.className = `float-text text-xs font-black ${colorClass}`;
+      el.innerText = text;
+      el.style.left = `${x || window.innerWidth / 2}px`;
+      el.style.top = `${y || window.innerHeight / 2}px`;
+      document.body.appendChild(el);
+
+      setTimeout(() => el.remove(), 1000);
+    }
+
+    /* ===================================================================
+       8. INITIALIZATION
+       =================================================================== */
+    window.onload = function() {
+      resizeCanvas();
+      createParticles();
+      animateParticles();
+      updateUI();
+    };
+  </script>
+
+</body>
+</html>

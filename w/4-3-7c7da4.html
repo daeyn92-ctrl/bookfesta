@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>말랑이 말랑해 - 귀여운 말랑이 만지기 & ASMR</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for cute typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        gaegu: ['Gaegu', 'cursive'],
+                        gowun: ['Gowun Dodum', 'sans-serif']
+                    },
+                    colors: {
+                        mallangPink: '#ffb3c6',
+                        mallangPeach: '#ffcbf2',
+                        mallangBlue: '#a0c4ff',
+                        mallangMint: '#caffbf',
+                        mallangPurple: '#bdb2ff',
+                        mallangYellow: '#fdffb6',
+                        darkText: '#4a3e3d'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+            background: linear-gradient(135deg, #ffe5ec 0%, #f0ef3f20 50%, #e7c6ff 100%);
+            color: #4a3e3d;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .title-font {
+            font-family: 'Gaegu', cursive;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 10px 30px rgba(255, 182, 193, 0.3);
+        }
+
+        .squishy-btn {
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
+        }
+
+        .squishy-btn:active {
+            transform: scale(0.92);
+        }
+
+        .mallang-card {
+            transition: all 0.25s ease;
+        }
+
+        .mallang-card.active {
+            border-color: #ff85a2;
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 8px 20px rgba(255, 133, 162, 0.4);
+        }
+
+        canvas {
+            touch-action: none;
+            cursor: pointer;
+        }
+
+        /* Bubble Floater Animation */
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.8); opacity: 1; }
+            100% { transform: translateY(-80px) scale(1.2); opacity: 0; }
+        }
+
+        .float-particle {
+            position: absolute;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="m-0 p-0 flex justify-center items-center">
+
+    <div id="app-container" class="relative w-full max-w-md h-full sm:h-[94vh] sm:rounded-3xl overflow-hidden glass-panel flex flex-col justify-between border-0 sm:border-4 border-white shadow-2xl">
+
+        <!-- Top Header HUD -->
+        <header class="z-20 p-4 flex justify-between items-center bg-white/60 border-b border-pink-100/80">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-300 to-purple-300 flex items-center justify-center text-xl shadow-inner">
+                    💖
+                </div>
+                <div>
+                    <h1 class="title-font text-2xl font-bold text-pink-600 leading-tight">말랑이 말랑해</h1>
+                    <p class="text-[11px] text-pink-400 font-bold">만질수록 힐링되는 촉감 놀이</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Sound Toggle -->
+                <button id="sound-toggle" onclick="toggleSound()" class="w-9 h-9 rounded-2xl bg-pink-50 border border-pink-200 text-pink-500 flex items-center justify-center text-sm squishy-btn shadow-sm">
+                    <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+                <!-- DIY Creator Modal Trigger -->
+                <button onclick="openDIYModal()" class="px-3 py-1.5 rounded-2xl bg-gradient-to-r from-pink-400 to-purple-400 text-white text-xs font-bold title-font text-sm flex items-center gap-1 squishy-btn shadow-md">
+                    <span>✨ DIY</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="z-20 px-4 py-2 bg-pink-50/50 flex justify-between items-center text-xs font-bold text-pink-700 border-b border-pink-100/50">
+            <div class="flex items-center gap-1.5">
+                <span>👈 터치/드래그:</span>
+                <span id="squish-count" class="text-pink-600 font-extrabold text-sm">0</span>번
+            </div>
+            <div class="flex items-center gap-1">
+                <span>✨ 힐링 지수:</span>
+                <span id="healing-score" class="text-purple-600 font-extrabold text-sm">100%</span>
+            </div>
+        </div>
+
+        <!-- Main Mallang-i Physics Canvas Area -->
+        <main class="relative flex-grow w-full flex items-center justify-center overflow-hidden bg-gradient-to-b from-white/30 to-pink-50/40">
+            <canvas id="mallangCanvas" class="w-full h-full"></canvas>
+
+            <!-- On-Screen Floating Touch Hint -->
+            <div id="touch-hint" class="absolute bottom-4 pointer-events-none text-center bg-white/80 border border-pink-200 px-4 py-1.5 rounded-full text-xs font-bold text-pink-400 shadow-sm animate-bounce">
+                👆 말랑이를 누르고 찌르고 당겨보세요!
+            </div>
+        </main>
+
+        <!-- Mallang-i Type Selector Carousel Bar -->
+        <footer class="z-20 p-3 bg-white/80 border-t border-pink-100 flex flex-col gap-2">
+            <div class="flex justify-between items-center px-1">
+                <span class="text-xs font-bold text-pink-500 title-font text-base">🎁 말랑이 종류 선택</span>
+                <span id="current-type-name" class="text-xs font-extrabold text-purple-600 bg-purple-100 px-2.5 py-0.5 rounded-full">🍧 샤베트 말랑이</span>
+            </div>
+
+            <!-- Scrollable Type Selector -->
+            <div id="type-selector" class="flex gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none">
+                <!-- Mallang Cards will be injected by JS -->
+            </div>
+        </footer>
+
+        <!-- DIY Mallang-i Maker Modal -->
+        <div id="diy-modal" class="hidden absolute inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="bg-white/95 rounded-3xl p-5 border-2 border-pink-200 shadow-2xl w-full max-w-sm space-y-4">
+                <div class="flex justify-between items-center border-b border-pink-100 pb-2">
+                    <h3 class="title-font text-2xl font-bold text-pink-600">🎨 커스텀 말랑이 만들기</h3>
+                    <button onclick="closeDIYModal()" class="w-7 h-7 rounded-full bg-pink-100 text-pink-500 flex items-center justify-center font-bold text-xs squishy-btn">✕</button>
+                </div>
+
+                <!-- Color Options -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-pink-600">🎨 색상 선택</label>
+                    <div class="flex gap-2 justify-between">
+                        <button onclick="setDIYColor('#ffb3c6', '#ff85a2')" class="w-8 h-8 rounded-full bg-pink-300 border-2 border-white shadow-md squishy-btn"></button>
+                        <button onclick="setDIYColor('#a0c4ff', '#7096ffff')" class="w-8 h-8 rounded-full bg-blue-300 border-2 border-white shadow-md squishy-btn"></button>
+                        <button onclick="setDIYColor('#caffbf', '#85e076')" class="w-8 h-8 rounded-full bg-green-300 border-2 border-white shadow-md squishy-btn"></button>
+                        <button onclick="setDIYColor('#bdb2ff', '#9381ff')" class="w-8 h-8 rounded-full bg-purple-300 border-2 border-white shadow-md squishy-btn"></button>
+                        <button onclick="setDIYColor('#fdffb6', '#f3f753')" class="w-8 h-8 rounded-full bg-yellow-300 border-2 border-white shadow-md squishy-btn"></button>
+                        <button onclick="setDIYColor('#ffc6ff', '#ff82ff')" class="w-8 h-8 rounded-full bg-fuchsia-300 border-2 border-white shadow-md squishy-btn"></button>
+                    </div>
+                </div>
+
+                <!-- Texture / Filling Selection -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-pink-600">🍬 내용물 & 촉감 질감</label>
+                    <div class="grid grid-cols-3 gap-1.5 text-xs font-bold">
+                        <button onclick="setDIYTexture('crunch')" class="p-2 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-700 squishy-btn">🍬 크런치 구슬</button>
+                        <button onclick="setDIYTexture('sherbet')" class="p-2 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-700 squishy-btn">🍧 샤베트 얼음</button>
+                        <button onclick="setDIYTexture('boba')" class="p-2 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-700 squishy-btn">🧋 버블 펄</button>
+                        <button onclick="setDIYTexture('galaxy')" class="p-2 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-700 squishy-btn">🌌 갤럭시 반짝이</button>
+                        <button onclick="setDIYTexture('jelly')" class="p-2 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-700 squishy-btn">🍮 투명 젤리</button>
+                        <button onclick="setDIYTexture('honey')" class="p-2 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-700 squishy-btn">🍯 쫀득 꿀</button>
+                    </div>
+                </div>
+
+                <!-- Face Expression Options -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-pink-600">🥰 얼굴 표정</label>
+                    <div class="flex gap-2 justify-between text-lg">
+                        <button onclick="setDIYFace('cute')" class="p-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 squishy-btn">🥰</button>
+                        <button onclick="setDIYFace('happy')" class="p-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 squishy-btn">😆</button>
+                        <button onclick="setDIYFace('wink')" class="p-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 squishy-btn">😜</button>
+                        <button onclick="setDIYFace('sleepy')" class="p-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 squishy-btn">😴</button>
+                        <button onclick="setDIYFace('cat')" class="p-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 squishy-btn">🐱</button>
+                        <button onclick="setDIYFace('derp')" class="p-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 squishy-btn">🥺</button>
+                    </div>
+                </div>
+
+                <!-- Firmness / Stiffness Slider -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-xs font-bold text-pink-600">
+                        <span>말랑함 정도</span>
+                        <span id="stiffness-val">중간</span>
+                    </div>
+                    <input type="range" id="stiffness-slider" min="0.05" max="0.3" step="0.02" value="0.15" oninput="updateStiffness(this.value)" class="w-full accent-pink-500">
+                </div>
+
+                <button onclick="applyDIYMallang()" class="w-full py-2.5 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold title-font text-lg shadow-lg squishy-btn">
+                    완성하기! ✨
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* =========================================================================
+         * Web Audio Synthesizer for ASMR Squish & Crunch Sound Effects
+         * ========================================================================= */
+        class MallangSoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // Squish sound (Elastic Pitch Sweep)
+            playSquishSound(intensity = 1.0) {
+                if (this.muted) return;
+                this.init();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                // Pitch drops down fast then rebounds
+                osc.frequency.setValueAtTime(280 * intensity, now);
+                osc.frequency.exponentialRampToValueAtTime(120 * intensity, now + 0.08);
+                osc.frequency.exponentialRampToValueAtTime(220 * intensity, now + 0.18);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+
+            // Crunch sound (Bead crackle / Crisp noise)
+            playCrunchSound() {
+                if (this.muted) return;
+                this.init();
+
+                const now = this.ctx.currentTime;
+                const bufferSize = this.ctx.sampleRate * 0.1;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+                }
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(2500 + Math.random() * 1000, now);
+                filter.Q.value = 3;
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start(now);
+            }
+
+            // Sherbet sound (Soft rustle + gentle chime)
+            playSherbetSound() {
+                if (this.muted) return;
+                this.init();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800 + Math.random() * 400, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.12);
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+
+            // Boba Pop Sound
+            playPopSound() {
+                if (this.muted) return;
+                this.init();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(450, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+        }
+
+        const audio = new MallangSoundEngine();
+
+        function toggleSound() {
+            audio.muted = !audio.muted;
+            const icon = document.getElementById('sound-icon');
+            if (audio.muted) {
+                icon.className = 'fa-solid fa-volume-xmark text-gray-400';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-pink-500';
+                audio.playSquishSound(1.0);
+            }
+        }
+
+        /* =========================================================================
+         * STREAMING_CHUNK:Defining Mallang-i Preset Types and Physics Engine...
+         * ========================================================================= */
+        const MALLANG_TYPES = [
+            {
+                id: 'sherbet',
+                name: '🍧 샤베트 말랑이',
+                desc: '사각사각 시원한 얼음 알갱이가 들어있는 샤베트!',
+                colorStart: '#a8edd9',
+                colorEnd: '#fed6e3',
+                texture: 'sherbet',
+                face: 'happy',
+                stiffness: 0.12,
+                particlesCount: 25,
+                icon: '🍧'
+            },
+            {
+                id: 'crunch',
+                name: '🍬 크런치 말랑이',
+                desc: '와삭와삭 알록달록 크런치 구슬이 톡톡!',
+                colorStart: '#ffb3c6',
+                colorEnd: '#ff85a2',
+                texture: 'crunch',
+                face: 'cute',
+                stiffness: 0.18,
+                particlesCount: 30,
+                icon: '🍬'
+            },
+            {
+                id: 'galaxy',
+                name: '🌌 코스믹 은하 말랑이',
+                desc: '반짝이는 밤하늘 별가루를 삼킨 몽환적 말랑이',
+                colorStart: '#3a1c71',
+                colorEnd: '#d76d77',
+                texture: 'galaxy',
+                face: 'wink',
+                stiffness: 0.1,
+                particlesCount: 35,
+                icon: '🌌'
+            },
+            {
+                id: 'boba',
+                name: '🧋 버블티 말랑이',
+                desc: '쫀득한 타피오카 펄이 통통 튀는 버블티',
+                colorStart: '#e6ccb2',
+                colorEnd: '#b08968',
+                texture: 'boba',
+                face: 'derp',
+                stiffness: 0.15,
+                particlesCount: 12,
+                icon: '🧋'
+            },
+            {
+                id: 'honey',
+                name: '🍯 쫀득 꿀 말랑이',
+                desc: '달콤함이 늘어나는 무지갯빛 슬라임 꿀 말랑이',
+                colorStart: '#ffe5ec',
+                colorEnd: '#ffb703',
+                texture: 'honey',
+                face: 'cat',
+                stiffness: 0.08,
+                particlesCount: 15,
+                icon: '🍯'
+            }
+        ];
+
+        let currentMallang = { ...MALLANG_TYPES[0] };
+        let squishCount = 0;
+
+        /* Canvas Elastic Mesh Variables */
+        const canvas = document.getElementById('mallangCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let canvasWidth, canvasHeight;
+        let centerX, centerY;
+        let radius = 110;
+
+        // Radial Mesh Nodes for Jelly physics simulation
+        const NUM_POINTS = 24;
+        let points = [];
+        let particles = [];
+
+        // Interaction State
+        let isDragging = false;
+        let dragPointIndex = -1;
+        let touchX = 0, touchY = 0;
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvasWidth = canvas.width = rect.width;
+            canvasHeight = canvas.height = rect.height;
+            centerX = canvasWidth / 2;
+            centerY = canvasHeight / 2;
+            initMesh();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initialize spring mesh around perimeter
+        function initMesh() {
+            points = [];
+            for (let i = 0; i < NUM_POINTS; i++) {
+                const angle = (i / NUM_POINTS) * Math.PI * 2;
+                const bx = centerX + Math.cos(angle) * radius;
+                const by = centerY + Math.sin(angle) * radius;
+                points.push({
+                    baseAngle: angle,
+                    x: bx,
+                    y: by,
+                    bx: bx,
+                    by: by,
+                    vx: 0,
+                    vy: 0
+                });
+            }
+            initParticles();
+        }
+
+        // Initialize inner particles (crunch beads, sherbet crystals, galaxy stars, boba pearls)
+        function initParticles() {
+            particles = [];
+            const count = currentMallang.particlesCount || 20;
+
+            for (let i = 0; i < count; i++) {
+                const r = Math.random() * (radius * 0.75);
+                const angle = Math.random() * Math.PI * 2;
+                particles.push({
+                    x: centerX + Math.cos(angle) * r,
+                    y: centerY + Math.sin(angle) * r,
+                    vx: (Math.random() - 0.5) * 1.5,
+                    vy: (Math.random() - 0.5) * 1.5,
+                    size: currentMallang.texture === 'boba' ? 8 + Math.random() * 4 : 3 + Math.random() * 5,
+                    color: getParticleColor(currentMallang.texture),
+                    angle: Math.random() * Math.PI * 2
+                });
+            }
+        }
+
+        function getParticleColor(texture) {
+            if (texture === 'crunch') {
+                const colors = ['#ff4d6d', '#ffb703', '#38b000', '#4ea8de', '#7209b7'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            } else if (texture === 'sherbet') {
+                return 'rgba(255, 255, 255, 0.85)';
+            } else if (texture === 'galaxy') {
+                return Math.random() > 0.5 ? '#ffd166' : '#ffffff';
+            } else if (texture === 'boba') {
+                return '#2b1e1a';
+            } else if (texture === 'honey') {
+                return '#ffb703';
+            }
+            return 'rgba(255, 255, 255, 0.6)';
+        }
+
+        /* =========================================================================
+         * STREAMING_CHUNK:Implementing Physics Physics Render Loop & Touch Events...
+         * ========================================================================= */
+        function updatePhysics() {
+            const k = currentMallang.stiffness || 0.12; // Spring constant stiffness
+            const damp = 0.82; // Velocity damping factor
+
+            // Update Spring Points
+            for (let i = 0; i < NUM_POINTS; i++) {
+                const p = points[i];
+
+                // Spring force returning to base shape
+                const fx = (p.bx - p.x) * k;
+                const fy = (p.by - p.y) * k;
+
+                p.vx = (p.vx + fx) * damp;
+                p.vy = (p.vy + fy) * damp;
+
+                p.x += p.vx;
+                p.y += p.vy;
+            }
+
+            // Handle Drag Interaction Deformation
+            if (isDragging) {
+                // Deform nearby points toward touch position
+                for (let i = 0; i < NUM_POINTS; i++) {
+                    const p = points[i];
+                    const dx = touchX - p.x;
+                    const dy = touchY - p.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < radius * 1.2) {
+                        const pull = (1 - dist / (radius * 1.2)) * 0.35;
+                        p.vx += (touchX - p.x) * pull;
+                        p.vy += (touchY - p.y) * pull;
+                    }
+                }
+            }
+
+            // Update Inner Particles inside container
+            particles.forEach(pt => {
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+
+                // Keep particles bounded within center radius
+                const dx = pt.x - centerX;
+                const dy = pt.y - centerY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist > radius * 0.75) {
+                    pt.vx *= -0.8;
+                    pt.vy *= -0.8;
+                    pt.x = centerX + (dx / dist) * (radius * 0.72);
+                    pt.y = centerY + (dy / dist) * (radius * 0.72);
+                }
+            });
+        }
+
+        function renderMallang() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            // 1. Draw Outer Soft Shadow
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y + 12);
+            for (let i = 1; i < NUM_POINTS; i++) {
+                const nextP = points[(i + 1) % NUM_POINTS];
+                const xc = (points[i].x + nextP.x) / 2;
+                const yc = (points[i].y + nextP.y) / 2 + 12;
+                ctx.quadraticCurveTo(points[i].x, points[i].y + 12, xc, yc);
+            }
+            ctx.fillStyle = 'rgba(255, 182, 193, 0.25)';
+            ctx.fill();
+            ctx.restore();
+
+            // 2. Draw Mallang Body Gradient Path
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo((points[0].x + points[NUM_POINTS - 1].x) / 2, (points[0].y + points[NUM_POINTS - 1].y) / 2);
+
+            for (let i = 0; i < NUM_POINTS; i++) {
+                const p = points[i];
+                const nextP = points[(i + 1) % NUM_POINTS];
+                const xc = (p.x + nextP.x) / 2;
+                const yc = (p.y + nextP.y) / 2;
+                ctx.quadraticCurveTo(p.x, p.y, xc, yc);
+            }
+            ctx.closePath();
+
+            // Create Color Gradient
+            const grad = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+            grad.addColorStop(0, currentMallang.colorStart);
+            grad.addColorStop(1, currentMallang.colorEnd);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // Border Outline
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.stroke();
+
+            ctx.clip(); // Clip inner particles inside body shape
+
+            // 3. Render Texture Details & Inner Particles
+            particles.forEach(pt => {
+                ctx.beginPath();
+                if (currentMallang.texture === 'sherbet') {
+                    // Ice Cube square
+                    ctx.rect(pt.x - pt.size / 2, pt.y - pt.size / 2, pt.size, pt.size);
+                } else if (currentMallang.texture === 'galaxy') {
+                    // Star shape
+                    ctx.arc

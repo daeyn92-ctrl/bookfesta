@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>공룡 먹방 (Dino Mukbang)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        jua: ['Jua', 'sans-serif'],
+                        sans: ['Noto Sans KR', 'sans-serif']
+                    },
+                    colors: {
+                        jungle: {
+                            50: '#f2f9f1',
+                            100: '#e1f2df',
+                            500: '#3a7d34',
+                            800: '#1b4317',
+                            900: '#0e260c'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #121c10;
+            color: #ffffff;
+            touch-action: none;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Canvas Fullscreen Container */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #2e4d26 0%, #132410 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Glassmorphic UI overlays */
+        .glass-panel {
+            background: rgba(20, 35, 18, 0.75);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(110, 200, 90, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Custom Pulse Animation */
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6)); }
+            50% { transform: scale(1.08); filter: drop-shadow(0 0 25px rgba(255, 60, 0, 0.9)); }
+        }
+
+        .fever-glow {
+            animation: pulseGlow 0.6s infinite ease-in-out;
+        }
+
+        /* Touch Joystick styling */
+        #joystick-zone {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: none; /* Auto shown on touch */
+            touch-action: none;
+            z-index: 30;
+        }
+
+        #joystick-knob {
+            position: absolute;
+            top: 35px;
+            left: 35px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ffcc00, #ff8800);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen m-0 p-0 overflow-hidden select-none">
+
+    <div id="game-container">
+        <!-- Main Game Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Top HUD Dashboard -->
+        <div id="hud-top" class="absolute top-4 left-4 right-4 flex justify-between items-center z-20 pointer-events-none">
+            
+            <!-- Player Status & Level -->
+            <div class="glass-panel px-4 py-2.5 rounded-2xl flex items-center space-x-3 pointer-events-auto">
+                <div class="w-12 h-12 rounded-xl bg-amber-500/30 border border-amber-400 flex items-center justify-center text-3xl shadow-inner">
+                    🦖
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span id="player-title" class="text-xs bg-emerald-600/80 px-2 py-0.5 rounded-md text-emerald-100 font-sans font-bold">아기 티라노</span>
+                        <span class="text-amber-400 text-sm font-bold">Lv.<span id="level-num">1</span></span>
+                    </div>
+                    <!-- Growth XP Bar -->
+                    <div class="w-36 sm:w-48 bg-stone-900/80 h-3.5 rounded-full border border-stone-600 overflow-hidden mt-1 relative">
+                        <div id="xp-bar" class="bg-gradient-to-r from-amber-400 to-emerald-400 h-full w-0 transition-all duration-200"></div>
+                        <span id="xp-text" class="absolute inset-0 text-[10px] flex items-center justify-center text-white/90 font-sans font-bold drop-shadow">0 / 50 XP</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mukbang Combo & Score Display -->
+            <div class="flex items-center space-x-3">
+                <div id="fever-badge" class="hidden glass-panel px-3 py-1.5 rounded-xl border-amber-400 bg-gradient-to-r from-red-600/80 to-amber-500/80 text-white font-extrabold text-sm fever-glow">
+                    🔥 먹방 피버 타임! (2X)
+                </div>
+
+                <div class="glass-panel px-4 py-2 rounded-2xl text-right">
+                    <div class="text-xs text-emerald-300 font-sans">먹어치운 공룡</div>
+                    <div class="text-xl sm:text-2xl font-black text-amber-300 tracking-wider">
+                        <span id="score-num">0</span> <span class="text-xs font-sans text-amber-200">마리</span>
+                    </div>
+                </div>
+
+                <!-- Sound Button -->
+                <button id="btn-sound" onclick="toggleAudio()" class="glass-panel w-11 h-11 rounded-2xl flex items-center justify-center text-amber-300 text-lg hover:bg-stone-800/60 pointer-events-auto transition">
+                    <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Center Start / Game Over Modal -->
+        <div id="modal-overlay" class="absolute inset-0 bg-black/70 backdrop-blur-md z-40 flex items-center justify-center p-4">
+            <div id="start-screen" class="glass-panel max-w-md w-full p-6 sm:p-8 rounded-3xl text-center space-y-6 border-amber-500/40 relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
+
+                <div class="space-y-2">
+                    <span class="text-5xl inline-block animate-bounce">🥩🦖</span>
+                    <h1 class="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-emerald-400 to-green-300 drop-shadow">
+                        공룡 먹방
+                    </h1>
+                    <p class="text-stone-300 text-sm font-sans">
+                        작은 공룡부터 시작해 쥐라기 최고 대식가가 되세요!
+                    </p>
+                </div>
+
+                <div class="bg-black/40 rounded-2xl p-4 text-left space-y-2 text-xs font-sans text-stone-200 border border-stone-700">
+                    <p class="font-bold text-amber-400 text-sm flex items-center gap-1.5">
+                        <i class="fa-solid fa-utensils"></i> 먹방 규칙:
+                    </p>
+                    <ul class="list-disc list-inside space-y-1 text-stone-300">
+                        <li>나보다 <span class="text-emerald-400 font-bold">작은 공룡</span>을 다가가 먹어치우세요.</li>
+                        <li>나보다 <span class="text-rose-400 font-bold">큰 공룡</span>에게 부딪히면 먹힙니다!</li>
+                        <li>연속으로 빠르게 먹으면 <span class="text-amber-300 font-bold">🔥 먹방 피버</span> 발동!</li>
+                        <li>황금 고기 및 보너스 먹거리를 획득하면 빠르게 성장합니다.</li>
+                    </ul>
+                </div>
+
+                <div class="text-xs text-emerald-300 font-sans flex justify-center gap-4">
+                    <span>🎮 방향키 / WASD</span>
+                    <span>🖱️ 마우스 이동</span>
+                    <span>📱 화면 터치</span>
+                </div>
+
+                <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-stone-950 font-black text-xl rounded-2xl shadow-lg transform hover:-translate-y-0.5 transition active:translate-y-0">
+                    🦖 먹방 시작하기!
+                </button>
+            </div>
+
+            <!-- Game Over Screen -->
+            <div id="gameover-screen" class="glass-panel max-w-md w-full p-6 sm:p-8 rounded-3xl text-center space-y-6 border-rose-500/40 hidden">
+                <div class="space-y-2">
+                    <span class="text-5xl inline-block">💀💥</span>
+                    <h2 class="text-3xl sm:text-4xl font-black text-rose-400">
+                        더 큰 공룡에게 먹혔습니다!
+                    </h2>
+                    <p class="text-stone-300 text-sm font-sans">
+                        쥐라기 생태계의 약육강식 서열을 체험하셨습니다.
+                    </p>
+                </div>
+
+                <div class="bg-black/50 rounded-2xl p-4 space-y-2 border border-stone-700">
+                    <div class="text-xs font-sans text-stone-400">이번 판 먹방 기록</div>
+                    <div class="text-3xl font-black text-amber-300">
+                        총 <span id="final-score">0</span>마리 포식
+                    </div>
+                    <div class="text-sm text-emerald-400">
+                        최종 등급: <span id="final-level-title">아기 티라노</span> (Lv.<span id="final-level">1</span>)
+                    </div>
+                </div>
+
+                <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white font-black text-xl rounded-2xl shadow-lg transform hover:-translate-y-0.5 transition active:translate-y-0">
+                    🔄 다시 먹방 도전하기
+                </button>
+            </div>
+        </div>
+
+        <!-- Touch Joystick UI -->
+        <div id="joystick-zone">
+            <div id="joystick-knob"></div>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio Synthesizer for Mukbang ASMR Sound Effects
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            // Juicy Chomp / Eat sound
+            playChomp() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                
+                // Low pitch crunch
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+                
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+
+                // High pitch bite pop
+                const osc2 = this.ctx.createOscillator();
+                const gain2 = this.ctx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(600, now + 0.03);
+                osc2.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+
+                gain2.gain.setValueAtTime(0.2, now + 0.03);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+                osc2.connect(gain2);
+                gain2.connect(this.ctx.destination);
+                osc2.start(now + 0.03);
+                osc2.stop(now + 0.1);
+            }
+
+            // Level Up Victory Fanfare
+            playLevelUp() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const freqs = [330, 440, 554, 659];
+                freqs.forEach((f, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(f, now + idx * 0.08);
+
+                    gain.gain.setValueAtTime(0.25, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.2);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.2);
+                });
+            }
+
+            // Game Over Sound
+            playGameOver() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.6);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            }
+        }
+
+        const audio = new SoundFX();
+
+        function toggleAudio() {
+            audio.enabled = !audio.enabled;
+            const icon = document.getElementById('sound-icon');
+            if (audio.enabled) {
+                icon.className = "fa-solid fa-volume-high";
+            } else {
+                icon.className = "fa-solid fa-volume-xmark opacity-50";
+            }
+        }
+
+        // Dinosaur Types Config
+        const DINO_SPECIES = [
+            { name: "컴프소그나투스 (초미니)", emoji: "🦎", sizeRatio: 0.5, speed: 2.2, xp: 10, color: "#81c784" },
+            { name: "프로토케라톱스", emoji: "🐢", sizeRatio: 0.7, speed: 1.8, xp: 15, color: "#aed581" },
+            { name: "벨로키라프토르", emoji: "🐊", sizeRatio: 0.9, speed: 2.5, xp: 22, color: "#ffb74d" },
+            { name: "파키케팔로사우루스", emoji: "🦏", sizeRatio: 1.2, speed: 1.6, xp: 35, color: "#4dd0e1" },
+            { name: "트리케라톱스", emoji: "🦣", sizeRatio: 1.6, speed: 1.2, xp: 50, color: "#ba68c8" },
+            { name: "스테고사우루스", emoji: "🐉", sizeRatio: 2.0, speed: 1.0, xp: 75, color: "#ff8a65" },
+            { name: "티라노사우루스 라이벌", emoji: "🦖", sizeRatio: 2.5, speed: 1.4, xp: 120, color: "#e57373" },
+            { name: "브라키오사우루스 (거대)", emoji: "🦕", sizeRatio: 3.2, speed: 0.8, xp: 200, color: "#4db6ac" }
+        ];
+
+        // Player Level Config Titles
+        const LEVEL_TITLES = [
+            "아기 티라노", "꼬마 포식자", "사냥꾼 렉스", "정글의 폭군", 
+            "쥐라기 챔피언", "전설의 공룡왕", "우주급 대식가 공룡"
+        ];
+
+        // Canvas Game Engine setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let isPlaying = false;
+        let animationFrameId;
+
+        // Camera Offset for Infinite World feel
+        const WORLD_SIZE = 3600;
+        let camera = { x: 0, y: 0 };
+
+        // Game Entities
+        let player;
+        let aiDinosaurs = [];
+        let foodItems = [];
+        let particles = [];
+        let floatingTexts = [];
+
+        // Game State Stats
+        let score = 0;
+        let level = 1;
+        let currentXP = 0;
+        let maxXP = 50;
+        let comboCount = 0;
+        let lastEatTime = 0;
+        let isFever = false;
+        let feverTimer = 0;
+
+        // Keyboard & Mouse & Touch Controls
+        const keys = {};
+        let mousePos = { x: 0, y: 0, active: false };
+        let joystick = { active: false, x: 0, y: 0, angle: 0, distance: 0 };
+
+        // Player Dinosaur Class
+        class PlayerDino {
+            constructor() {
+                this.x = WORLD_SIZE / 2;
+                this.y = WORLD_SIZE / 2;
+                this.radius = 28; // Base Radius
+                this.speed = 4.2;
+                this.angle = 0;
+                this.vx = 0;
+                this.vy = 0;
+                this.mouthOpen = 0;
+                this.mouthSpeed = 0.15;
+            }
+
+            update() {
+                let dx = 0;
+                let dy = 0;
+
+                // Keyboard input
+                if (keys['ArrowUp'] || keys['KeyW']) dy -= 1;
+                if (keys['ArrowDown'] || keys['KeyS']) dy += 1;
+                if (keys['ArrowLeft'] || keys['KeyA']) dx -= 1;
+                if (keys['ArrowRight'] || keys['KeyD']) dx += 1;
+
+                // Joystick or Mouse movement override
+                if (joystick.active) {
+                    dx = Math.cos(joystick.angle) * Math.min(1, joystick.distance / 40);
+                    dy = Math.sin(joystick.angle) * Math.min(1, joystick.distance / 40);
+                } else if (mousePos.active && dx === 0 && dy === 0) {
+                    const screenCenterX = width / 2;
+                    const screenCenterY = height / 2;
+                    const mdx = mousePos.x - screenCenterX;
+                    const mdy = mousePos.y - screenCenterY;
+                    const dist = Math.hypot(mdx, mdy);
+                    if (dist > 15) {
+                        dx = mdx / dist;
+                        dy = mdy / dist;
+                    }
+                }
+
+                // Normalize direction
+                const length = Math.hypot(dx, dy);
+                if (length > 0) {
+                    const normX = dx / (length > 1 ? length : 1);
+                    const normY = dy / (length > 1 ? length : 1);
+
+                    const targetAngle = Math.atan2(normY, normX);
+                    // Smooth rotation turning
+                    this.angle += (targetAngle - this.angle) * 0.15;
+
+                    const curSpeed = isFever ? this.speed * 1.35 : this.speed;
+                    this.vx = normX * curSpeed;
+                    this.vy = normY * curSpeed;
+                } else {
+                    this.vx *= 0.85;
+                    this.vy *= 0.85;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // World Boundary constraint
+                this.x = Math.max(this.radius, Math.min(WORLD_SIZE - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(WORLD_SIZE - this.radius, this.y));
+
+                // Mouth Chomp animation effect
+                this.mouthOpen += this.mouthSpeed;
+                if (this.mouthOpen > 1 || this.mouthOpen < 0) {
+                    this.mouthSpeed = -this.mouthSpeed;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x - camera.x, this.y - camera.y);
+                ctx.rotate(this.angle);
+
+                // Shadow
+                ctx.beginPath();
+                ctx.ellipse(0, this.radius * 0.7, this.radius * 0.9, this.radius * 0.4, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(0,0,0,0.3)";
+                ctx.fill();
+
+                // Fever Aura effect
+                if (isFever) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius * 1.35, 0, Math.PI * 2);
+                    ctx.fillStyle = "rgba(255, 100, 0, 0.35)";
+                    ctx.fill();
+                }
+
+                // Draw Dino Body (T-Rex Style)
+                ctx.font = `${this.radius * 2.2}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText("🦖", 0, 0);
+
+                // Open Mouth Effect Indicator
+                if (Math.hypot(this.vx, this.vy) > 0.5) {
+                    ctx.fillStyle = "rgba(255, 60, 60, 0.6)";
+                    ctx.beginPath();
+                    ctx.arc(this.radius * 0.5, 0, this.radius * 0.3 * (0.5 + this.mouthOpen * 0.5), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        class AIDinosaur {
+            constructor(typeIndex, customPos = null) {
+                this.species = DINO_SPECIES[typeIndex];
+                this.typeIndex = typeIndex;
+
+                if (customPos) {
+                    this.x = customPos.x;
+                    this.y = customPos.y;
+                } else {
+                    this.x = Math.random() * WORLD_SIZE;
+                    this.y = Math.random() * WORLD_SIZE;
+                }
+
+                // Size calculated from base player radius and species ratio
+                this.radius = 20 * this.species.sizeRatio;
+                this.speed = this.species.speed * (0.8 + Math.random() * 0.4);
+                this.angle = Math.random() * Math.PI * 2;
+                this.changeDirTimer = 0;
+            }
+
+            update() {
+                // Distance to player
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+                const distToPlayer = Math.hypot(dx, dy);
+
+                // AI Behavior: Flee if smaller than player, Pursuit/Aggressive if bigger
+                if (distToPlayer < 350) {
+                    if (this.radius < player.radius * 0.95) {
+                        // Run away from player
+                        this.angle = Math.atan2(-dy, -dx);
+                    } else if (this.radius > player.radius * 1.1) {
+                        // Slowly approach player
+                        this.angle = Math.atan2(dy, dx);
+                    }
+                } else {
+                    // Wander randomly
+                    this.changeDirTimer--;
+                    if (this.changeDirTimer <= 0) {
+                        this.angle += (Math.random() - 0.5) * 1.5;
+                        this.changeDirTimer = 60 + Math.random() * 120;
+                    }
+                }
+
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+
+                // Bounce off edges
+                if (this.x < this.radius || this.x > WORLD_SIZE - this.radius) {
+                    this.angle = Math.PI - this.angle;
+                }
+                if (this.y < this.radius || this.y > WORLD_SIZE - this.radius) {
+                    this.angle = -this.angle;
+                }
+            }
+
+            draw() {
+                // Screen Culling Check
+                const screenX = this.x - camera.x;
+                const screenY = this.y - camera.y;
+
+                if (screenX < -100 || screenX > width + 100 || screenY < -100 || screenY > height + 100) {
+                    return;
+                }
+
+                ctx.save();
+                ctx.translate(screenX, screenY);
+                ctx.rotate(this.angle);
+
+                // Shadow
+                ctx.beginPath();
+                ctx.ellipse(0, this.radius * 0.6, this.radius * 0.8, this.radius * 0.35, 0, 0, Math.PI * 2);
+                ctx.fillStyle = "rgba(0,0,0,0.25)";
+                ctx.fill();
+
+                // Danger Indicator Ring (Red if bigger than player, Green if edible)
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius * 1.15, 0, Math.PI * 2);
+                if (this.radius < player.radius * 0.95) {
+                    ctx.strokeStyle = "rgba(74, 222, 128, 0.4)"; // Green (Edible)
+                    ctx.lineWidth = 2;
+                } else {
+                    ctx.strokeStyle = "rgba(248, 113, 113, 0.8)"; // Red (Dangerous)
+                    ctx.lineWidth = 3;
+                }
+                ctx.stroke();
+
+                // Draw AI Dino Emoji
+                ctx.font = `${this.radius * 2.1}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.species.emoji, 0, 0);
+
+                ctx.restore();
+            }
+        }
+
+        // Food & Meat Pickup Items
+        class FoodItem {
+            constructor() {
+                this.x = Math.random() * WORLD_SIZE;
+                this.y = Math.random() * WORLD_SIZE;
+                this.type = Math.random() < 0.15 ? 'golden_meat' : (Math.random() < 0.4 ? 'meat' : 'leaf');
+                this.radius = this.type === 'golden_meat' ? 14 : 9;
+                this.xp = this.type === 'golden_meat' ? 40 : (this.type === 'meat' ? 12 : 5);
+                this.emoji = this.type === 'golden_meat' ? '🍖' : (this.type === 'meat' ? '🥩' : '🌿');
+            }
+
+            draw() {
+                const screenX = this.x - camera.x;
+                const screenY = this.y - camera.y;
+
+                if (screenX < -50 || screenX > width + 50 || screenY < -50 || screenY > height + 50) return;
+
+                ctx.save();
+                ctx.translate(screenX, screenY);
+
+                if (this.type === 'golden_meat') {
+                    ctx.shadowColor = '#fbbf24';
+                    ctx.shadowBlur = 10;
+                }
+
+                ctx.font = `${this.radius * 2.2}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, 0, 0);
+
+                ctx.restore();
+            }
+        }
+
+        // Visual Particles & Floating Text Effects
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.radius = Math.random() * 4 + 2;
+                this.vx = (Math.random() - 0.5) * 6;
+                this.vy = (Math.random() - 0.5) * 6;
+                this.alpha = 1;
+                this.decay = 0.03 + Math.random() * 0.02;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.decay;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x - camera.x, this.y - camera.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class FloatingText {
+            constructor(x, y, text, color = "#fef08a") {
+                this.x = x;
+                this.y = y;
+                this.text = text;
+                this.color = color;
+                this.vy = -1.8;
+                this.alpha = 1;
+            }
+
+            update() {
+                this.y += this.vy;
+                this.alpha -= 0.02;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.font = "900 18px 'Jua', sans-serif";
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = "#000000";
+                ctx.lineWidth = 3;
+                ctx.strokeText(this.text, this.x - camera.x, this.y - camera.y);
+                ctx.fillText(this.text, this.x - camera.x, this.y - camera.y);
+                ctx.restore();
+            }
+        }
+
+        function spawnAIDinosaurs() {
+            while (aiDinosaurs.length < 45) {
+                // Determine appropriate dinosaur types based on player level
+                let maxAllowedIndex = Math.min(DINO_SPECIES.length - 1, level + 1);
+                let randIndex = Math.floor(Math.random() * (maxAllowedIndex + 1));
+                aiDinosaurs.push(new AIDinosaur(randIndex));
+            }
+        }
+
+        function spawnFood() {
+            while (foodItems.length < 90) {
+                foodItems.push(new FoodItem());
+            }
+        }
+
+        function addXP(amount) {
+            let actualXP = isFever ? amount * 2 : amount;
+            currentXP += actualXP;
+
+            if (currentXP >= maxXP) {
+                levelUp();
+            }
+            updateHUD();
+        }
+
+        function levelUp() {
+            level++;
+            currentXP = currentXP - maxXP;
+            maxXP = Math.floor(maxXP * 1.5);
+
+            // Grow player dinosaur
+            player.radius += 3.5;
+            player.speed = Math.max(2.8, player.speed * 0.98); // Slightly heavier but stronger
+
+            audio.playLevelUp();
+
+            // Spawn Level up effect
+            for (let i = 0; i < 25; i++) {
+                particles.push(new Particle(player.x, player.y, '#f59e0b'));
+            }
+
+            const title = LEVEL_TITLES[Math.min(LEVEL_TITLES.length - 1, level - 1)];
+            floatingTexts.push(new FloatingText(player.x, player.y - 40, `LEVEL UP! ${title}`, "#34d399"));
+
+            showToast(`🎉 레벨업! [${title}] 등극! 크기가 커졌습니다.`);
+        }
+
+        function triggerFever() {
+            isFever = true;
+            feverTimer = 300; // 5 seconds
+            document.getElementById('fever-badge').classList.remove('hidden');
+            floatingTexts.push(new FloatingText(player.x, player.y - 60, "🔥 먹방 폭주 피버 타임!!", "#f97316"));
+        }
+
+        function checkCollisions() {
+            // 1. Food collisions
+            for (let i = foodItems.length - 1; i >= 0; i--) {
+                const food = foodItems[i];
+                const dist = Math.hypot(player.x - food.x, player.y - food.y);
+                if (dist < player.radius + food.radius) {
+                    addXP(food.xp);
+                    audio.playChomp();
+
+                    // Particles
+                    for (let p = 0; p < 6; p++) {
+                        particles.push(new Particle(food.x, food.y, food.type === 'leaf' ? '#4ade80' : '#ef4444'));
+                    }
+
+                    foodItems.splice(i, 1);
+                }
+            }
+
+            // 2. AI Dinosaur Mukbang collisions
+            for (let i = aiDinosaurs.length - 1; i >= 0; i--) {
+                const ai = aiDinosaurs[i];
+                const dist = Math.hypot(player.x - ai.x, player.y - ai.y);
+
+                if (dist < player.radius + ai.radius * 0.8) {
+                    // Player eats smaller AI Dinosaur
+                    if (player.radius * 0.95 >= ai.radius) {
+                        score++;
+                        comboCount++;
+                        lastEatTime = Date.now();
+
+                        if (comboCount >= 4 && !isFever) {
+                            triggerFever();
+                        }
+
+                        addXP(ai.species.xp);
+                        audio.playChomp();
+
+                        floatingTexts.push(new FloatingText(ai.x, ai.y, `+${ai.species.xp} XP (${ai.species.name} 냠냠!)`, "#facc15"));
+
+                        // Blood / Meat particles
+                        for (let p = 0; p < 14; p++) {
+                            particles.push(new Particle(ai.x, ai.y, ai.species.color));
+                        }
+
+                        aiDinosaurs.splice(i, 1);
+                    } 
+                    // Larger AI Dinosaur eats Player -> Game Over!
+                    else if (ai.radius > player.radius * 1.05) {
+                        gameOver(ai.species.name);
+                        return;
+                    }
+                }
+            }
+        }
+
+        function drawJungleBackground() {
+            // Draw grid and decorative prehistoric trees
+            const gridPx = 120;
+            const startX = Math.floor(camera.x / gridPx) * gridPx;
+            const startY = Math.floor(camera.y / gridPx) * gridPx;
+
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+            ctx.lineWidth = 1;
+
+            for (let x = startX; x < camera.x + width + gridPx; x += gridPx) {
+                ctx.beginPath();
+                ctx.moveTo(x - camera.x, 0);
+                ctx.lineTo(x - camera.x, height);
+                ctx.stroke();
+            }
+
+            for (let y = startY; y < camera.y + height + gridPx; y += gridPx) {
+                ctx.beginPath();
+                ctx.moveTo(0, y - camera.y);
+                ctx.lineTo(width, y - camera.y);
+                ctx.stroke();
+            }
+
+            // World Outer Boundary Wall
+            ctx.strokeStyle = "rgba(239, 68, 68, 0.6)";
+            ctx.lineWidth = 8;
+            ctx.strokeRect(-camera.x, -camera.y, WORLD_SIZE, WORLD_SIZE);
+        }
+
+        function updateHUD() {
+            document.getElementById('score-num').innerText = score;
+            document.getElementById('level-num').innerText = level;
+
+            const titleIndex = Math.min(LEVEL_TITLES.length - 1, level - 1);
+            document.getElementById('player-title').innerText = LEVEL_TITLES[titleIndex];
+
+            const pct = Math.min(100, (currentXP / maxXP) * 100);
+            document.getElementById('xp-bar').style.width = `${pct}%`;
+            document.getElementById('xp-text').innerText = `${currentXP} / ${maxXP} XP`;
+        }
+
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            // Clear Canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Update Fever Timer
+            if (isFever) {
+                feverTimer--;
+                if (feverTimer <= 0) {
+                    isFever = false;
+                    document.getElementById('fever-badge').classList.add('hidden');
+                }
+            }
+
+            // Combo Timeout Reset
+            if (Date.now() - lastEatTime > 3000) {
+                comboCount = 0;
+            }
+
+            // Update Player
+            player.update();
+
+            // Smooth Camera Follow
+            camera.x = player.x - width / 2;
+            camera.y = player.y - height / 2;
+
+            // Maintain World Boundaries and Entities Spawning
+            spawnAIDinosaurs();
+            spawnFood();
+            checkCollisions();
+
+            // Render World
+            drawJungleBackground();
+
+            // Render Food
+            foodItems.forEach(f => f.draw());
+
+            // Render AI Dinosaurs
+            aiDinosaurs.forEach(ai => {
+                ai.update();
+                ai.draw();
+            });
+
+            // Render Player
+            player.draw();
+
+            // Render Particles & Texts
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].alpha <= 0) particles.splice(i, 1);
+            }
+
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                floatingTexts[i].update();
+                floatingTexts[i].draw();
+                if (floatingTexts[i].alpha <= 0) floatingTexts.splice(i, 1);
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            document.getElementById('modal-overlay').classList.add('hidden');
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+
+            // Reset Game Variables
+            score = 0;
+            level = 1;
+            currentXP = 0;
+            maxXP = 50;
+            comboCount = 0;
+            isFever = false;
+
+            player = new PlayerDino();
+            aiDinosaurs = [];
+            foodItems = [];
+            particles = [];
+            floatingTexts = [];
+
+            updateHUD();
+            isPlaying = true;
+            audio.init();
+
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        }
+
+        function gameOver(eatenByName) {
+            isPlaying = false;
+            audio.playGameOver();
+
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-level').innerText = level;
+
+            const titleIndex = Math.min(LEVEL_TITLES.length - 1, level - 1);
+            document.getElementById('final-level-title').innerText = LEVEL_TITLES[titleIndex];
+
+            document.getElementById('modal-overlay').classList.remove('hidden');
+            document.getElementById('gameover-screen').classList.remove('hidden');
+        }
+
+        function showToast(msg) {
+            floatingTexts.push(new FloatingText(player.x, player.y - 50, msg, "#fef08a"));
+        }
+
+        // Window Resize Handler
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Key Listeners
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        // Mouse Controls
+        window.addEventListener('mousemove', (e) => {
+            mousePos.x = e.clientX;
+            mousePos.y = e.clientY;
+            mousePos.active = true;
+        });
+
+        // Touch & Virtual Joystick Logic
+        const joystickZone = document.getElementById('joystick-zone');
+        const joystickKnob = document.getElementById('joystick-knob');
+
+        window.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            // Show virtual joystick if touched on mobile
+            if (touch.clientX < window.innerWidth * 0.5 && touch.clientY > window.innerHeight * 0.4) {
+                joystick.active = true;
+                joystickZone.style.display = 'block';
+                joystickZone.style.left = `${touch.clientX - 60}px`;
+                joystickZone.style.top = `${touch.clientY - 60}px`;
+            }
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!joystick.active) return;
+            const touch = e.touches[0];
+            const rect = joystickZone.getBoundingClientRect();
+            const centerX = rect.left + 60;
+            const centerY = rect.top + 60;
+
+            const dx = touch.clientX - centerX;
+            const dy = touch.clientY - centerY;
+            const dist = Math.hypot(dx, dy);
+
+            joystick.angle = Math.atan2(dy, dx);
+            joystick.distance = Math.min(45, dist);
+
+            const knobX = 35 + Math.cos(joystick.angle) * joystick.distance;
+            const knobY = 35 + Math.sin(joystick.angle) * joystick.distance;
+
+            joystickKnob.style.left = `${knobX}px`;
+            joystickKnob.style.top = `${knobY}px`;
+        });
+
+        window.addEventListener('touchend', () => {
+            joystick.active = false;
+            joystickZone.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

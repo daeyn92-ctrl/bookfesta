@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>마라탕의 재료를 모아라!</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@600;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Jua', 'Noto Sans KR', sans-serif;
+            touch-action: manipulation;
+        }
+
+        body {
+            background: #111827;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Boiling liquid animation */
+        @keyframes bubbleFloat {
+            0% { transform: translateY(10px) scale(0.6); opacity: 0; }
+            50% { opacity: 0.9; }
+            100% { transform: translateY(-35px) scale(1.1); opacity: 0; }
+        }
+
+        .boil-bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: bubbleFloat 1.2s infinite ease-in;
+        }
+
+        /* Steam Rise */
+        @keyframes steamRise {
+            0% { transform: translateY(0) scaleX(1); opacity: 0.2; }
+            50% { transform: translateY(-20px) scaleX(1.3); opacity: 0.6; }
+            100% { transform: translateY(-45px) scaleX(1.6); opacity: 0; }
+        }
+
+        .steam-particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            filter: blur(8px);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: steamRise 2s infinite ease-out;
+        }
+
+        /* Map gather node pulse */
+        @keyframes pulseGather {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
+            50% { transform: scale(1.06); box-shadow: 0 0 25px rgba(245, 158, 11, 0.8); }
+        }
+
+        .gather-node {
+            animation: pulseGather 2.5s infinite ease-in-out;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ef4444;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between min-h-screen bg-slate-950 text-white p-2 sm:p-4">
+
+    <!-- HEADER NAVBAR -->
+    <header class="w-full max-w-4xl bg-slate-900/90 border-2 border-red-600/60 rounded-2xl p-3 shadow-2xl flex items-center justify-between mb-2">
+        <div class="flex items-center space-x-3">
+            <span class="text-3xl animate-bounce">🍲</span>
+            <div>
+                <h1 class="text-lg sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300">
+                    마라탕의 재료를 모아라!
+                </h1>
+                <p class="text-[11px] sm:text-xs text-red-300">"재료 수집 맵에서 모아온 싱싱한 재료로 얼얼한 마라탕을 끓이자!"</p>
+            </div>
+        </div>
+
+        <!-- MODE NAVIGATION SWITCHER -->
+        <div class="flex items-center space-x-2">
+            <button id="nav-map-btn" onclick="switchView('map')" class="bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black border border-emerald-300 shadow-lg transition active:scale-95 flex items-center space-x-1.5">
+                <span>🗺️</span>
+                <span>재료 수집 맵</span>
+            </button>
+            <button id="nav-kitchen-btn" onclick="switchView('kitchen')" class="bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-black border border-amber-300 shadow-lg transition active:scale-95 flex items-center space-x-1.5 opacity-60">
+                <span>🍳</span>
+                <span>마라탕 조리실</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-4xl flex-1 flex flex-col items-center justify-center relative w-full">
+        
+        <!-- VIEW 1: GATHERING MAP (재료 수집 맵) -->
+        <section id="view-map" class="w-full bg-slate-900/80 border-2 border-emerald-900/70 rounded-3xl p-3 sm:p-5 shadow-2xl flex flex-col space-y-4">
+            
+            <div class="flex items-center justify-between border-b border-emerald-800/50 pb-2">
+                <div class="flex items-center space-x-2">
+                    <span class="text-2xl">🧺</span>
+                    <div>
+                        <h2 class="text-base sm:text-lg font-black text-emerald-300">탐험가 '마라의 재료 수집 맵'</h2>
+                        <p class="text-xs text-slate-300">구역을 클릭하여 마라탕에 넣을 최고급 재료를 수집하세요!</p>
+                    </div>
+                </div>
+                <div class="bg-black/60 border border-emerald-500/40 px-3 py-1 rounded-xl text-xs font-bold text-amber-300">
+                    수집된 재료: <span id="map-total-count" class="text-white font-black text-sm">0</span>개
+                </div>
+            </div>
+
+            <!-- INTERACTIVE GATHERING MAP CANVAS AREA -->
+            <div class="relative w-full h-[320px] sm:h-[380px] bg-slate-950 rounded-2xl overflow-hidden border-2 border-emerald-700/50 shadow-inner flex items-center justify-center">
+                
+                <!-- MAP BACKGROUND ART -->
+                <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-950/40 via-slate-950 to-black pointer-events-none"></div>
+
+                <!-- COLLECTOR CHARACTER AVATAR -->
+                <div id="collector-avatar" class="absolute z-20 flex flex-col items-center transition-all duration-700 ease-out pointer-events-none" style="top: 45%; left: 45%;">
+                    <div class="text-4xl sm:text-5xl drop-shadow-xl animate-bounce">🤠</div>
+                    <div class="bg-black/80 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full border border-emerald-500 font-bold whitespace-nowrap">
+                        재료 탐험가
+                    </div>
+                </div>
+
+                <!-- MAP NODES (4 MAJOR SECTORS) -->
+                <!-- 1. VEGETABLE FARM -->
+                <button onclick="gatherFromZone('veg', 30, 20)" class="absolute top-[12%] left-[10%] z-10 gather-node bg-emerald-950/90 border-2 border-emerald-400 p-3 sm:p-4 rounded-2xl flex flex-col items-center hover:scale-110 active:scale-95 transition">
+                    <span class="text-3xl sm:text-4xl">🥬</span>
+                    <span class="text-xs font-black text-emerald-200 mt-1">싱싱 야채 농장</span>
+                    <span class="text-[10px] text-emerald-400">청경채, 배추, 쑥갓</span>
+                </button>
+
+                <!-- 2. MUSHROOM FOREST -->
+                <button onclick="gatherFromZone('shroom', 70, 20)" class="absolute top-[12%] right-[10%] z-10 gather-node bg-amber-950/90 border-2 border-amber-400 p-3 sm:p-4 rounded-2xl flex flex-col items-center hover:scale-110 active:scale-95 transition">
+                    <span class="text-3xl sm:text-4xl">🍄</span>
+                    <span class="text-xs font-black text-amber-200 mt-1">신비 버섯 숲</span>
+                    <span class="text-[10px] text-amber-400">팽이, 목이, 새송이</span>
+                </button>
+
+                <!-- 3. MEAT & BALL MARKET -->
+                <button onclick="gatherFromZone('meat', 25, 65)" class="absolute bottom-[10%] left-[10%] z-10 gather-node bg-rose-950/90 border-2 border-rose-400 p-3 sm:p-4 rounded-2xl flex flex-col items-center hover:scale-110 active:scale-95 transition">
+                    <span class="text-3xl sm:text-4xl">🥩</span>
+                    <span class="text-xs font-black text-rose-200 mt-1">고기 & 완자 시장</span>
+                    <span class="text-[10px] text-rose-400">우삼겹, 문어완자, 비엔나</span>
+                </button>
+
+                <!-- 4. NOODLE & TOFU WORKSHOP -->
+                <button onclick="gatherFromZone('noodle', 68, 65)" class="absolute bottom-[10%] right-[10%] z-10 gather-node bg-yellow-950/90 border-2 border-yellow-400 p-3 sm:p-4 rounded-2xl flex flex-col items-center hover:scale-110 active:scale-95 transition">
+                    <span class="text-3xl sm:text-4xl">🍜</span>
+                    <span class="text-xs font-black text-yellow-200 mt-1">면 & 건두부 공방</span>
+                    <span class="text-[10px] text-yellow-400">중국당면, 분모자, 푸주</span>
+                </button>
+            </div>
+
+            <!-- CURRENT BASKET INVENTORY PREVIEW -->
+            <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-3">
+                <div class="text-xs font-black text-slate-300 mb-2 flex items-center justify-between">
+                    <span>🎒 탐험가 바구니 (수집한 재료 현황)</span>
+                    <button onclick="autoFillAllIngredients()" class="text-[10px] text-amber-400 hover:underline">✨ 한꺼번에 듬뿍 채우기</button>
+                </div>
+                <div id="basket-inventory-list" class="flex items-center space-x-2 overflow-x-auto pb-1 min-h-[50px]">
+                    <!-- Dynamic Badges -->
+                </div>
+            </div>
+
+            <!-- GO TO KITCHEN ACTION BUTTON -->
+            <button onclick="switchView('kitchen')" class="w-full bg-gradient-to-r from-red-600 via-amber-600 to-yellow-500 hover:from-red-500 hover:to-yellow-400 text-white font-black text-sm sm:text-base py-3.5 rounded-2xl border-2 border-amber-300 shadow-2xl transition active:scale-95 flex items-center justify-center space-x-2">
+                <span class="text-2xl">🍳</span>
+                <span>모은 재료 가지고 마라탕 조리실로 이동하기!</span>
+            </button>
+        </section>
+
+        <!-- VIEW 2: KITCHEN & BOWL STAGE (마라탕 조리실) -->
+        <section id="view-kitchen" class="w-full bg-slate-900/80 border-2 border-red-900/70 rounded-3xl p-3 sm:p-5 shadow-2xl hidden flex-col space-y-4">
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                
+                <!-- LEFT COLUMN: BOWL & COOKING POT CANVAS (7 COLS) -->
+                <div class="lg:col-span-7 flex flex-col items-center bg-slate-950/90 border-2 border-slate-800 rounded-2xl p-3 sm:p-4 relative min-h-[360px] justify-between">
+                    
+                    <!-- BOWL SELECTION HEADER -->
+                    <div class="w-full flex items-center justify-between border-b border-slate-800 pb-2">
+                        <span class="text-xs font-black text-amber-300 flex items-center space-x-1">
+                            <span>🥣 1단계: 마라탕 그릇 선택 및 놓기</span>
+                        </span>
+                        
+                        <!-- BOWL TYPE SELECTOR BUTTONS -->
+                        <div class="flex items-center space-x-1">
+                            <button onclick="selectBowl('stone')" class="bowl-btn bg-stone-800 text-stone-200 border border-stone-500 text-[10px] px-2 py-1 rounded-lg font-black active:scale-95">
+                                전통 뚝배기
+                            </button>
+                            <button onclick="selectBowl('gold')" class="bowl-btn bg-amber-950 text-amber-300 border border-amber-500 text-[10px] px-2 py-1 rounded-lg font-black active:scale-95">
+                                황금 팔각
+                            </button>
+                            <button onclick="selectBowl('pink')" class="bowl-btn bg-pink-950 text-pink-300 border border-pink-500 text-[10px] px-2 py-1 rounded-lg font-black active:scale-95">
+                                핑크 냥이
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- CENTRAL BOWL & WATER & SAUCE VISUAL AREA -->
+                    <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center my-2">
+                        
+                        <!-- BOWL CONTAINER -->
+                        <div id="bowl-graphic" class="relative w-full h-full rounded-full border-8 border-stone-800 bg-stone-900 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-500">
+                            
+                            <!-- WATER & MALA LIQUID SURFACE -->
+                            <div id="bowl-liquid" class="absolute inset-3 rounded-full transition-all duration-700 flex flex-col items-center justify-center overflow-hidden" style="background: rgba(255, 255, 255, 0.05);">
+                                
+                                <!-- BUBBLES & STEAM LAYER -->
+                                <div id="boil-bubbles-layer" class="absolute inset-0 pointer-events-none"></div>
+                                <div id="steam-layer" class="absolute inset-0 pointer-events-none"></div>
+
+                                <!-- EMPTY BOWL INSTRUCTION TEXT -->
+                                <div id="empty-bowl-msg" class="text-center p-2 text-slate-500">
+                                    <span class="text-3xl block animate-pulse">🫗</span>
+                                    <span class="text-xs font-bold text-slate-400">물을 채우고 재료와 소스를 넣으세요!</span>
+                                </div>
+
+                                <!-- ADDED INGREDIENTS EMOJI GRID IN BOWL -->
+                                <div id="bowl-ingredients-grid" class="z-10 flex flex-wrap items-center justify-center gap-1.5 p-3 max-w-[85%]">
+                                    <!-- Added ingredients pop up here -->
+                                </div>
+                            </div>
+
+                            <!-- BOWL HANDLES -->
+                            <div id="handle-left" class="absolute -left-4 top-1/2 -translate-y-1/2 w-5 h-12 bg-stone-700 border border-stone-500 rounded-l-xl"></div>
+                            <div id="handle-right" class="absolute -right-4 top-1/2 -translate-y-1/2 w-5 h-12 bg-stone-700 border border-stone-500 rounded-r-xl"></div>
+                        </div>
+
+                    </div>
+
+                    <!-- WATER & SAUCE STATUS INFO BAR -->
+                    <div class="w-full bg-black/60 rounded-xl p-2 border border-slate-800 text-xs flex items-center justify-between">
+                        <div class="flex items-center space-x-1">
+                            <span class="text-blue-400 font-bold">💧 물(기본 육수):</span>
+                            <span id="water-status-text" class="text-white font-black">비어있음</span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-red-400 font-bold">🌶️ 마라소스:</span>
+                            <span id="sauce-status-text" class="text-white font-black">미선택</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT COLUMN: INGREDIENTS INVENTORY & SAUCE CONTROLS (5 COLS) -->
+                <div class="lg:col-span-5 flex flex-col space-y-3">
+                    
+                    <!-- STEP 2: FILL WATER BASE BUTTON -->
+                    <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-3 space-y-1">
+                        <div class="text-xs font-black text-blue-300 flex items-center justify-between">
+                            <span>💧 2단계: 기본 물(육수) 붓기</span>
+                            <span id="water-check-icon" class="text-slate-600">⚪</span>
+                        </div>
+                        <button onclick="fillWaterBase()" class="w-full bg-blue-900/80 hover:bg-blue-800 border border-blue-400/60 text-blue-100 font-black text-xs py-2 rounded-xl transition active:scale-95 flex items-center justify-center space-x-1">
+                            <span>🫗</span>
+                            <span>그릇에 맑은 물(기본 육수) 채우기</span>
+                        </button>
+                    </div>
+
+                    <!-- STEP 3: MALA SAUCE LEVEL SELECTOR (3 STAGES) -->
+                    <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-3 space-y-2">
+                        <div class="text-xs font-black text-red-300 flex items-center justify-between">
+                            <span>🌶️ 3단계: 마라소스 단계 고르기</span>
+                            <span class="text-[10px] text-slate-400">3단계 강도 선택</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <!-- LEVEL 1 -->
+                            <button id="sauce-btn-1" onclick="selectMalaSauce(1)" class="sauce-btn bg-slate-900 border border-amber-500/50 hover:bg-amber-950 p-2 rounded-xl text-center active:scale-95 transition">
+                                <div class="text-xs font-black text-amber-300">1단계</div>
+                                <div class="text-[9px] text-amber-400/80">순한 백탕/소마라</div>
+                            </button>
+                            <!-- LEVEL 2 -->
+                            <button id="sauce-btn-2" onclick="selectMalaSauce(2)" class="sauce-btn bg-slate-900 border border-orange-500/50 hover:bg-orange-950 p-2 rounded-xl text-center active:scale-95 transition">
+                                <div class="text-xs font-black text-orange-300">2단계</div>
+                                <div class="text-[9px] text-orange-400/80">정석 매운맛</div>
+                            </button>
+                            <!-- LEVEL 3 -->
+                            <button id="sauce-btn-3" onclick="selectMalaSauce(3)" class="sauce-btn bg-slate-900 border border-red-500/50 hover:bg-red-950 p-2 rounded-xl text-center active:scale-95 transition">
+                                <div class="text-xs font-black text-red-400">3단계</div>
+                                <div class="text-[9px] text-red-300/80">화끈 지옥 마라</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4: ADD COLLECTED INGREDIENTS -->
+                    <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-3 space-y-2">
+                        <div class="text-xs font-black text-emerald-300 flex items-center justify-between">
+                            <span>🥦 4단계: 수집한 재료 넣기</span>
+                            <button onclick="clearBowlIngredients()" class="text-[10px] text-red-400 hover:underline">비우기</button>
+                        </div>
+
+                        <!-- AVAILABLE INGREDIENTS SELECTION LIST -->
+                        <div id="kitchen-ingredient-picker" class="grid grid-cols-3 gap-1.5 max-h-[160px] overflow-y-auto pr-1">
+                            <!-- Dynamic ingredient buttons from collected inventory -->
+                        </div>
+                    </div>
+
+                    <!-- STEP 5: COOK & BOIL BUTTON -->
+                    <button onclick="startCookMalatang()" class="w-full bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-black text-base py-3.5 rounded-2xl border-2 border-amber-300 shadow-2xl transition active:scale-95 flex items-center justify-center space-x-2">
+                        <span class="text-2xl animate-spin">🔥</span>
+                        <span>보글보글 마라탕 끓이기!</span>
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- RESULT MODAL SCREEN -->
+    <div id="result-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-amber-500/80 rounded-3xl p-5 max-w-md w-full shadow-2xl flex flex-col items-center text-center space-y-4 animate-scaleUp">
+            
+            <div class="text-6xl animate-bounce">🍲</div>
+            
+            <div>
+                <h3 id="modal-title" class="text-xl font-black text-amber-300">완성된 얼얼 마라탕!</h3>
+                <p id="modal-desc" class="text-xs text-slate-300 mt-1">"시원하고 알싸한 육수에 모아온 재료가 듬뿍 들어갔어!"</p>
+            </div>
+
+            <div class="w-full bg-black/60 rounded-2xl p-3 border border-amber-500/30 text-left text-xs space-y-1">
+                <div class="flex justify-between text-amber-200">
+                    <span>사용한 그릇:</span>
+                    <span id="modal-bowl-name" class="font-bold text-white">전통 뚝배기</span>
+                </div>
+                <div class="flex justify-between text-amber-200">
+                    <span>마라소스 단계:</span>
+                    <span id="modal-sauce-level" class="font-bold text-red-400">2단계 (정석 매운맛)</span>
+                </div>
+                <div class="flex justify-between text-amber-200">
+                    <span>넣은 재료 수:</span>
+                    <span id="modal-ing-count" class="font-bold text-emerald-300">0개</span>
+                </div>
+            </div>
+
+            <button onclick="closeModal()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black py-3 rounded-xl border border-emerald-300 shadow-lg active:scale-95 transition">
+                😋 신나게 맛보고 계속 탐험하기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // WEB AUDIO SYNTHESIZER (No external audio files required)
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSFX(type) {
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'gather') {
+                // Plop gather sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(700, now + 0.12);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'water') {
+                // Water pouring sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(350, now + 0.3);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'sauce') {
+                // Sauce squirt sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.18);
+            } else if (type === 'boil') {
+                // Bubbling boiling sound loop
+                for (let i = 0; i < 5; i++) {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    const delay = i * 0.1;
+                    osc.frequency.setValueAtTime(180 + Math.random() * 200, now + delay);
+                    osc.frequency.exponentialRampToValueAtTime(450 + Math.random() * 200, now + delay + 0.08);
+                    gain.gain.setValueAtTime(0.15, now + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.09);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + delay);
+                    osc.stop(now + delay + 0.09);
+                }
+            } else if (type === 'triumph') {
+                // Fanfare completion sound
+                [300, 400, 500, 600].forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.2);
+                });
+            }
+        }
+
+        // INGREDIENTS DATABASE
+        const INGREDIENTS_DB = {
+            beef: { id: 'beef', name: '우삼겹', category: 'meat', emoji: '🥩' },
+            ball: { id: 'ball', name: '문어완자', category: 'meat', emoji: '🥟' },
+            sausage: { id: 'sausage', name: '비엔나', category: 'meat', emoji: '🌭' },
+            bokchoy: { id: 'bokchoy', name: '청경채', category: 'veg', emoji: '🥬' },
+            cabbage: { id: 'cabbage', name: '알배기배추', category: 'veg', emoji: '🥗' },
+            enoki: { id: 'enoki', name: '팽이버섯', category: 'shroom', emoji: '🍄' },
+            woodear: { id: 'woodear', name: '목이버섯', category: 'shroom', emoji: '🖤' },
+            noodle: { id: 'noodle', name: '중국당면', category: 'noodle', emoji: '🍜' },
+            bunmoja: { id: 'bunmoja', name: '분모자', category: 'noodle', emoji: '🍡' },
+            fuju: { id: 'fuju', name: '푸주(건두부)', category: 'noodle', emoji: '🧈' }
+        };
+
+        // GAME STATE
+        let inventory = {
+            beef: 3,
+            ball: 3,
+            sausage: 3,
+            bokchoy: 4,
+            cabbage: 3,
+            enoki: 4,
+            woodear: 3,
+            noodle: 4,
+            bunmoja: 3,
+            fuju: 3
+        };
+
+        let selectedBowl = 'stone'; // 'stone', 'gold', 'pink'
+        let hasWaterBase = false;
+        let selectedMalaLevel = 0; // 0 (none), 1, 2, 3
+        let ingredientsInBowl = [];
+
+        function switchView(viewName) {
+            const mapSec = document.getElementById('view-map');
+            const kitchenSec = document.getElementById('view-kitchen');
+            const mapBtn = document.getElementById('nav-map-btn');
+            const kitchenBtn = document.getElementById('nav-kitchen-btn');
+
+            if (viewName === 'map') {
+                mapSec.classList.remove('hidden');
+                kitchenSec.classList.add('hidden');
+                kitchenSec.classList.remove('flex');
+                mapBtn.classList.remove('opacity-60');
+                kitchenBtn.classList.add('opacity-60');
+            } else {
+                kitchenSec.classList.remove('hidden');
+                kitchenSec.classList.add('flex');
+                mapSec.classList.add('hidden');
+                kitchenBtn.classList.remove('opacity-60');
+                mapBtn.classList.add('opacity-60');
+                renderKitchenUI();
+            }
+        }
+
+        // GATHER INGREDIENTS FROM MAP SECTORS
+        function gatherFromZone(type, posX, posY) {
+            playSFX('gather');
+
+            // Move Collector Avatar
+            const avatar = document.getElementById('collector-avatar');
+            avatar.style.left = `${posX}%`;
+            avatar.style.top = `${posY}%`;
+
+            // Add corresponding ingredients
+            let addedKeys = [];
+            if (type === 'veg') addedKeys = ['bokchoy', 'cabbage'];
+            else if (type === 'shroom') addedKeys = ['enoki', 'woodear'];
+            else if (type === 'meat') addedKeys = ['beef', 'ball', 'sausage'];
+            else if (type === 'noodle') addedKeys = ['noodle', 'bunmoja', 'fuju'];
+
+            addedKeys.forEach(key => {
+                inventory[key] = (inventory[key] || 0) + 2;
+            });
+
+            updateInventoryDisplay();
+        }
+
+        function autoFillAllIngredients() {
+            playSFX('gather');
+            Object.keys(INGREDIENTS_DB).forEach(key => {
+                inventory[key] = (inventory[key] || 0) + 5;
+            });
+            updateInventoryDisplay();
+        }
+
+        function updateInventoryDisplay() {
+            const list = document.getElementById('basket-inventory-list');
+            const countText = document.getElementById('map-total-count');
+            list.innerHTML = '';
+
+            let total = 0;
+            Object.keys(inventory).forEach(key => {
+                const qty = inventory[key];
+                total += qty;
+                if (qty > 0) {
+                    const item = INGREDIENTS_DB[key];
+                    const badge = document.createElement('div');
+                    badge.className = 'flex items-center space-x-1 bg-slate-900 border border-emerald-500/40 px-2 py-1 rounded-xl text-xs whitespace-nowrap';
+                    badge.innerHTML = `<span>${item.emoji}</span> <span class="text-emerald-300 font-bold">${item.name}</span> <span class="bg-emerald-950 text-emerald-400 text-[10px] px-1.5 py-0.2 rounded-full border border-emerald-700">${qty}</span>`;
+                    list.appendChild(badge);
+                }
+            });
+
+            countText.innerText = total;
+        }
+
+        function selectBowl(type) {
+            playSFX('gather');
+            selectedBowl = type;
+            updateBowlVisuals();
+        }
+
+        function updateBowlVisuals() {
+            const bowlGraphic = document.getElementById('bowl-graphic');
+            const handleLeft = document.getElementById('handle-left');
+            const handleRight = document.getElementById('handle-right');
+
+            if (selectedBowl === 'stone') {
+                bowlGraphic.className = 'relative w-full h-full rounded-full border-8 border-stone-800 bg-stone-900 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-500';
+                handleLeft.className = 'absolute -left-4 top-1/2 -translate-y-1/2 w-5 h-12 bg-stone-700 border border-stone-500 rounded-l-xl';
+                handleRight.className = 'absolute -right-4 top-1/2 -translate-y-1/2 w-5 h-12 bg-stone-700 border border-stone-500 rounded-r-xl';
+            } else if (selectedBowl === 'gold') {
+                bowlGraphic.className = 'relative w-full h-full rounded-full border-8 border-amber-500 bg-amber-950 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-500';
+                handleLeft.className = 'absolute -left-4 top-1/2 -translate-y-1/2 w-5 h-12 bg-amber-600 border border-amber-400 rounded-l-xl';
+                handleRight.className = 'absolute -right-4 top-1/2 -translate-y-1/2 w-5 h-12 bg-amber-600 border border-amber-400 rounded-r-xl';
+            } else if (selectedBowl === 'pink') {
+                bowlGraphic.className = 'relative w-full h-full rounded-full border-8 border-pink-400 bg-pink-950 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-500';
+                handleLeft.className = 'absolute -left-4 top-1/2 -translate-y-1/2 w-5 h-12 bg-pink-500 border border-pink-300 rounded-l-xl';
+                handleRight.className = 'absolute -right-4 top-1/2 -translate-y-1/2 w-5 h-12 bg-pink-500 border border-pink-300 rounded-r-xl';
+            }
+        }
+
+        function fillWaterBase() {
+            playSFX('water');
+            hasWaterBase = true;
+            document.getElementById('water-check-icon').innerText = '✅';
+            document.getElementById('water-status-text').innerText = '채워짐 (기본 육수)';
+            document.getElementById('water-status-text').className = 'text-blue-400 font-black';
+            updateLiquidColor();
+        }
+
+        function selectMalaSauce(level) {
+            playSFX('sauce');
+            selectedMalaLevel = level;
+            
+            // Highlight Buttons
+            for (let i = 1; i <= 3; i++) {
+                const btn = document.getElementById(`sauce-btn-${i}`);
+                if (i === level) {
+                    btn.classList.add('ring-2', 'ring-amber-300', 'scale-105');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-amber-300', 'scale-105');
+                }
+            }
+
+            const levelNames = ['', '1단계 (순한 백탕/소마라)', '2단계 (정석 매운맛)', '3단계 (화끈 지옥 마라)'];
+            document.getElementById('sauce-status-text').innerText = levelNames[level];
+            
+            updateLiquidColor();
+        }
+
+        function updateLiquidColor() {
+            const liquid = document.getElementById('bowl-liquid');
+            const msg = document.getElementById('empty-bowl-msg');
+
+            if (hasWaterBase || selectedMalaLevel > 0 || ingredientsInBowl.length > 0) {
+                msg.classList.add('hidden');
+            } else {
+                msg.classList.remove('hidden');
+            }
+
+            // Liquid color blending logic
+            if (!hasWaterBase && selectedMalaLevel === 0) {
+                liquid.style.background = 'rgba(255, 255, 255, 0.05)';
+            } else if (hasWaterBase && selectedMalaLevel === 0) {
+                // Clear water
+                liquid.style.background = 'radial-gradient(circle, #38bdf8 0%, #0284c7 70%, #075985 100%)';
+            } else if (selectedMalaLevel === 1) {
+                // Soft Orange/Milky White Mala
+                liquid.style.background = 'radial-gradient(circle, #fde047 0%, #f97316 70%, #c2410c 100%)';
+            } else if (selectedMalaLevel === 2) {
+                // Rich Medium Red Mala
+                liquid.style.background = 'radial-gradient(circle, #ef4444 0%, #dc2626 70%, #991b1b 100%)';
+            } else if (selectedMalaLevel === 3) {
+                // Dark Hell Spicy Red
+                liquid.style.background = 'radial-gradient(circle, #9f1239 0%, #881337 70%, #4c0519 100%)';
+            }
+        }
+
+        function addIngredientToBowl(key) {
+            if (inventory[key] <= 0) return;
+
+            playSFX('gather');
+            inventory[key]--;
+            ingredientsInBowl.push(key);
+
+            updateInventoryDisplay();
+            renderBowlIngredients();
+            renderKitchenUI();
+            updateLiquidColor();
+        }
+
+        function clearBowlIngredients() {
+            playSFX('gather');
+            // Return to inventory
+            ingredientsInBowl.forEach(key => {
+                inventory[key] = (inventory[key] || 0) + 1;
+            });
+            ingredientsInBowl = [];
+            updateInventoryDisplay();
+            renderBowlIngredients();
+            renderKitchenUI();
+        }
+
+        function renderBowlIngredients() {
+            const grid = document.getElementById('bowl-ingredients-grid');
+            grid.innerHTML = '';
+
+            ingredientsInBowl.forEach(key => {
+                const item = INGREDIENTS_DB[key];
+                const span = document.createElement('span');
+                span.className = 'text-xl sm:text-2xl animate-bounce drop-shadow-md';
+                span.innerText = item.emoji;
+                grid.appendChild(span);
+            });
+        }
+
+        function renderKitchenUI() {
+            const picker = document.getElementById('kitchen-ingredient-picker');
+            picker.innerHTML = '';
+
+            Object.keys(inventory).forEach(key => {
+                const qty = inventory[key];
+                const item = INGREDIENTS_DB[key];
+
+                const btn = document.createElement('button');
+                btn.onclick = () => addIngredientToBowl(key);
+                btn.className = `p-1.5 rounded-xl border text-left flex items-center justify-between active:scale-95 transition ${qty > 0 ? 'bg-slate-900 hover:bg-slate-800 border-emerald-500/50' : 'bg-slate-950 border-slate-800 opacity-40 cursor-not-allowed'}`;
+                btn.innerHTML = `
+                    <div class="flex items-center space-x-1">
+                        <span class="text-base">${item.emoji}</span>
+                        <span class="text-[11px] font-bold text-white">${item.name}</span>
+                    </div>
+                    <span class="text-[10px] bg-black/60 px-1.5 py-0.2 rounded-full font-black text-amber-300">${qty}</span>
+                `;
+                picker.appendChild(btn);
+            });
+        }
+
+        function startCookMalatang() {
+            if (!hasWaterBase) {
+                alert("그릇에 기본 물(육수)을 먼저 채워주세요!");
+                return;
+            }
+            if (selectedMalaLevel === 0) {
+                alert("마라소스 단계를 선택해주세요!");
+                return;
+            }
+            if (ingredientsInBowl.length === 0) {
+                alert("수집한 재료를 최소 하나 이상 그릇에 넣어주세요!");
+                return;
+            }
+
+            playSFX('boil');
+
+            // Generate Bubbles and Steam
+            const bubblesLayer = document.getElementById('boil-bubbles-layer');
+            const steamLayer = document.getElementById('steam-layer');
+            bubblesLayer.innerHTML = '';
+            steamLayer.innerHTML = '';
+
+            for (let i = 0; i < 12; i++) {
+                const b = document.createElement('div');
+                b.className = 'boil-bubble';
+                const size = 8 + Math.random() * 12;
+                b.style.width = `${size}px`;
+                b.style.height = `${size}px`;
+                b.style.left = `${15 + Math.random() * 70}%`;
+                b.style.top = `${20 + Math.random() * 60}%`;
+                b.style.animationDelay = `${Math.random() * 1.2}s`;
+                bubblesLayer.appendChild(b);
+            }
+
+            for (let i = 0; i < 6; i++) {
+                const s = document.createElement('div');
+                s.className = 'steam-particle';
+                s.style.width = '35px';
+                s.style.height = '35px';
+                s.style.left = `${20 + Math.random() * 60}%`;
+                s.style.top = `${30 + Math.random() * 40}%`;
+                s.style.animationDelay = `${Math.random() * 1.5}s`;
+                steamLayer.appendChild(s);
+            }
+
+            setTimeout(() => {
+                showModal();
+            }, 1800);
+        }
+
+        function showModal() {
+            playSFX('triumph');
+            const bowlNames = { stone: '전통 뚝배기', gold: '황금 팔각 화로', pink: '핑크 냥이 그릇' };
+            const sauceNames = ['', '1단계 (순한 백탕/소마라)', '2단계 (정석 매운맛)', '3단계 (화끈 지옥 마라)'];
+
+            document.getElementById('modal-bowl-name').innerText = bowlNames[selectedBowl];
+            document.getElementById('modal-sauce-level').innerText = sauceNames[selectedMalaLevel];
+            document.getElementById('modal-ing-count').innerText = `${ingredientsInBowl.length}개`;
+
+            document.getElementById('result-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            playSFX('gather');
+            document.getElementById('result-modal').classList.add('hidden');
+            
+            // Reset bowl state for next cook
+            hasWaterBase = false;
+            selectedMalaLevel = 0;
+            ingredientsInBowl = [];
+            
+            document.getElementById('water-check-icon').innerText = '⚪';
+            document.getElementById('water-status-text').innerText = '비어있음';
+            document.getElementById('water-status-text').className = 'text-white font-black';
+            document.getElementById('sauce-status-text').innerText = '미선택';
+            
+            for (let i = 1; i <= 3; i++) {
+                document.getElementById(`sauce-btn-${i}`).classList.remove('ring-2', 'ring-amber-300', 'scale-105');
+            }
+
+            renderBowlIngredients();
+            updateLiquidColor();
+            switchView('map');
+        }
+
+        // INITIALIZATION ON WINDOW LOAD
+        window.onload = function() {
+            updateInventoryDisplay();
+            updateBowlVisuals();
+        };
+    </script>
+</body>
+</html>

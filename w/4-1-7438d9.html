@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>귀신의 눈을 주의하세요 👻👀</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts (Gaegu / Black Han Sans) -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Jua&family=Noto+Sans+KR:wght@500;700;900&display=swap" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            jua: ['"Jua"', 'sans-serif'],
+            gaegu: ['"Gaegu"', 'cursive'],
+            sans: ['"Noto Sans KR"', 'sans-serif']
+          },
+          colors: {
+            ghost: {
+              purple: '#2e1065',
+              dark: '#0f172a',
+              pink: '#f472b6',
+              cyan: '#38bdf8',
+              glow: '#c084fc'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #1e1135 0%, #080313 100%);
+      color: #f8fafc;
+      overflow: hidden;
+    }
+
+    /* Pulse animation for sneaky button */
+    @keyframes pulseBtn {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(192, 132, 252, 0.4); }
+      50% { transform: scale(1.03); box-shadow: 0 0 35px rgba(192, 132, 252, 0.8); }
+    }
+
+    .pulse-sneak {
+      animation: pulseBtn 2s infinite ease-in-out;
+    }
+
+    /* Floating animation for UI elements */
+    @keyframes floatGhost {
+      0%, 100% { transform: translateY(0px) rotate(-2deg); }
+      50% { transform: translateY(-10px) rotate(2deg); }
+    }
+
+    .float-anim {
+      animation: floatGhost 3s infinite ease-in-out;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e1b4b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c084fc;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between items-center font-jua overflow-hidden select-none">
+
+  <!-- TOP HEADER HUD -->
+  <header class="w-full max-w-2xl px-4 py-3 mt-2 flex items-center justify-between bg-slate-900/90 border border-purple-500/40 rounded-2xl backdrop-blur-md z-20 shadow-2xl">
+    <!-- Game Title -->
+    <div class="flex items-center space-x-2">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 p-0.5 shadow-lg flex items-center justify-center float-anim">
+        <span class="text-2xl">👻</span>
+      </div>
+      <div>
+        <h1 class="text-base sm:text-xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300">
+          귀신의 눈을 주의하세요!
+        </h1>
+        <p class="text-[11px] text-purple-300/80 font-gaegu font-bold">뒤돌아볼 때 눈이 마주치면 단번에 으악!</p>
+      </div>
+    </div>
+
+    <!-- Stats & Level HUD -->
+    <div class="flex items-center space-x-3">
+      <!-- Stage Badge -->
+      <div class="flex items-center space-x-1.5 bg-purple-950/80 border border-purple-400/50 px-3 py-1.5 rounded-xl">
+        <i class="fa-solid fa-ghost text-purple-300 text-xs"></i>
+        <div class="flex flex-col">
+          <span class="text-[9px] text-purple-300 font-bold uppercase tracking-wider">STAGE</span>
+          <span id="hud-stage" class="text-xs sm:text-sm font-black text-pink-300">1</span>
+        </div>
+      </div>
+
+      <!-- Ghost Dex Collection Button -->
+      <button onclick="toggleDexModal()" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:brightness-110 text-white px-3 py-1.5 rounded-xl font-extrabold text-xs shadow-lg flex items-center space-x-1.5 active:scale-95 transition-all border border-indigo-400/40">
+        <i class="fa-solid fa-book-open text-yellow-300"></i>
+        <span>귀신 도감</span>
+      </button>
+
+      <!-- Audio Toggle Button -->
+      <button id="btn-audio" onclick="toggleAudio()" class="w-9 h-9 rounded-xl bg-slate-800 border border-purple-500/30 flex items-center justify-center text-purple-300 hover:text-white active:scale-95 transition-all">
+        <i id="audio-icon" class="fa-solid fa-volume-high text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN GAME CANVAS VIEWPORT -->
+  <main class="relative w-full max-w-2xl flex-1 my-2 flex flex-col justify-center items-center px-2">
+    <div class="relative w-full h-full max-h-[520px] rounded-3xl overflow-hidden border-2 border-purple-500/50 shadow-2xl bg-slate-950 flex items-center justify-center">
+      
+      <!-- Canvas Element -->
+      <canvas id="gameCanvas" class="w-full h-full block cursor-pointer"></canvas>
+
+      <!-- DISTANCE PROGRESS BAR OVERLAY -->
+      <div class="absolute top-4 left-1/2 -translate-x-1/2 w-3/4 max-w-sm bg-slate-900/90 border border-purple-400/50 rounded-2xl px-4 py-2 backdrop-blur-md flex flex-col space-y-1 shadow-xl">
+        <div class="flex justify-between items-center text-xs font-bold">
+          <span class="text-purple-300 flex items-center gap-1">
+            <i class="fa-solid fa-shoe-prints text-pink-400"></i> 남은 거리
+          </span>
+          <span id="dist-text" class="text-pink-300 font-black">15.0 m</span>
+        </div>
+        <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-purple-500/30 p-0.5">
+          <div id="dist-bar" class="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 rounded-full w-0 transition-all duration-100"></div>
+        </div>
+      </div>
+
+      <!-- WARNING / LOOKING ALERT INDICATOR -->
+      <div id="ghost-alert-badge" class="absolute top-16 left-1/2 -translate-x-1/2 hidden flex-col items-center animate-bounce pointer-events-none z-10">
+        <div id="alert-text-box" class="bg-red-600 text-white font-black text-xs sm:text-sm px-3 py-1.5 rounded-full shadow-lg border-2 border-white flex items-center space-x-1">
+          <i class="fa-solid fa-triangle-exclamation text-yellow-300 animate-ping"></i>
+          <span id="alert-msg-text">귀신이 뒤를 돌아봅니다! 멈추세요!</span>
+        </div>
+      </div>
+
+      <!-- ONBOARDING INSTRUCTION OVERLAY -->
+      <div id="start-overlay" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-purple-600 to-pink-500 p-1 shadow-2xl float-anim flex items-center justify-center">
+          <span class="text-5xl">👻</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-200 via-pink-200 to-cyan-200">
+          귀신의 눈을 주의하세요!
+        </h2>
+        <div class="bg-purple-950/70 border border-purple-500/40 p-4 rounded-2xl text-xs sm:text-sm text-purple-200 space-y-2 max-w-sm">
+          <p class="font-bold text-yellow-300">🎮 플레이 방법:</p>
+          <p>1. 하단 **[살금살금 다가가기]** 버튼을 **[꾹 눌러서]** 귀신 몰래 움직입니다.</p>
+          <p>2. 귀신이 **`!` 경고 후 뒤를 돌아볼 때** 손을 떼고 **멈춰서 눈을 감으세요!**</p>
+          <p class="text-red-400 font-bold">3. 눈이 마주친 순간 움직이면 즉시 으악! 실패합니다!</p>
+        </div>
+        <button onclick="startGame()" class="px-8 py-3.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-black text-base rounded-2xl shadow-xl border border-pink-300/50 active:scale-95 transition-all pulse-sneak">
+          게임 시작하기 🚀
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- BOTTOM CONTROLS & ACTION BUTTON AREA -->
+  <footer class="w-full max-w-2xl px-4 py-3 mb-2 bg-slate-900/90 border border-purple-500/40 rounded-2xl backdrop-blur-md z-20 flex items-center justify-center shadow-2xl">
+    
+    <!-- BIG HOLD-TO-SNEAK BUTTON -->
+    <button id="btn-sneak" class="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:brightness-110 active:brightness-125 text-white font-black text-lg sm:text-xl shadow-xl border-2 border-purple-300/50 flex items-center justify-center space-x-3 transition-all select-none touch-none">
+      <i id="sneak-icon" class="fa-solid fa-shoe-prints text-2xl animate-bounce"></i>
+      <div class="flex flex-col text-left">
+        <span id="sneak-title" class="text-base sm:text-lg leading-none">꾹 눌러서 살금살금 다가가기!</span>
+        <span id="sneak-sub" class="text-[10px] text-purple-200 font-gaegu font-bold mt-1">돌아볼 땐 떼서 비석 뒤로 멈추기!</span>
+      </div>
+    </button>
+
+  </footer>
+
+  <!-- GAME OVER / CAUGHT MODAL -->
+  <div id="modal-fail" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-md bg-slate-900 border-2 border-red-500/80 rounded-3xl p-6 shadow-2xl text-center space-y-4 relative overflow-hidden">
+      <div class="w-20 h-20 mx-auto rounded-full bg-red-500/20 text-red-400 border-2 border-red-500 flex items-center justify-center text-4xl animate-ping">
+        😱
+      </div>
+      <h2 class="text-2xl font-black text-red-400">귀신과 눈이 마주쳤습니다!</h2>
+      <p id="fail-reason" class="text-xs text-purple-200 font-gaegu text-base">
+        "히익! 뒤돌아볼 때 움직이다가 딱 걸렸지 뭐야~!"
+      </p>
+
+      <div class="p-3 bg-slate-950/80 rounded-2xl border border-red-500/30 text-xs text-slate-300 flex justify-around">
+        <div>
+          <span class="block text-[10px] text-slate-400 font-bold">도달 단계</span>
+          <span id="fail-stage-text" class="text-sm font-black text-pink-400">STAGE 1</span>
+        </div>
+        <div>
+          <span class="block text-[10px] text-slate-400 font-bold">남은 거리</span>
+          <span id="fail-dist-text" class="text-sm font-black text-yellow-400">5.2m</span>
+        </div>
+      </div>
+
+      <button onclick="retryStage()" class="w-full py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white font-black text-sm rounded-2xl shadow-lg border border-red-400/50 active:scale-95 transition-all">
+        다시 도전하기 🔄
+      </button>
+    </div>
+  </div>
+
+  <!-- STAGE CLEAR / WIN MODAL -->
+  <div id="modal-win" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-md bg-slate-900 border-2 border-cyan-500/80 rounded-3xl p-6 shadow-2xl text-center space-y-4 relative">
+      <div class="w-20 h-20 mx-auto rounded-full bg-cyan-500/20 text-cyan-300 border-2 border-cyan-400 flex items-center justify-center text-4xl float-anim">
+        🎉
+      </div>
+      <h2 class="text-2xl font-black text-cyan-300">귀신 잡기 성공!</h2>
+      <p id="win-ghost-msg" class="text-xs text-purple-200 font-gaegu text-base">
+        "토닥토닥~ 깜짝이야! 나와 친구가 되어줄래?"
+      </p>
+
+      <div class="p-4 bg-purple-950/60 rounded-2xl border border-purple-500/40 text-xs text-slate-200 flex items-center space-x-3">
+        <span id="win-ghost-icon" class="text-3xl">👻</span>
+        <div class="text-left">
+          <h4 id="win-ghost-name" class="font-bold text-pink-300 text-sm">꼬마 하얀 귀신</h4>
+          <p id="win-ghost-desc" class="text-[11px] text-slate-400">도감에 새로운 귀신 친구가 등록되었습니다!</p>
+        </div>
+      </div>
+
+      <button onclick="nextStage()" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-black text-sm rounded-2xl shadow-lg border border-cyan-300/50 active:scale-95 transition-all">
+        다음 귀신 만나러 가기 ➡️
+      </button>
+    </div>
+  </div>
+
+  <!-- GHOST DEX COLLECTION MODAL -->
+  <div id="modal-dex" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-lg bg-slate-900 border-2 border-purple-500/60 rounded-3xl p-5 shadow-2xl relative flex flex-col max-h-[85vh]">
+      
+      <!-- Close Button -->
+      <button onclick="toggleDexModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <!-- Modal Title -->
+      <div class="flex items-center space-x-3 pb-3 border-b border-purple-800/80">
+        <div class="w-10 h-10 rounded-xl bg-purple-600/30 text-purple-300 flex items-center justify-center text-xl font-black">
+          📖
+        </div>
+        <div>
+          <h2 class="text-lg font-black text-slate-100">귀신 친구 도감</h2>
+          <p class="text-xs text-purple-300/80">스테이지를 정복하며 수집한 귀여운 귀신들입니다!</p>
+        </div>
+      </div>
+
+      <!-- Grid List -->
+      <div id="dex-grid" class="grid grid-cols-2 gap-3 py-4 overflow-y-auto flex-1">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===================================================================
+       1. GAME SPECS & GHOST CHARACTER CATALOG DATA
+       =================================================================== */
+    const GHOST_CATALOG = [
+      {
+        id: 'white_boo',
+        name: '꼬마 포근 귀신',
+        icon: '👻',
+        color: '#ffffff',
+        aura: '#c084fc',
+        desc: '뒤돌아보는 속도가 완만하며 마음이 따뜻한 말썽쟁이 귀신입니다.',
+        warningSpeed: 1000, // ms
+        turnDuration: 2200,  // ms
+        trickChance: 0 // No tricks
+      },
+      {
+        id: 'pumpkin_boo',
+        name: '할로윈 호박 귀신',
+        icon: '🎃',
+        color: '#f97316',
+        aura: '#fdba74',
+        desc: '호박 탈을 쓰고 신나게 춤추다가 기습적으로 고개를 돌립니다!',
+        warningSpeed: 800,
+        turnDuration: 2000,
+        trickChance: 0.15 // 15% fake turn
+      },
+      {
+        id: 'cat_ghost',
+        name: '야옹이 유령',
+        icon: '🐱',
+        color: '#38bdf8',
+        aura: '#7dd3fc',
+        desc: '귀를 쫑긋거리며 방심한 순간을 노리는 빠르게 돌아보는 개구쟁이!',
+        warningSpeed: 700,
+        turnDuration: 1800,
+        trickChance: 0.25
+      },
+      {
+        id: 'flame_spirit',
+        name: '도깨비불 꼬마',
+        icon: '🔥',
+        color: '#ec4899',
+        aura: '#f472b6',
+        desc: '화르륵 불꽃을 피우며 돌아볼 때 쳐다보면 순식간에 발각됩니다.',
+        warningSpeed: 600,
+        turnDuration: 1600,
+        trickChance: 0.35
+      },
+      {
+        id: 'crown_king',
+        name: '대왕 보스 귀신',
+        icon: '👑',
+        color: '#a855f7',
+        aura: '#e9d5ff',
+        desc: '귀신들의 왕! 페이크 고개 돌리기와 예측할 수 없는 눈빛 공격을 펼칩니다!',
+        warningSpeed: 450,
+        turnDuration: 1400,
+        trickChance: 0.50
+      }
+    ];
+
+    // Audio Engine via Web Audio API
+    let audioEnabled = true;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (!audioEnabled) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'step') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'warning') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          osc.frequency.setValueAtTime(1100, now + 0.1);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'turn') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, now);
+          osc.frequency.linearRampToValueAtTime(600, now + 0.15);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now);
+          osc.stop(now + 0.2);
+        } else if (type === 'caught') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(700, now);
+          osc.frequency.exponentialRampToValueAtTime(100, now + 0.4);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        } else if (type === 'win') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.1);
+          osc.frequency.setValueAtTime(783.99, now + 0.2);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+          osc.start(now);
+          osc.stop(now + 0.4);
+        }
+      } catch(e) {}
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('audio-icon').className = audioEnabled ? 'fa-solid fa-volume-high text-sm' : 'fa-solid fa-volume-xmark text-sm text-red-400';
+    }
+
+    /* ===================================================================
+       2. CANVAS & GAME STATE MANAGEMENT
+       =================================================================== */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let canvasWidth = 600;
+    let canvasHeight = 400;
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvasWidth = container.clientWidth;
+      canvasHeight = container.clientHeight;
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Game Core Variables
+    let stage = 1;
+    let unlockedGhosts = ['white_boo'];
+    
+    let isGameRunning = false;
+    let isSneaking = false; // Is player holding sneaky button?
+    let playerDistance = 15.0; // Target distance to 0m
+    const TOTAL_DISTANCE = 15.0;
+
+    let playerX = 80; // Starting X
+    let ghostX = canvasWidth - 100;
+
+    // Ghost Behavior States: 'AWAY', 'WARNING', 'LOOKING', 'TRICK'
+    let ghostState = 'AWAY'; 
+    let ghostTimer = 0;
+    let nextStateChange = 120; // frames
+    let currentGhostSpec = GHOST_CATALOG[0];
+
+    // Animation floating values
+    let animFrame = 0;
+    let particles = [];
+
+    /* ===================================================================
+       3. SNEAKING INPUT CONTROLS SETUP
+       =================================================================== */
+    const sneakBtn = document.getElementById('btn-sneak');
+
+    function startSneaking(e) {
+      if (e) e.preventDefault();
+      if (!isGameRunning) return;
+
+      isSneaking = true;
+      sneakBtn.classList.add('scale-95', 'brightness-125');
+      document.getElementById('sneak-title').innerText = '살금살금 전진 중... 🐾';
+      document.getElementById('sneak-sub').innerText = '귀신이 돌아보면 즉시 누르고 있던 손을 떼세요!';
+    }
+
+    function stopSneaking(e) {
+      if (e) e.preventDefault();
+      isSneaking = false;
+      sneakBtn.classList.remove('scale-95', 'brightness-125');
+      document.getElementById('sneak-title').innerText = '꾹 눌러서 살금살금 다가가기!';
+      document.getElementById('sneak-sub').innerText = '돌아볼 땐 떼서 비석 뒤로 멈추기!';
+    }
+
+    // Touch & Mouse Event Binds
+    sneakBtn.addEventListener('mousedown', startSneaking);
+    sneakBtn.addEventListener('mouseup', stopSneaking);
+    sneakBtn.addEventListener('mouseleave', stopSneaking);
+
+    sneakBtn.addEventListener('touchstart', startSneaking, { passive: false });
+    sneakBtn.addEventListener('touchend', stopSneaking, { passive: false });
+
+    // Keyboard Spacebar / Arrow Right support
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !isSneaking) startSneaking();
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') stopSneaking();
+    });
+
+    /* ===================================================================
+       4. GAME LOOP & RENDERING ENGINE
+       =================================================================== */
+    function startGame() {
+      document.getElementById('start-overlay').classList.add('hidden');
+      isGameRunning = true;
+      loadStage(stage);
+      requestAnimationFrame(gameLoop);
+    }
+
+    function loadStage(s) {
+      stage = s;
+      document.getElementById('hud-stage').innerText = stage;
+
+      // Select Ghost spec based on stage
+      const specIdx = Math.min(stage - 1, GHOST_CATALOG.length - 1);
+      currentGhostSpec = GHOST_CATALOG[specIdx];
+
+      playerDistance = TOTAL_DISTANCE;
+      ghostState = 'AWAY';
+      ghostTimer = 0;
+      nextStateChange = Math.floor(Math.random() * 120) + 100;
+
+      document.getElementById('ghost-alert-badge').classList.add('hidden');
+      updateHUDProgress();
+    }
+
+    function updateHUDProgress() {
+      document.getElementById('dist-text').innerText = `${playerDistance.toFixed(1)} m`;
+      const progressPercent = Math.min(100, Math.max(0, ((TOTAL_DISTANCE - playerDistance) / TOTAL_DISTANCE) * 100));
+      document.getElementById('dist-bar').style.width = `${progressPercent}%`;
+    }
+
+    // MAIN UPDATE FUNCTION
+    function update() {
+      if (!isGameRunning) return;
+
+      animFrame++;
+
+      // 1. Player Sneak Movement Update
+      if (isSneaking) {
+        playerDistance -= 0.05; // Sneak speed
+        if (animFrame % 12 === 0) playSound('step');
+
+        if (playerDistance <= 0) {
+          playerDistance = 0;
+          triggerWin();
+          return;
+        }
+      }
+      updateHUDProgress();
+
+      // 2. Ghost State Machine Update
+      ghostTimer++;
+
+      if (ghostState === 'AWAY') {
+        if (ghostTimer >= nextStateChange) {
+          // Transition to WARNING state
+          ghostState = 'WARNING';
+          ghostTimer = 0;
+          playSound('warning');
+
+          const alertBadge = document.getElementById('ghost-alert-badge');
+          alertBadge.classList.remove('hidden');
+          document.getElementById('alert-msg-text').innerText = `${currentGhostSpec.name}이(가) 주의를 살핍니다!`;
+        }
+      } else if (ghostState === 'WARNING') {
+        // Warning state duration depends on spec warningSpeed
+        const warningFrames = Math.round(currentGhostSpec.warningSpeed / 16.6);
+
+        if (ghostTimer >= warningFrames) {
+          // Check for TRICK fake-out turn
+          if (Math.random() < currentGhostSpec.trickChance) {
+            ghostState = 'TRICK';
+            ghostTimer = 0;
+            document.getElementById('alert-msg-text').innerText = `헛! 뒤돌아보는 척하는 중...`;
+          } else {
+            ghostState = 'LOOKING';
+            ghostTimer = 0;
+            playSound('turn');
+            document.getElementById('alert-msg-text').innerText = `눈이 마주치는 순간! 절대 움직이지 마세요!`;
+          }
+        }
+      } else if (ghostState === 'TRICK') {
+        // Fake turn lasts briefly then resets back to AWAY
+        if (ghostTimer >= 40) {
+          ghostState = 'AWAY';
+          ghostTimer = 0;
+          nextStateChange = Math.floor(Math.random() * 100) + 80;
+          document.getElementById('ghost-alert-badge').classList.add('hidden');
+        }
+      } else if (ghostState === 'LOOKING') {
+        // GHOST IS DIRECTLY LOOKING AT PLAYER!
+        // Check Fail Condition: If player is sneaking right now!
+        if (isSneaking) {
+          triggerFail("뒤를 돌아보았을 때 몰래 다가가다 눈이 마주쳤습니다!");
+          return;
+        }
+
+        const turnFrames = Math.round(currentGhostSpec.turnDuration / 16.6);
+        if (ghostTimer >= turnFrames) {
+          // Finished looking, turn back to AWAY
+          ghostState = 'AWAY';
+          ghostTimer = 0;
+          nextStateChange = Math.floor(Math.random() * 120) + 90;
+          document.getElementById('ghost-alert-badge').classList.add('hidden');
+        }
+      }
+
+      // Update Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.02;
+        if (p.alpha <= 0) particles.splice(i, 1);
+      }
+    }
+
+    // DRAW ENVIRONMENT & CHARACTERS
+    function draw() {
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+      // 1. Spooky Graveyard Background
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+      bgGrad.addColorStop(0, '#0f0728');
+      bgGrad.addColorStop(0.7, '#1e1135');
+      bgGrad.addColorStop(1, '#080313');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // Moon & Stars
+      ctx.fillStyle = '#fef08a';
+      ctx.shadowColor = '#fef08a';
+      ctx.shadowBlur = 25;
+      ctx.beginPath();
+      ctx.arc(canvasWidth - 80, 70, 30, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Ground Floor
+      const groundY = canvasHeight - 70;
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(0, groundY, canvasWidth, 70);
+
+      ctx.strokeStyle = '#a855f7';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(canvasWidth, groundY);
+      ctx.stroke();
+
+      // Tombstones along the path
+      for (let x = 60; x < canvasWidth - 60; x += 110) {
+        ctx.fillStyle = '#1f2937';
+        ctx.beginPath();
+        ctx.roundRect(x, groundY - 30, 24, 30, [10, 10, 0, 0]);
+        ctx.fill();
+        ctx.strokeStyle = '#374151';
+        ctx.stroke();
+      }
+
+      // 2. Draw Player Position Calculation based on distance progress
+      const progress = (TOTAL_DISTANCE - playerDistance) / TOTAL_DISTANCE;
+      const startX = 70;
+      const endX = canvasWidth - 110;
+      playerX = startX + progress * (endX - startX);
+
+      // Draw Player Character (Little Cute Explorer/Kid with Cat Ears)
+      ctx.save();
+      ctx.translate(playerX, groundY - 35);
+
+      if (!isSneaking) {
+        // HIDING BEHIND TOMBSTONE (Eyes closed, hiding pose)
+        ctx.fillStyle = '#374151';
+        ctx.fillRect(-15, -10, 30, 45); // Hide behind stone
+
+        ctx.fillStyle = '#f472b6';
+        ctx.font = '24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🙈', 0, -15); // Eyes covered emoji
+      } else {
+        // SNEAKING MOVEMENT POSE
+        const sneakYOffset = Math.sin(animFrame * 0.2) * 4;
+
+        ctx.shadowColor = '#f472b6';
+        ctx.shadowBlur = 10;
+
+        ctx.fillStyle = '#f472b6';
+        ctx.font = '32px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🐱', 0, sneakYOffset); // Cute Sneaking Cat/Player
+      }
+      ctx.restore();
+
+      // 3. Draw Ghost Character
+      ghostX = canvasWidth - 80;
+      ctx.save();
+      ctx.translate(ghostX, groundY - 50 + Math.sin(animFrame * 0.08) * 8); // Floating motion
+
+      // Ghost Aura Glow
+      ctx.shadowColor = currentGhostSpec.aura;
+      ctx.shadowBlur = ghostState === 'LOOKING' ? 30 : 15;
+
+      // Ghost Main Body Circle / SVG-like shape
+      ctx.beginPath();
+      ctx.arc(0, 0, 32, 0, Math.PI * 2);
+      ctx.fillStyle = currentGhostSpec.color;
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+
+      // Ghost Icon / Expression based on Ghost State
+      ctx.shadowBlur = 0;
+      ctx.font = '28px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      if (ghostState === 'AWAY') {
+        // Looking Away (Back turned)
+        ctx.fillText('🎵', -5, -5); 
+      } else if (ghostState === 'WARNING') {
+        // Warning exclamation
+        ctx.fillText('❓', 0, 0);
+      } else if (ghostState === 'TRICK') {
+        // Fake turn
+        ctx.fillText('😜', 0, 0);
+      } else if (ghostState === 'LOOKING') {
+        // TURNING DIRECTLY AT PLAYER WITH GLOWING EYES!
+        ctx.fillText('👀', 0, 0);
+
+        // Draw Scary/Cute Red Eye Rays
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-10, 0);
+        ctx.lineTo(-playerX + ghostX - 20, 15);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+
+      // Draw Particles
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1.0;
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      if (isGameRunning) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    /* ===================================================================
+       5. GAME WIN / FAIL HANDLERS & MODAL DIALOGS
+       =================================================================== */
+    function triggerFail(reason) {
+      isGameRunning = false;
+      isSneaking = false;
+      playSound('caught');
+
+      document.getElementById('fail-reason').innerText = `"${reason}"`;
+      document.getElementById('fail-stage-text').innerText = `STAGE ${stage}`;
+      document.getElementById('fail-dist-text').innerText = `${playerDistance.toFixed(1)} m`;
+
+      document.getElementById('modal-fail').classList.remove('hidden');
+    }
+
+    function retryStage() {
+      document.getElementById('modal-fail').classList.add('hidden');
+      loadStage(stage);
+      isGameRunning = true;
+      requestAnimationFrame(gameLoop);
+    }
+
+    function triggerWin() {
+      isGameRunning = false;
+      isSneaking = false;
+      playSound('win');
+
+      // Unlock current ghost into Dex
+      if (!unlockedGhosts.includes(currentGhostSpec.id)) {
+        unlockedGhosts.push(currentGhostSpec.id);
+      }
+
+      document.getElementById('win-ghost-icon').innerText = currentGhostSpec.icon;
+      document.getElementById('win-ghost-name').innerText = currentGhostSpec.name;
+      document.getElementById('win-ghost-desc').innerText = currentGhostSpec.desc;
+
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      document.getElementById('modal-win').classList.remove('hidden');
+    }
+
+    function nextStage() {
+      document.getElementById('modal-win').classList.add('hidden');
+      stage++;
+      loadStage(stage);
+      isGameRunning = true;
+      requestAnimationFrame(gameLoop);
+    }
+
+    /* ===================================================================
+       6. GHOST DEX COLLECTION MODAL RENDERING
+       =================================================================== */
+    function toggleDexModal() {
+      const dexModal = document.getElementById('modal-dex');
+      dexModal.classList.toggle('hidden');
+      if (!dexModal.classList.contains('hidden')) {
+        renderDexGrid();
+      }
+    }
+
+    function renderDexGrid() {
+      const grid = document.getElementById('dex-grid');
+      grid.innerHTML = '';
+
+      GHOST_CATALOG.forEach((ghost, idx) => {
+        const isUnlocked = unlockedGhosts.includes(ghost.id);
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-2xl border flex flex-col items-center text-center space-y-1.5 transition-all ${
+          isUnlocked 
+            ? 'bg-purple-950/80 border-purple-400/50 text-slate-100 shadow-lg' 
+            : 'bg-slate-950/80 border-slate-800 text-slate-500 opacity-60'
+        }`;
+
+        card.innerHTML = `
+          <div class="w-12 h-12 rounded-2xl bg-purple-900/40 border border-purple-500/30 flex items-center justify-center text-2xl ${isUnlocked ? 'float-anim' : 'grayscale'}">
+            ${isUnlocked ? ghost.icon : '🔒'}
+          </div>
+          <span class="text-xs font-bold ${isUnlocked ? 'text-pink-300' : 'text-slate-500'}">
+            ${isUnlocked ? ghost.name : `STAGE ${idx + 1} 해금`}
+          </span>
+          <p class="text-[10px] text-slate-400 font-gaegu leading-tight">
+            ${isUnlocked ? ghost.desc : '잠겨있는 귀신 친구입니다.'}
+          </p>
+        `;
+
+        grid.appendChild(card);
+      });
+    }
+
+    /* Start on window load */
+    window.onload = function() {
+      resizeCanvas();
+    };
+  </script>
+
+</body>
+</html>

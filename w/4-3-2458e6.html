@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>무한의 계단 (Infinite Stairs)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Jua & Noto Sans KR) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        jua: ['Jua', 'sans-serif'],
+                        sans: ['Noto Sans KR', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Arcade Glass Panel */
+        .arcade-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Controller Buttons Styling */
+        .btn-game {
+            transition: transform 0.05s ease, box-shadow 0.05s ease;
+            box-shadow: 0 8px 0 rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-game:active {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Custom Animations */
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(234, 179, 8, 0.8)); }
+            50% { filter: drop-shadow(0 0 25px rgba(239, 68, 68, 1)); }
+        }
+
+        .fever-glow {
+            animation: pulseGlow 0.4s infinite ease-in-out;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body class="m-0 p-0 overflow-hidden flex justify-center items-center">
+
+    <!-- Main Game Container (Mobile Framed View) -->
+    <div id="app-container" class="relative w-full max-w-md h-full sm:h-[92vh] sm:rounded-3xl overflow-hidden bg-slate-900 border-0 sm:border-4 border-slate-700 shadow-2xl flex flex-col justify-between">
+
+        <!-- Top Status Bar & HUD -->
+        <div id="hud-bar" class="absolute top-0 left-0 right-0 z-20 p-4 flex flex-col gap-2 pointer-events-none">
+            <!-- Top Controls Row -->
+            <div class="flex justify-between items-center pointer-events-auto">
+                <div class="arcade-card px-4 py-1.5 rounded-full flex items-center space-x-2 border-amber-400/40">
+                    <span class="text-amber-400 text-lg">🪙</span>
+                    <span id="coin-count" class="text-amber-300 font-extrabold text-lg">0</span>
+                </div>
+
+                <div class="flex space-x-2">
+                    <button id="btn-sound" onclick="toggleAudio()" class="arcade-card w-10 h-10 rounded-full flex items-center justify-center text-amber-300 hover:bg-slate-800 transition">
+                        <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <button id="btn-shop" onclick="openShop()" class="arcade-card w-10 h-10 rounded-full flex items-center justify-center text-amber-300 hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-store"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Score Display -->
+            <div class="text-center mt-1">
+                <span id="score-text" class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 via-amber-400 to-amber-600 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)] tracking-wider">0</span>
+                <div id="fever-text" class="hidden text-xs font-bold text-red-400 fever-glow mt-0.5">🔥 FEVER MODE 2X 🔥</div>
+            </div>
+
+            <!-- Time Gauge Bar -->
+            <div class="w-full bg-slate-950/80 h-5 rounded-full p-1 border border-slate-700 shadow-inner relative overflow-hidden">
+                <div id="time-bar" class="h-full bg-gradient-to-r from-emerald-400 via-yellow-400 to-red-500 rounded-full w-full transition-all duration-75"></div>
+            </div>
+        </div>
+
+        <!-- Main Game Canvas -->
+        <div class="relative w-full h-full flex-grow overflow-hidden">
+            <canvas id="gameCanvas" class="w-full h-full"></canvas>
+            
+            <!-- Toast Feedback Overlay -->
+            <div id="toast-text" class="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl font-black text-amber-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)] opacity-0 transition-opacity duration-300 pointer-events-none">
+                PERFECT!
+            </div>
+        </div>
+
+        <!-- Bottom Controller Pad Buttons -->
+        <div id="controls-panel" class="relative z-20 p-5 bg-slate-950/90 border-t-2 border-slate-800 flex justify-between items-center gap-4">
+            
+            <!-- Turn Button (방향 전환) -->
+            <button id="btn-turn" class="btn-game flex-1 py-4 bg-gradient-to-b from-rose-500 to-rose-700 hover:from-rose-400 hover:to-rose-600 active:from-rose-700 active:to-rose-800 text-white rounded-2xl flex flex-col items-center justify-center gap-1 select-none border-b-4 border-rose-900">
+                <div class="flex items-center space-x-1 text-2xl">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </div>
+                <span class="text-lg font-black tracking-tight">방향 전환</span>
+                <span class="text-[10px] bg-rose-950/60 px-2 py-0.5 rounded text-rose-200 font-sans">[Z / ←]</span>
+            </button>
+
+            <!-- Climb Button (오르기) -->
+            <button id="btn-climb" class="btn-game flex-1 py-4 bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 active:from-emerald-700 active:to-emerald-800 text-white rounded-2xl flex flex-col items-center justify-center gap-1 select-none border-b-4 border-emerald-900">
+                <div class="flex items-center space-x-1 text-2xl">
+                    <i class="fa-solid fa-circle-up"></i>
+                </div>
+                <span class="text-lg font-black tracking-tight">오르기</span>
+                <span class="text-[10px] bg-emerald-950/60 px-2 py-0.5 rounded text-emerald-200 font-sans">[X / → / Space]</span>
+            </button>
+        </div>
+
+        <!-- Modal 1: Start Screen -->
+        <div id="modal-start" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 text-center">
+            <div class="arcade-card p-6 rounded-3xl w-full max-w-xs space-y-6 border-amber-500/30 relative">
+                <div class="space-y-2">
+                    <div class="text-5xl animate-bounce">🪜🏃</div>
+                    <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-emerald-400">
+                        무한의 계단
+                    </h1>
+                    <p class="text-slate-300 text-xs font-sans">
+                        빠른 순발력으로 한계를 돌파하세요!
+                    </p>
+                </div>
+
+                <div class="bg-slate-900/90 rounded-2xl p-3 border border-slate-800 text-left space-y-1.5 text-xs text-slate-300 font-sans">
+                    <div class="font-bold text-amber-400 text-sm mb-1">🎮 게임 방법:</div>
+                    <p>• <span class="text-emerald-400 font-bold">오르기</span>: 같은 방향 계단으로 오릅니다.</p>
+                    <p>• <span class="text-rose-400 font-bold">방향 전환</span>: 돌아서며 계단을 오릅니다.</p>
+                    <p>• 제한 시간이 모두 달기 전에 빠르게 올라가세요!</p>
+                </div>
+
+                <div class="text-xs text-amber-300">
+                    🏆 최고 기록: <span id="start-highscore" class="font-bold text-sm">0</span> 계단
+                </div>
+
+                <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-amber-400 to-emerald-400 hover:from-amber-300 hover:to-emerald-300 text-slate-950 font-black text-xl rounded-2xl shadow-lg border-b-4 border-emerald-700 transform hover:-translate-y-0.5 active:translate-y-0 transition">
+                    게임 시작!
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal 2: Game Over Screen -->
+        <div id="modal-gameover" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 text-center">
+            <div class="arcade-card p-6 rounded-3xl w-full max-w-xs space-y-5 border-rose-500/40">
+                <div class="space-y-1">
+                    <div class="text-4xl">💥😱</div>
+                    <h2 class="text-3xl font-black text-rose-400">GAME OVER</h2>
+                    <p id="gameover-reason" class="text-slate-400 text-xs font-sans">발을 헛디뎠습니다!</p>
+                </div>
+
+                <div class="bg-slate-900/90 rounded-2xl p-4 space-y-2 border border-slate-800">
+                    <div class="text-xs text-slate-400 font-sans">최종 올라간 계단</div>
+                    <div id="final-score" class="text-4xl font-black text-amber-300">0</div>
+                    
+                    <div class="flex justify-between items-center text-xs pt-2 border-t border-slate-800">
+                        <span class="text-slate-400">획득 코인:</span>
+                        <span id="earned-coins" class="text-amber-400 font-bold">+0 🪙</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">최고 기록:</span>
+                        <span id="final-highscore" class="text-emerald-400 font-bold">0 계단</span>
+                    </div>
+                </div>
+
+                <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-xl rounded-2xl shadow-lg border-b-4 border-teal-800 transform hover:-translate-y-0.5 active:translate-y-0 transition">
+                    다시 도전하기
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal 3: Character Shop -->
+        <div id="modal-shop" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6">
+            <div class="arcade-card p-5 rounded-3xl w-full max-w-xs space-y-4 border-amber-400/30 flex flex-col max-h-[85vh]">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-black text-amber-300">캐릭터 상점</h3>
+                    <button onclick="closeShop()" class="text-slate-400 hover:text-white text-lg px-2">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div id="shop-list" class="space-y-3 overflow-y-auto pr-1 flex-grow">
+                    <!-- Dynamic Shop Items Generated via JS -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* =========================================================================
+         * Web Audio API sound synthesizer
+         * ========================================================================= */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playStep() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(140, now + 0.06);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.06);
+            }
+
+            playTurn() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(450, now);
+                osc.frequency.exponentialRampToValueAtTime(700, now + 0.08);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+
+            playCoin() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, now); // B5
+                osc.frequency.setValueAtTime(1318.51, now + 0.07); // E6
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+
+            playGameOver() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(280, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.4);
+
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        function toggleAudio() {
+            sound.enabled = !sound.enabled;
+            const icon = document.getElementById('sound-icon');
+            if (sound.enabled) {
+                icon.className = "fa-solid fa-volume-high";
+            } else {
+                icon.className = "fa-solid fa-volume-xmark opacity-50";
+            }
+        }
+
+        const CHARACTERS = [
+            { id: 'office', name: '직장인', emoji: '👔', price: 0, unlocked: true },
+            { id: 'cat', name: '냥이', emoji: '🐱', price: 50, unlocked: false },
+            { id: 'ninja', name: '닌자', emoji: '🥷', price: 120, unlocked: false },
+            { id: 'astro', name: '우주인', emoji: '👨‍🚀', price: 250, unlocked: false },
+            { id: 'robot', name: '로봇', emoji: '🤖', price: 500, unlocked: false }
+        ];
+
+        // Persistent Data
+        let totalCoins = parseInt(localStorage.getItem('infinite_stairs_coins') || '0');
+        let highScore = parseInt(localStorage.getItem('infinite_stairs_highscore') || '0');
+        let unlockedChars = JSON.parse(localStorage.getItem('infinite_stairs_chars') || '["office"]');
+        let selectedCharId = localStorage.getItem('infinite_stairs_selected_char') || 'office';
+
+        // Unlock status refresh
+        CHARACTERS.forEach(c => {
+            if (unlockedChars.includes(c.id)) c.unlocked = true;
+        });
+
+        // Canvas & Engine Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let isPlaying = false;
+        let animationFrameId;
+
+        // Game State Variables
+        let score = 0;
+        let earnedCoinsThisRun = 0;
+        let timeRemaining = 100; // Max 100%
+        let timeDrainRate = 0.22; // Base drain rate per frame
+        let playerFacingRight = true; // true = Right (+1), false = Left (-1)
+        let combo = 0;
+        let isFever = false;
+        let feverTimer = 0;
+
+        // Stair & Camera Data
+        const STAIR_WIDTH = 54;
+        const STAIR_HEIGHT = 28;
+        let stairs = []; // Array of step objects
+        let playerStepIndex = 0;
+        let cameraY = 0;
+        let targetCameraY = 0;
+
+        // Particle FX
+        let particles = [];
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            width = canvas.width = rect.width;
+            height = canvas.height = rect.height;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Highscore HUD setup
+        document.getElementById('start-highscore').innerText = highScore;
+        document.getElementById('coin-count').innerText = totalCoins;
+
+        function generateStairs(count = 100) {
+            if (stairs.length === 0) {
+                // First stair at bottom center
+                stairs.push({
+                    x: 0, // Grid coordinate relative to origin
+                    y: 0,
+                    dir: 1, // 1 for right, -1 for left
+                    hasCoin: false
+                });
+            }
+
+            let lastStair = stairs[stairs.length - 1];
+            let currentDir = lastStair.dir;
+
+            for (let i = 0; i < count; i++) {
+                // 35% chance to change stair direction
+                if (Math.random() < 0.35) {
+                    currentDir = -currentDir;
+                }
+
+                const newX = lastStair.x + currentDir;
+                const newY = lastStair.y + 1;
+                const hasCoin = Math.random() < 0.2; // 20% chance to spawn coin
+
+                const nextStair = {
+                    x: newX,
+                    y: newY,
+                    dir: currentDir,
+                    hasCoin: hasCoin
+                };
+
+                stairs.push(nextStair);
+                lastStair = nextStair;
+            }
+        }
+
+        function startGame() {
+            document.getElementById('modal-start').classList.add('hidden');
+            document.getElementById('modal-gameover').classList.add('hidden');
+
+            score = 0;
+            earnedCoinsThisRun = 0;
+            timeRemaining = 100;
+            timeDrainRate = 0.20;
+            playerFacingRight = true;
+            playerStepIndex = 0;
+            combo = 0;
+            isFever = false;
+            feverTimer = 0;
+
+            stairs = [];
+            particles = [];
+            generateStairs(150);
+
+            cameraY = 0;
+            targetCameraY = 0;
+
+            updateHUD();
+            isPlaying = true;
+            sound.init();
+
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        }
+
+        function handleStep(actionType) {
+            if (!isPlaying) return;
+
+            const currentStair = stairs[playerStepIndex];
+            const nextStair = stairs[playerStepIndex + 1];
+
+            if (!nextStair) return;
+
+            let correctActionNeeded; // 'CLIMB' or 'TURN'
+            const nextRelativeDir = nextStair.x - currentStair.x; // +1 if right, -1 if left
+
+            // Determine if player needs to Climb or Turn
+            if (playerFacingRight) {
+                correctActionNeeded = (nextRelativeDir === 1) ? 'CLIMB' : 'TURN';
+            } else {
+                correctActionNeeded = (nextRelativeDir === -1) ? 'CLIMB' : 'TURN';
+            }
+
+            if (actionType === correctActionNeeded) {
+                // SUCCESSFUL STEP
+                if (actionType === 'TURN') {
+                    playerFacingRight = !playerFacingRight;
+                    sound.playTurn();
+                } else {
+                    sound.playStep();
+                }
+
+                playerStepIndex++;
+                score++;
+
+                // Collect Coin if step has one
+                if (nextStair.hasCoin) {
+                    nextStair.hasCoin = false;
+                    earnedCoinsThisRun++;
+                    totalCoins++;
+                    sound.playCoin();
+                    saveData();
+                    spawnCoinParticles(nextStair);
+                }
+
+                // Time refill reward
+                const timeBoost = isFever ? 12 : 8;
+                timeRemaining = Math.min(100, timeRemaining + timeBoost);
+
+                // Slowly increase drain rate as score climbs
+                timeDrainRate = 0.20 + Math.min(0.5, score * 0.0015);
+
+                // Combo & Toast system
+                combo++;
+                if (combo % 20 === 0 && !isFever) {
+                    triggerFever();
+                } else if (combo % 10 === 0) {
+                    showToast("GREAT! 🔥");
+                }
+
+                // Generate more stairs dynamically
+                if (stairs.length - playerStepIndex < 50) {
+                    generateStairs(100);
+                }
+
+                // Add step particle
+                spawnStepParticles(nextStair);
+
+            } else {
+                // MISSTEP - GAME OVER!
+                gameOver("계단 발을 헛디뎠습니다!");
+            }
+
+            updateHUD();
+        }
+
+        function triggerFever() {
+            isFever = true;
+            feverTimer = 180; // ~3 seconds at 60fps
+            showToast("🔥 FEVER TIME! 🔥");
+            document.getElementById('fever-text').classList.remove('hidden');
+        }
+
+        function spawnStepParticles(stairObj) {
+            const screenX = width / 2 + stairObj.x * STAIR_WIDTH;
+            const screenY = height * 0.65 - stairObj.y * STAIR_HEIGHT;
+
+            for (let i = 0; i < 4; i++) {
+                particles.push({
+                    x: screenX,
+                    y: screenY,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: Math.random() * -3 - 1,
+                    alpha: 1,
+                    color: '#facc15'
+                });
+            }
+        }
+
+        function spawnCoinParticles(stairObj) {
+            const screenX = width / 2 + stairObj.x * STAIR_WIDTH;
+            const screenY = height * 0.65 - stairObj.y * STAIR_HEIGHT - 20;
+
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: screenX,
+                    y: screenY,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    alpha: 1,
+                    color: '#fbbf24'
+                });
+            }
+        }
+
+        function getThemeColors() {
+            const levelTheme = Math.floor(score / 50) % 4;
+            switch(levelTheme) {
+                case 0: // City Sunset
+                    return { bgTop: '#0f172a', bgBottom: '#1e1b4b', stairColor: '#334155', stairBorder: '#64748b' };
+                case 1: // Cloud Sky
+                    return { bgTop: '#0369a1', bgBottom: '#0284c7', stairColor: '#38bdf8', stairBorder: '#bae6fd' };
+                case 2: // Cyberpunk Night
+                    return { bgTop: '#311042', bgBottom: '#701a75', stairColor: '#c084fc', stairBorder: '#f0abfc' };
+                case 3: // Deep Space
+                    return { bgTop: '#020617', bgBottom: '#0f172a', stairColor: '#475569', stairBorder: '#94a3b8' };
+            }
+        }
+
+        function drawGame() {
+            const theme = getThemeColors();
+
+            // 1. Dynamic Background Gradient
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+            bgGradient.addColorStop(0, theme.bgTop);
+            bgGradient.addColorStop(1, theme.bgBottom);
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // 2. Camera Interpolation
+            const playerStair = stairs[playerStepIndex];
+            if (playerStair) {
+                targetCameraY = playerStair.y * STAIR_HEIGHT;
+            }
+            cameraY += (targetCameraY - cameraY) * 0.15;
+
+            // Save transform state for camera view
+            ctx.save();
+            // Center horizontal view, position vertical camera target
+            ctx.translate(width / 2, height * 0.65 + cameraY);
+
+            // 3. Render Stairs
+            const startRenderIdx = Math.max(0, playerStepIndex - 15);
+            const endRenderIdx = Math.min(stairs.length, playerStepIndex + 30);
+
+            for (let i = startRenderIdx; i < endRenderIdx; i++) {
+                const stair = stairs[i];
+                const px = stair.x * STAIR_WIDTH;
+                const py = -stair.y * STAIR_HEIGHT;
+
+                // Stair Block
+                ctx.fillStyle = theme.stairColor;
+                ctx.fillRect(px - STAIR_WIDTH / 2, py, STAIR_WIDTH, STAIR_HEIGHT);
+
+                // Stair Top Edge Highlight
+                ctx.fillStyle = theme.stairBorder;
+                ctx.fillRect(px - STAIR_WIDTH / 2, py, STAIR_WIDTH, 4);
+
+                // Coin Item rendering
+                if (stair.hasCoin) {
+                    ctx.font = '20px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('🪙', px, py - 2);
+                }
+            }
+
+            // 4. Render Player Character
+            if (playerStair) {
+                const px = playerStair.x * STAIR_WIDTH;
+                const py = -playerStair.y * STAIR_HEIGHT;
+
+                const currentCharObj = CHARACTERS.find(c => c.id === selectedCharId) || CHARACTERS[0];
+
+                ctx.save();
+                ctx.translate(px, py - 6);
+
+                // Flip emoji based on facing direction
+                if (!playerFacingRight) {
+                    ctx.scale(-1, 1);
+                }
+
+                ctx.font = '36px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(currentCharObj.emoji, 0, 0);
+
+                ctx.restore();
+            }
+
+            // 5. Render Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x - width / 2, p.y - (height * 0.65 + cameraY), 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.04;
+
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            // Drain Time Bar
+            if (isFever) {
+                feverTimer--;
+                if (feverTimer <= 0) {
+                    isFever = false;
+                    document.getElementById('fever-text').classList.add('hidden');
+                }
+            } else {
+                timeRemaining -= timeDrainRate;
+            }
+
+            // Update Time Bar UI
+            const timeBarEl = document.getElementById('time-bar');
+            timeBarEl.style.width = `${Math.max(0, timeRemaining)}%`;
+
+            if (timeRemaining <= 0) {
+                gameOver("시간이 다 되었습니다!");
+                return;
+            }
+
+            drawGame();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver(reasonText) {
+            isPlaying = false;
+            sound.playGameOver();
+
+            document.getElementById('gameover-reason').innerText = reasonText;
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('earned-coins').innerText = `+${earnedCoinsThisRun} 🪙`;
+
+            if (score > highScore) {
+                highScore = score;
+                saveData();
+            }
+
+            document.getElementById('final-highscore').innerText = `${highScore} 계단`;
+            document.getElementById('start-highscore').innerText = highScore;
+
+            document.getElementById('modal-gameover').classList.remove('hidden');
+        }
+
+        function updateHUD() {
+            document.getElementById('score-text').innerText = score;
+            document.getElementById('coin-count').innerText = totalCoins;
+        }
+
+        function showToast(msg) {
+            const toastEl = document.getElementById('toast-text');
+            toastEl.innerText = msg;
+            toastEl.style.opacity = '1';
+            setTimeout(() => {
+                toastEl.style.opacity = '0';
+            }, 600);
+        }
+
+        function saveData() {
+            localStorage.setItem('infinite_stairs_coins', totalCoins.toString());
+            localStorage.setItem('infinite_stairs_highscore', highScore.toString());
+            localStorage.setItem('infinite_stairs_chars', JSON.stringify(unlockedChars));
+            localStorage.setItem('infinite_stairs_selected_char', selectedCharId);
+        }
+
+        function openShop() {
+            renderShopList();
+            document.getElementById('modal-shop').classList.remove('hidden');
+        }
+
+        function closeShop() {
+            document.getElementById('modal-shop').classList.add('hidden');
+        }
+
+        function renderShopList() {
+            const shopContainer = document.getElementById('shop-list');
+            shopContainer.innerHTML = '';
+
+            CHARACTERS.forEach(item => {
+                const isSelected = item.id === selectedCharId;
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-2xl border flex justify-between items-center ${
+                    isSelected ? 'bg-amber-500/20 border-amber-400' : 'bg-slate-900/80 border-slate-800'
+                }`;
+
+                div.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="text-3xl">${item.emoji}</span>
+                        <div>
+                            <div class="font-bold text-sm text-white">${item.name}</div>
+                            <div class="text-xs text-amber-300">${item.unlocked ? '소유함' : item.price + ' 🪙'}</div>
+                        </div>
+                    </div>
+                    <div>
+                        ${
+                            item.unlocked
+                            ? `<button onclick="selectCharacter('${item.id}')" class="px-3 py-1.5 rounded-xl text-xs font-bold ${
+                                isSelected ? 'bg-amber-400 text-slate-950' : 'bg-slate-700 text-white hover:bg-slate-600'
+                              }">${isSelected ? '사용 중' : '선택'}</button>`
+                            : `<button onclick="buyCharacter('${item.id}')" class="px-3 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 rounded-xl text-xs font-bold hover:from-amber-300 hover:to-yellow-400">구매</button>`
+                        }
+                    </div>
+                `;
+                shopContainer.appendChild(div);
+            });
+        }
+
+        function selectCharacter(charId) {
+            selectedCharId = charId;
+            saveData();
+            renderShopList();
+        }
+
+        function buyCharacter(charId) {
+            const item = CHARACTERS.find(c => c.id === charId);
+            if (!item) return;
+
+            if (totalCoins >= item.price) {
+                totalCoins -= item.price;
+                item.unlocked = true;
+                if (!unlockedChars.includes(charId)) unlockedChars.push(charId);
+                selectedCharId = charId;
+
+                saveData();
+                updateHUD();
+                renderShopList();
+                showToast("캐릭터 해금 완료! 🎉");
+            } else {
+                showToast("코인이 부족합니다! 🪙");
+            }
+        }
+
+        // Button Event Listeners
+        const btnTurn = document.getElementById('btn-turn');
+        const btnClimb = document.getElementById('btn-climb');
+
+        btnTurn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            handleStep('TURN');
+        });
+
+        btnClimb.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            handleStep('CLIMB');
+        });
+
+        // Keyboard Controls
+        window.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+
+            if (e.code === 'KeyZ' || e.code === 'ArrowLeft') {
+                btnTurn.classList.add('active');
+                handleStep('TURN');
+            } else if (e.code === 'KeyX' || e.code === 'ArrowRight' || e.code === 'Space') {
+                btnClimb.classList.add('active');
+                handleStep('CLIMB');
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyZ' || e.code === 'ArrowLeft') {
+                btnTurn.classList.remove('active');
+            } else if (e.code === 'KeyX' || e.code === 'ArrowRight' || e.code === 'Space') {
+                btnClimb.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>

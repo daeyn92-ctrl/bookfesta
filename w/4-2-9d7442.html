@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>토토 (Toto) - 3D 로블록스 모험 게임</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Jua&display=swap');
+
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Jua', 'Fredoka', sans-serif;
+            touch-action: manipulation;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a1c23;
+        }
+
+        /* Red Light Antenna Pulsing Glow */
+        @keyframes redLightPulse {
+            0% {
+                box-shadow: 0 0 5px #ff2a2a, 0 0 10px #ff2a2a, 0 0 20px #ff0000;
+                background-color: #ff3333;
+            }
+            50% {
+                box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000, 0 0 45px #ff0000;
+                background-color: #ff0000;
+            }
+            100% {
+                box-shadow: 0 0 5px #ff2a2a, 0 0 10px #ff2a2a, 0 0 20px #ff0000;
+                background-color: #ff3333;
+            }
+        }
+
+        .red-antenna-light {
+            animation: redLightPulse 1.2s infinite ease-in-out;
+        }
+
+        /* Floating Animation */
+        @keyframes floatAnim {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+
+        .toto-float {
+            animation: floatAnim 3s ease-in-out infinite;
+        }
+
+        /* Glassmorphic UI Containers */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 4px solid #ffffff;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        }
+
+        .roblox-btn {
+            box-shadow: 0 6px 0 #1b63b9;
+            transition: all 0.1s ease;
+        }
+
+        .roblox-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #1b63b9;
+        }
+
+        .toto-btn-glow {
+            box-shadow: 0 8px 20px rgba(255, 50, 50, 0.4);
+        }
+
+        /* Joystick styles */
+        #joystick-container {
+            touch-action: none;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ff5252;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="relative flex flex-col justify-between w-full h-full select-none overflow-hidden">
+
+    <!-- 3D Canvas Render Area -->
+    <div id="canvas-container" class="absolute inset-0 z-0 w-full h-full bg-sky-300"></div>
+
+    <!-- HUD Header Overlay -->
+    <div class="absolute top-0 left-0 w-full p-4 z-10 flex justify-between items-start pointer-events-none">
+        <!-- Stage & Level Info Box -->
+        <div class="pointer-events-auto bg-white/90 backdrop-blur-md rounded-2xl p-3 border-4 border-yellow-400 shadow-xl flex items-center space-x-3">
+            <div class="bg-yellow-400 text-yellow-950 p-3 rounded-xl font-extrabold text-xl flex items-center justify-center shadow-inner">
+                <i class="fa-solid fa-trophy mr-2 text-2xl"></i>
+                <span id="stage-text">STAGE 1</span>
+            </div>
+            <div>
+                <div class="text-xs text-gray-500 font-bold uppercase tracking-wider">Roblox Obby World</div>
+                <div id="stage-title" class="text-lg font-black text-gray-800">알록달록 점프 파크</div>
+            </div>
+        </div>
+
+        <!-- Coins & Gems Counter -->
+        <div class="pointer-events-auto flex space-x-3">
+            <div class="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl border-4 border-amber-400 shadow-xl flex items-center space-x-2">
+                <i class="fa-solid fa-coins text-amber-500 text-2xl animate-bounce"></i>
+                <span id="coin-count" class="text-2xl font-black text-amber-600">0</span>
+            </div>
+            <div class="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl border-4 border-purple-400 shadow-xl flex items-center space-x-2">
+                <i class="fa-solid fa-gem text-purple-500 text-2xl"></i>
+                <span id="gem-count" class="text-2xl font-black text-purple-600">5</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Boost Badges -->
+    <div id="boost-status-container" class="absolute top-24 right-4 z-10 flex flex-col space-y-2 pointer-events-none">
+        <!-- Active Boosts dynamically inserted here -->
+    </div>
+
+    <!-- Mobile Joystick & Jump Controls -->
+    <div class="absolute bottom-6 left-6 z-10 pointer-events-auto block md:hidden">
+        <div id="joystick-container" class="relative w-32 h-32 bg-white/30 backdrop-blur-md border-4 border-white/60 rounded-full flex items-center justify-center shadow-2xl">
+            <div id="joystick-stick" class="absolute w-14 h-14 bg-white/90 border-4 border-blue-400 rounded-full shadow-lg transition-transform duration-75"></div>
+        </div>
+    </div>
+
+    <div class="absolute bottom-6 right-28 z-10 pointer-events-auto">
+        <button id="jump-btn" class="w-20 h-20 bg-gradient-to-b from-blue-400 to-blue-600 border-4 border-white text-white rounded-full text-2xl font-black roblox-btn active:scale-95 flex flex-col items-center justify-center shadow-2xl">
+            <i class="fa-solid fa-arrow-up text-3xl"></i>
+            <span class="text-xs mt-1">JUMP</span>
+        </button>
+    </div>
+
+    <!-- Floating Toto Assistant Button (Baby Rabbit with Red Light Antenna) -->
+    <div class="absolute bottom-6 right-6 z-20 pointer-events-auto">
+        <button id="toto-toggle-btn" class="relative group p-0 border-none outline-none focus:outline-none transition-transform hover:scale-105 active:scale-95">
+            <!-- Pulsing Halo Glow -->
+            <div class="absolute -inset-2 bg-gradient-to-r from-red-500 via-pink-500 to-amber-400 rounded-full blur-md opacity-75 group-hover:opacity-100 animate-pulse"></div>
+
+            <div class="relative w-20 h-20 bg-gradient-to-b from-pink-100 to-pink-200 border-4 border-white rounded-full shadow-2xl flex flex-col items-center justify-center overflow-visible">
+                
+                <!-- Red Light Antenna on Rabbit's Head -->
+                <div class="absolute -top-3 flex flex-col items-center z-30">
+                    <div class="w-4 h-4 rounded-full red-antenna-light border-2 border-white"></div>
+                    <div class="w-1 h-3 bg-gray-400 rounded-full -mt-0.5"></div>
+                </div>
+
+                <!-- Cute Baby Rabbit Face SVG -->
+                <svg class="w-16 h-16 mt-1" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Ears -->
+                    <ellipse cx="38" cy="22" rx="7" ry="18" fill="#FFFFFF" stroke="#F472B6" stroke-width="3"/>
+                    <ellipse cx="38" cy="22" rx="4" ry="12" fill="#FBCFE8"/>
+                    <ellipse cx="62" cy="22" rx="7" ry="18" fill="#FFFFFF" stroke="#F472B6" stroke-width="3"/>
+                    <ellipse cx="62" cy="22" rx="4" ry="12" fill="#FBCFE8"/>
+                    <!-- Head -->
+                    <circle cx="50" cy="58" r="28" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+                    <!-- Cheeks -->
+                    <ellipse cx="35" cy="65" rx="5" ry="3" fill="#F472B6" opacity="0.6"/>
+                    <ellipse cx="65" cy="65" rx="5" ry="3" fill="#F472B6" opacity="0.6"/>
+                    <!-- Eyes -->
+                    <circle cx="40" cy="55" r="3.5" fill="#1E293B"/>
+                    <circle cx="41.5" cy="53.5" r="1.2" fill="#FFFFFF"/>
+                    <circle cx="60" cy="55" r="3.5" fill="#1E293B"/>
+                    <circle cx="61.5" cy="53.5" r="1.2" fill="#FFFFFF"/>
+                    <!-- Nose & Mouth -->
+                    <polygon points="50,60 47,57 53,57" fill="#F472B6"/>
+                    <path d="M47 62 Q50 65 53 62" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                </svg>
+
+                <div class="absolute -bottom-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full border-2 border-white shadow">
+                    토토 TOTO
+                </div>
+            </div>
+        </button>
+    </div>
+
+    <!-- Toto Assistant Modal -->
+    <div id="toto-modal" class="hidden absolute inset-0 z-30 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 relative flex flex-col items-center border-4 border-pink-300 shadow-2xl animate-fade-in">
+            
+            <!-- Close Button -->
+            <button id="close-toto-modal" class="absolute top-4 right-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg border-2 border-white shadow">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- Toto Header with Red Light Indicator -->
+            <div class="relative flex flex-col items-center -mt-12 mb-2">
+                <!-- Red Light glowing header -->
+                <div class="relative mb-1">
+                    <div class="w-6 h-6 rounded-full red-antenna-light border-2 border-white"></div>
+                    <div class="w-1.5 h-4 bg-gray-400 mx-auto"></div>
+                </div>
+
+                <!-- Toto Big Avatar Box -->
+                <div class="w-24 h-24 bg-gradient-to-b from-pink-100 to-pink-200 border-4 border-white rounded-full shadow-lg flex items-center justify-center toto-float overflow-hidden">
+                    <svg class="w-20 h-20 mt-2" viewBox="0 0 100 100" fill="none">
+                        <ellipse cx="38" cy="22" rx="7" ry="18" fill="#FFFFFF" stroke="#F472B6" stroke-width="3"/>
+                        <ellipse cx="38" cy="22" rx="4" ry="12" fill="#FBCFE8"/>
+                        <ellipse cx="62" cy="22" rx="7" ry="18" fill="#FFFFFF" stroke="#F472B6" stroke-width="3"/>
+                        <ellipse cx="62" cy="22" rx="4" ry="12" fill="#FBCFE8"/>
+                        <circle cx="50" cy="58" r="28" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+                        <ellipse cx="35" cy="65" rx="5" ry="3" fill="#F472B6" opacity="0.6"/>
+                        <ellipse cx="65" cy="65" rx="5" ry="3" fill="#F472B6" opacity="0.6"/>
+                        <circle cx="40" cy="55" r="3.5" fill="#1E293B"/>
+                        <circle cx="41.5" cy="53.5" r="1.2" fill="#FFFFFF"/>
+                        <circle cx="60" cy="55" r="3.5" fill="#1E293B"/>
+                        <circle cx="61.5" cy="53.5" r="1.2" fill="#FFFFFF"/>
+                        <polygon points="50,60 47,57 53,57" fill="#F472B6"/>
+                        <path d="M47 62 Q50 65 53 62" stroke="#64748B" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Dialogue Speech Bubble -->
+            <div class="w-full bg-pink-50 border-2 border-pink-200 rounded-2xl p-4 mb-4 text-center relative">
+                <div class="text-xs text-pink-500 font-extrabold uppercase tracking-widest mb-1">
+                    <i class="fa-solid fa-lightbulb text-red-500 mr-1 animate-pulse"></i> 머리에 빨간불이 켜진 토토가 도와줄게!
+                </div>
+                <div id="toto-dialogue" class="text-gray-800 font-extrabold text-base leading-snug">
+                    "안녕! 나는 로블록스 세상의 아기 토끼 토토야 🐰🥕 어떤 특수 파워를 빌려줄까?"
+                </div>
+            </div>
+
+            <!-- Toto Powers Grid -->
+            <div class="grid grid-cols-2 gap-3 w-full">
+                <!-- Super Jump -->
+                <button id="power-jump" class="bg-gradient-to-b from-amber-300 to-amber-500 border-3 border-white text-amber-950 rounded-2xl p-3 flex flex-col items-center justify-center font-black shadow-md hover:brightness-105 active:scale-95 transition">
+                    <div class="bg-white/80 p-2 rounded-xl mb-1 text-2xl">🚀</div>
+                    <div class="text-sm">슈퍼 점프</div>
+                    <div class="text-[10px] opacity-80">15초간 점프력 2배!</div>
+                </button>
+
+                <!-- Speed Boost -->
+                <button id="power-speed" class="bg-gradient-to-b from-blue-300 to-blue-500 border-3 border-white text-blue-950 rounded-2xl p-3 flex flex-col items-center justify-center font-black shadow-md hover:brightness-105 active:scale-95 transition">
+                    <div class="bg-white/80 p-2 rounded-xl mb-1 text-2xl">⚡</div>
+                    <div class="text-sm">스피드 부스트</div>
+                    <div class="text-[10px] opacity-80">15초간 초고속 이동</div>
+                </button>
+
+                <!-- Magnet -->
+                <button id="power-magnet" class="bg-gradient-to-b from-purple-300 to-purple-500 border-3 border-white text-purple-950 rounded-2xl p-3 flex flex-col items-center justify-center font-black shadow-md hover:brightness-105 active:scale-95 transition">
+                    <div class="bg-white/80 p-2 rounded-xl mb-1 text-2xl">🧲</div>
+                    <div class="text-sm">코인 자석</div>
+                    <div class="text-[10px] opacity-80">주변 코인 자동 흡수</div>
+                </button>
+
+                <!-- Shield -->
+                <button id="power-shield" class="bg-gradient-to-b from-emerald-300 to-emerald-500 border-3 border-white text-emerald-950 rounded-2xl p-3 flex flex-col items-center justify-center font-black shadow-md hover:brightness-105 active:scale-95 transition">
+                    <div class="bg-white/80 p-2 rounded-xl mb-1 text-2xl">🛡️</div>
+                    <div class="text-sm">낙하 방지용 보호막</div>
+                    <div class="text-[10px] opacity-80">용암 1회 방어</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Victory Stage Clear Modal -->
+    <div id="victory-modal" class="hidden absolute inset-0 z-40 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 text-center border-4 border-yellow-400 shadow-2xl animate-bounce-in">
+            <div class="text-5xl mb-2">🎉🏆🎉</div>
+            <h2 class="text-3xl font-black text-amber-500 mb-1">STAGE CLEAR!</h2>
+            <p id="victory-desc" class="text-gray-600 font-bold mb-4">축하합니다! 오비 장애물을 돌파했어요!</p>
+            
+            <div class="bg-amber-50 rounded-2xl p-3 border-2 border-amber-200 mb-4 flex justify-around">
+                <div>
+                    <span class="block text-xs text-gray-500">획득 코인</span>
+                    <span id="victory-coins" class="text-xl font-black text-amber-600">+50 🪙</span>
+                </div>
+                <div>
+                    <span class="block text-xs text-gray-500">다음 스테이지</span>
+                    <span id="victory-next-stage" class="text-xl font-black text-indigo-600">STAGE 2</span>
+                </div>
+            </div>
+
+            <button id="next-stage-btn" class="w-full bg-gradient-to-b from-green-400 to-green-600 border-4 border-white text-white font-black text-xl py-3 rounded-2xl roblox-btn active:scale-95 shadow-lg">
+                다음 스테이지로 GO! 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- Instructions Banner -->
+    <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 hidden md:flex items-center space-x-2 bg-black/50 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 text-white text-xs font-bold pointer-events-none">
+        <span>🎮 이동: <kbd class="bg-white/20 px-1.5 py-0.5 rounded">W</kbd><kbd class="bg-white/20 px-1.5 py-0.5 rounded">A</kbd><kbd class="bg-white/20 px-1.5 py-0.5 rounded">S</kbd><kbd class="bg-white/20 px-1.5 py-0.5 rounded">D</kbd></span>
+        <span>| 점프: <kbd class="bg-white/20 px-1 py-0.5 rounded">Space</kbd></span>
+        <span>| 마우스 드래그: 시점 회전</span>
+    </div>
+
+    <script>
+        // Game Settings & State
+        const state = {
+            stage: 1,
+            coins: 0,
+            gems: 5,
+            score: 0,
+            activeBoosts: {
+                jump: false,
+                speed: false,
+                magnet: false,
+                shield: false
+            },
+            player: {
+                x: 0, y: 3, z: 0,
+                vx: 0, vy: 0, vz: 0,
+                isGrounded: false,
+                speedMultiplier: 1,
+                jumpMultiplier: 1
+            },
+            checkpoint: { x: 0, y: 3, z: 0 },
+            keys: {},
+            touchJoystick: { active: false, x: 0, y: 0 }
+        };
+
+        // Stage Configuration Data
+        const stages = [
+            { id: 1, title: "알록달록 점프 파크", color: 0x87CEEB, difficulty: "쉬움" },
+            { id: 2, title: "위험천만 회전 스피너", color: 0xFFA07A, difficulty: "보통" },
+            { id: 3, title: "용암 소용돌이 오비", color: 0x20B2AA, difficulty: "어려움" }
+        ];
+
+        let scene, camera, renderer;
+        let playerMesh, characterGroup;
+        let platforms = [];
+        let hazardObjects = [];
+        let coinObjects = [];
+        let finishFlagMesh;
+        let cameraAngleX = 0;
+        let cameraAngleY = 0.3;
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.FogExp2(0x87CEEB, 0.015);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Ambient & Directional Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(20, 40, 20);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 150;
+            const d = 40;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            // Build Player Roblox Character Mesh
+            createPlayerCharacter();
+
+            // Build Stage 1
+            loadStage(state.stage);
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            setupInputListeners();
+
+            // Start Game Loop
+            animate();
+        }
+
+        function createPlayerCharacter() {
+            characterGroup = new THREE.Group();
+
+            // Roblox Blocky Body Material
+            const bodyMat = new THREE.MeshToonMaterial({ color: 0x2563eb });
+            const headMat = new THREE.MeshToonMaterial({ color: 0xffdbac });
+            const limbMat = new THREE.MeshToonMaterial({ color: 0x1d4ed8 });
+
+            // Torso
+            const torsoGeo = new THREE.BoxGeometry(1.2, 1.4, 0.6);
+            const torso = new THREE.Mesh(torsoGeo, bodyMat);
+            torso.position.y = 1.3;
+            torso.castShadow = true;
+            characterGroup.add(torso);
+
+            // Head
+            const headGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 2.45;
+            head.castShadow = true;
+            characterGroup.add(head);
+
+            // Face (Eyes + Smile)
+            const eyeGeo = new THREE.BoxGeometry(0.12, 0.18, 0.05);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.2, 2.5, 0.46);
+            characterGroup.add(leftEye);
+
+            const rightEye = leftEye.clone();
+            rightEye.position.x = 0.2;
+            characterGroup.add(rightEye);
+
+            // Roblox Bunny Ears Accessory
+            const earGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
+            const earMat = new THREE.MeshToonMaterial({ color: 0xffffff });
+            const leftEar = new THREE.Mesh(earGeo, earMat);
+            leftEar.position.set(-0.3, 3.2, 0);
+            leftEar.rotation.z = -0.15;
+            characterGroup.add(leftEar);
+
+            const rightEar = leftEar.clone();
+            rightEar.position.x = 0.3;
+            rightEar.rotation.z = 0.15;
+            characterGroup.add(rightEar);
+
+            // Legs & Arms
+            const armGeo = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+            const leftArm = new THREE.Mesh(armGeo, limbMat);
+            leftArm.position.set(-0.85, 1.3, 0);
+            leftArm.castShadow = true;
+            characterGroup.add(leftArm);
+
+            const rightArm = leftArm.clone();
+            rightArm.position.x = 0.85;
+            characterGroup.add(rightArm);
+
+            const legGeo = new THREE.BoxGeometry(0.5, 1.2, 0.5);
+            const leftLeg = new THREE.Mesh(legGeo, limbMat);
+            leftLeg.position.set(-0.35, 0.6, 0);
+            leftLeg.castShadow = true;
+            characterGroup.add(leftLeg);
+
+            const rightLeg = leftLeg.clone();
+            rightLeg.position.x = 0.35;
+            characterGroup.add(rightLeg);
+
+            scene.add(characterGroup);
+            playerMesh = characterGroup;
+        }
+
+        function loadStage(stageNum) {
+            // Clear existing objects
+            platforms.forEach(p => scene.remove(p.mesh));
+            hazardObjects.forEach(h => scene.remove(h.mesh));
+            coinObjects.forEach(c => scene.remove(c.mesh));
+            if (finishFlagMesh) scene.remove(finishFlagMesh);
+
+            platforms = [];
+            hazardObjects = [];
+            coinObjects = [];
+
+            const stageInfo = stages[(stageNum - 1) % stages.length];
+            document.getElementById('stage-text').innerText = `STAGE ${stageNum}`;
+            document.getElementById('stage-title').innerText = stageInfo.title;
+            scene.background.setHex(stageInfo.color);
+            scene.fog.color.setHex(stageInfo.color);
+
+            // Reset player position
+            state.player.x = 0;
+            state.player.y = 3;
+            state.player.z = 0;
+            state.player.vx = 0;
+            state.player.vy = 0;
+            state.player.vz = 0;
+            state.checkpoint = { x: 0, y: 3, z: 0 };
+
+            // Create Platforms based on Stage
+            // Spawn Platform
+            addPlatform(0, 0, 0, 8, 1, 8, 0x4ade80);
+
+            let currentZ = -8;
+
+            if (stageNum === 1) {
+                // Easy Jumping Blocks
+                for (let i = 0; i < 8; i++) {
+                    const px = (i % 2 === 0) ? -2.5 : 2.5;
+                    currentZ -= 7;
+                    const colors = [0xf43f5e, 0x3b82f6, 0xeab308, 0xa855f7];
+                    addPlatform(px, i * 0.5, currentZ, 4, 0.8, 4, colors[i % colors.length]);
+                    addCoin(px, i * 0.5 + 2, currentZ);
+                }
+
+                // Checkpoint mid-way
+                currentZ -= 8;
+                addPlatform(0, 4, currentZ, 6, 1, 6, 0x38bdf8);
+
+                // Laser Hazard beam Jump
+                for (let i = 0; i < 5; i++) {
+                    currentZ -= 8;
+                    addPlatform(0, 4, currentZ, 5, 0.8, 5, 0xf97316);
+                    if (i % 2 === 1) {
+                        addHazard(0, 4.8, currentZ, 4.5, 0.4, 0.4, "laser");
+                    } else {
+                        addCoin(0, 6, currentZ);
+                    }
+                }
+            } else if (stageNum === 2) {
+                // Moving & Rotating Spinners Stage
+                for (let i = 0; i < 10; i++) {
+                    currentZ -= 9;
+                    const p = addPlatform(Math.sin(i) * 4, i * 0.6, currentZ, 4.5, 0.8, 4.5, 0xec4899);
+                    p.moving = true;
+                    p.speed = 0.03;
+                    p.range = 5;
+                    p.axis = 'x';
+                    p.initialX = Math.sin(i) * 4;
+                    addCoin(Math.sin(i) * 4, i * 0.6 + 2, currentZ);
+                }
+            } else {
+                // Stage 3 - Lava Obby
+                for (let i = 0; i < 12; i++) {
+                    currentZ -= 7.5;
+                    const isHazard = i % 3 === 2;
+                    if (isHazard) {
+                        addHazard(0, i * 0.4, currentZ, 6, 0.5, 2, "lava");
+                    }
+                    addPlatform(0, i * 0.4, currentZ, 5, 0.8, 5, 0x6366f1);
+                    addCoin(0, i * 0.4 + 2, currentZ);
+                }
+            }
+
+            // Finish Goal Platform
+            currentZ -= 10;
+            const finishPlatform = addPlatform(0, 5, currentZ, 10, 1, 10, 0xfacc15);
+            createFinishPortal(0, 6, currentZ);
+        }
+
+        // Helper to add platform
+        function addPlatform(x, y, z, w, h, d, color) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshToonMaterial({ color: color });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+            scene.add(mesh);
+
+            const platformObj = { mesh, x, y, z, w, h, d };
+            platforms.push(platformObj);
+            return platformObj;
+        }
+
+        // Helper to add hazard
+        function addHazard(x, y, z, w, h, d, type) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+
+            const hazardObj = { mesh, x, y, z, w, h, d, type };
+            hazardObjects.push(hazardObj);
+            return hazardObj;
+        }
+
+        // Helper to add Coins
+        function addCoin(x, y, z) {
+            const geo = new THREE.CylinderGeometry(0.6, 0.6, 0.15, 16);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.rotation.x = Math.PI / 2;
+            mesh.castShadow = true;
+            scene.add(mesh);
+
+            coinObjects.push({ mesh, x, y, z, collected: false });
+        }
+
+        // Finish Line Flag
+        function createFinishPortal(x, y, z) {
+            const group = new THREE.Group();
+            group.position.set(x, y, z);
+
+            const archGeo = new THREE.TorusGeometry(3, 0.4, 16, 32);
+            const archMat = new THREE.MeshToonMaterial({ color: 0xf59e0b });
+            const arch = new THREE.Mesh(archGeo, archMat);
+            arch.position.y = 3;
+            group.add(arch);
+
+            const starGeo = new THREE.OctahedronGeometry(1.2, 0);
+            const starMat = new THREE.MeshBasicMaterial({ color: 0xfff000 });
+            const star = new THREE.Mesh(starGeo, starMat);
+            star.position.y = 3;
+            group.add(star);
+
+            scene.add(group);
+            finishFlagMesh = group;
+        }
+
+        function setupInputListeners() {
+            // Keyboard
+            window.addEventListener('keydown', (e) => {
+                state.keys[e.code] = true;
+                if (e.code === 'Space') triggerJump();
+            });
+
+            window.addEventListener('keyup', (e) => {
+                state.keys[e.code] = false;
+            });
+
+            // Touch Joystick setup
+            const joystickContainer = document.getElementById('joystick-container');
+            const joystickStick = document.getElementById('joystick-stick');
+
+            let touchId = null;
+            let startX = 0, startY = 0;
+
+            joystickContainer.addEventListener('touchstart', (e) => {
+                const touch = e.changedTouches[0];
+                touchId = touch.identifier;
+                startX = touch.clientX;
+                startY = touch.clientY;
+                state.touchJoystick.active = true;
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!state.touchJoystick.active) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === touchId) {
+                        const touch = e.changedTouches[i];
+                        const dx = touch.clientX - startX;
+                        const dy = touch.clientY - startY;
+                        const dist = Math.min(Math.sqrt(dx * dx + dy * dy), 40);
+                        const angle = Math.atan2(dy, dx);
+
+                        const stickX = Math.cos(angle) * dist;
+                        const stickY = Math.sin(angle) * dist;
+                        joystickStick.style.transform = `translate(${stickX}px, ${stickY}px)`;
+
+                        state.touchJoystick.x = stickX / 40;
+                        state.touchJoystick.y = stickY / 40;
+                    }
+                }
+            });
+
+            const resetJoystick = () => {
+                state.touchJoystick.active = false;
+                state.touchJoystick.x = 0;
+                state.touchJoystick.y = 0;
+                joystickStick.style.transform = `translate(0px, 0px)`;
+            };
+
+            window.addEventListener('touchend', resetJoystick);
+            window.addEventListener('touchcancel', resetJoystick);
+
+            // Jump Button
+            document.getElementById('jump-btn').addEventListener('click', triggerJump);
+
+            // Camera orbit dragging
+            let isDragging = false;
+            let previousMouseX = 0, previousMouseY = 0;
+
+            window.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'CANVAS') {
+                    isDragging = true;
+                    previousMouseX = e.clientX;
+                    previousMouseY = e.clientY;
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMouseX;
+                    const deltaY = e.clientY - previousMouseY;
+
+                    cameraAngleX -= deltaX * 0.005;
+                    cameraAngleY = Math.max(0.1, Math.min(Math.PI / 2.5, cameraAngleY + deltaY * 0.005));
+
+                    previousMouseX = e.clientX;
+                    previousMouseY = e.clientY;
+                }
+            });
+
+            window.addEventListener('mouseup', () => isDragging = false);
+
+            // UI Modal Toggles & Toto Interactions
+            document.getElementById('toto-toggle-btn').addEventListener('click', openTotoModal);
+            document.getElementById('close-toto-modal').addEventListener('click', closeTotoModal);
+            document.getElementById('next-stage-btn').addEventListener('click', () => {
+                document.getElementById('victory-modal').classList.add('hidden');
+                state.stage++;
+                loadStage(state.stage);
+            });
+
+            // Power Boost Buttons in Toto Dialog
+            document.getElementById('power-jump').addEventListener('click', () => activateBoost('jump'));
+            document.getElementById('power-speed').addEventListener('click', () => activateBoost('speed'));
+            document.getElementById('power-magnet').addEventListener('click', () => activateBoost('magnet'));
+            document.getElementById('power-shield').addEventListener('click', () => activateBoost('shield'));
+        }
+
+        function triggerJump() {
+            if (state.player.isGrounded) {
+                const jumpPower = 0.28 * state.player.jumpMultiplier;
+                state.player.vy = jumpPower;
+                state.player.isGrounded = false;
+            }
+        }
+
+        function openTotoModal() {
+            document.getElementById('toto-modal').classList.remove('hidden');
+            const quotes = [
+                "안녕! 머리에 빨간불 들어오는 아기토끼 토토야! 🥕 무슨 도움이 필요해?",
+                "당근 에너지 충전 완료! 토토의 스시 스페셜 파워를 빌려줄게!",
+                "어려운 플랫폼이 있니? 토토의 슈퍼 점프면 한 번에 넘을 수 있어! 🐰✨"
+            ];
+            document.getElementById('toto-dialogue').innerText = `"${quotes[Math.floor(Math.random() * quotes.length)]}"`;
+        }
+
+        function closeTotoModal() {
+            document.getElementById('toto-modal').classList.add('hidden');
+        }
+
+        function activateBoost(type) {
+            closeTotoModal();
+            state.activeBoosts[type] = true;
+
+            const boostContainer = document.getElementById('boost-status-container');
+            const badge = document.createElement('div');
+            badge.id = `badge-${type}`;
+            badge.className = "bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border-2 border-pink-400 text-xs font-black text-pink-600 flex items-center space-x-1 shadow-lg animate-pulse";
+
+            if (type === 'jump') {
+                state.player.jumpMultiplier = 1.7;
+                badge.innerHTML = `<span>🚀 슈퍼 점프 적용 중!</span>`;
+            } else if (type === 'speed') {
+                state.player.speedMultiplier = 1.8;
+                badge.innerHTML = `<span>⚡ 초고속 이동 중!</span>`;
+            } else if (type === 'magnet') {
+                badge.innerHTML = `<span>🧲 코인 자석 작동!</span>`;
+            } else if (type === 'shield') {
+                badge.innerHTML = `<span>🛡️ 무적 보호막 활성</span>`;
+            }
+
+            boostContainer.appendChild(badge);
+
+            // Timeout for boost expiration (15s)
+            setTimeout(() => {
+                state.activeBoosts[type] = false;
+                if (type === 'jump') state.player.jumpMultiplier = 1;
+                if (type === 'speed') state.player.speedMultiplier = 1;
+                const el = document.getElementById(`badge-${type}`);
+                if (el) el.remove();
+            }, 15000);
+        }
+
+        function updatePhysics() {
+            const speed = 0.12 * state.player.speedMultiplier;
+            let moveX = 0;
+            let moveZ = 0;
+
+            // Keyboard input vector
+            if (state.keys['KeyW'] || state.keys['ArrowUp']) moveZ -= 1;
+            if (state.keys['KeyS'] || state.keys['ArrowDown']) moveZ += 1;
+            if (state.keys['KeyA'] || state.keys['ArrowLeft']) moveX -= 1;
+            if (state.keys['KeyD'] || state.keys['ArrowRight']) moveX += 1;
+
+            // Touch Joystick input vector
+            if (state.touchJoystick.active) {
+                moveX = state.touchJoystick.x;
+                moveZ = state.touchJoystick.y;
+            }
+
+            // Camera-relative Movement Angle
+            if (moveX !== 0 || moveZ !== 0) {
+                const angle = Math.atan2(moveX, moveZ) + cameraAngleX;
+                state.player.vx = Math.sin(angle) * speed;
+                state.player.vz = Math.cos(angle) * speed;
+
+                // Rotate player character mesh to movement direction
+                playerMesh.rotation.y = angle;
+            } else {
+                state.player.vx *= 0.6;
+                state.player.vz *= 0.6;
+            }
+
+            // Apply Gravity
+            state.player.vy -= 0.012; // Gravity constant
+
+            // Move Player
+            state.player.x += state.player.vx;
+            state.player.y += state.player.vy;
+            state.player.z += state.player.vz;
+
+            // Platform Collision Logic (AABB)
+            let onGround = false;
+            const px = state.player.x;
+            const py = state.player.y;
+            const pz = state.player.z;
+            const pr = 0.6; // Player bounding radius
+
+            for (let p of platforms) {
+                // Moving platform logic update
+                if (p.moving) {
+                    p.mesh.position.x = p.initialX + Math.sin(Date.now() * 0.002) * p.range;
+                    p.x = p.mesh.position.x;
+                }
+
+                // Collision Box Check
+                if (px + pr > p.x - p.w / 2 && px - pr < p.x + p.w / 2 &&
+                    pz + pr > p.z - p.d / 2 && pz - pr < p.z + p.d / 2) {
+                    
+                    const platformTop = p.y + p.h / 2;
+                    if (py >= platformTop - 0.2 && py + state.player.vy <= platformTop + 0.2) {
+                        state.player.y = platformTop;
+                        state.player.vy = 0;
+                        onGround = true;
+                        
+                        // If moving platform, carry player
+                        if (p.moving) {
+                            state.player.x += Math.cos(Date.now() * 0.002) * 0.05;
+                        }
+                    }
+                }
+            }
+
+            state.player.isGrounded = onGround;
+
+            // Hazard Check
+            for (let h of hazardObjects) {
+                if (Math.abs(px - h.x) < h.w / 2 + 0.3 &&
+                    Math.abs(py - h.y) < h.h / 2 + 0.5 &&
+                    Math.abs(pz - h.z) < h.d / 2 + 0.3) {
+                    
+                    if (state.activeBoosts.shield) {
+                        // Shield protects from 1 death
+                        state.activeBoosts.shield = false;
+                        const el = document.getElementById('badge-shield');
+                        if (el) el.remove();
+                    } else {
+                        respawnPlayer();
+                    }
+                }
+            }
+
+            // Coin Magnet & Collection Check
+            coinObjects.forEach(c => {
+                if (c.collected) return;
+
+                // Animate Coin Floating & Spin
+                c.mesh.rotation.z += 0.05;
+
+                const dist = Math.hypot(px - c.x, pz - c.z);
+
+                // Magnet effect
+                if (state.activeBoosts.magnet && dist < 8) {
+                    c.mesh.position.x += (px - c.x) * 0.1;
+                    c.mesh.position.z += (pz - c.z) * 0.1;
+                    c.x = c.mesh.position.x;
+                    c.z = c.mesh.position.z;
+                }
+
+                if (dist < 1.2 && Math.abs(py - c.y) < 2) {
+                    c.collected = true;
+                    scene.remove(c.mesh);
+                    state.coins += 10;
+                    document.getElementById('coin-count').innerText = state.coins;
+                }
+            });
+
+            // Finish Portal Reach Check
+            if (finishFlagMesh) {
+                const finishDist = Math.hypot(px - finishFlagMesh.position.x, pz - finishFlagMesh.position.z);
+                if (finishDist < 2.5) {
+                    triggerVictory();
+                }
+            }
+
+            // Fall Off World Check
+            if (state.player.y < -15) {
+                respawnPlayer();
+            }
+
+            // Synchronize Player Mesh Position
+            playerMesh.position.set(state.player.x, state.player.y, state.player.z);
+
+            // Update Third-Person Orbit Camera
+            const camDistance = 8;
+            camera.position.x = state.player.x + camDistance * Math.sin(cameraAngleX) * Math.cos(cameraAngleY);
+            camera.position.y = state.player.y + camDistance * Math.sin(cameraAngleY) + 1.5;
+            camera.position.z = state.player.z + camDistance * Math.cos(cameraAngleX) * Math.cos(cameraAngleY);
+            camera.lookAt(state.player.x, state.player.y + 1.5, state.player.z);
+        }
+
+        function respawnPlayer() {
+            state.player.x = state.checkpoint.x;
+            state.player.y = state.checkpoint.y + 2;
+            state.player.z = state.checkpoint.z;
+            state.player.vx = 0;
+            state.player.vy = 0;
+            state.player.vz = 0;
+        }
+
+        function triggerVictory() {
+            document.getElementById('victory-coins').innerText = `+${state.stage * 50} 🪙`;
+            document.getElementById('victory-next-stage').innerText = `STAGE ${state.stage + 1}`;
+            document.getElementById('victory-modal').classList.remove('hidden');
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            updatePhysics();
+
+            // Finish Star Rotation Animation
+            if (finishFlagMesh) {
+                finishFlagMesh.rotation.y += 0.02;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Initialize on window load
+        window.onload = function() {
+            init3D();
+        };
+    </script>
+</body>
+</html>

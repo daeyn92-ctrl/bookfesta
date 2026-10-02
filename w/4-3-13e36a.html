@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>무한 동물 세상 - Infinite Animal World</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Jua', 'Noto Sans KR', sans-serif;
+            user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+            background-color: #0f172a;
+        }
+
+        /* Custom Scrollbar for panel */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 999px;
+        }
+
+        /* Glassmorphism Styling */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease;
+        }
+        .glass-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+        .glass-btn:active, .glass-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-color: #a7f3d0;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Rainbow Text Effect */
+        .rainbow-text {
+            background: linear-gradient(90deg, #ff0055, #ffaa00, #33ff00, #00e5ff, #7000ff, #ff0055);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            animation: rainbowShift 3s linear infinite;
+        }
+
+        @keyframes rainbowShift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        /* Pulse glow animation */
+        .pulse-glow {
+            animation: pulseGlow 2s infinite alternate;
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.4); }
+            100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.9); }
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen m-0 p-0 overflow-hidden text-white select-none">
+
+    <!-- Fullscreen Infinite Canvas -->
+    <canvas id="world-canvas" class="absolute inset-0 w-full h-full z-0 cursor-pointer"></canvas>
+
+    <!-- Top Navigation / Stats Header -->
+    <header class="absolute top-3 left-3 right-3 z-20 flex justify-between items-center pointer-events-none">
+        <!-- Logo & Title -->
+        <div class="glass-panel px-4 py-2 rounded-2xl flex items-center space-x-3 pointer-events-auto shadow-xl">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 via-emerald-400 to-indigo-500 p-0.5 shadow-md flex items-center justify-center">
+                <span class="text-2xl">🦁</span>
+            </div>
+            <div>
+                <h1 class="text-xl font-black tracking-wide flex items-center gap-1">
+                    <span class="rainbow-text">무한 동물 세상</span>
+                </h1>
+                <p class="text-[11px] text-slate-300 font-mono">Infinite Animal World v1.0</p>
+            </div>
+        </div>
+
+        <!-- Live Counters -->
+        <div class="glass-panel px-4 py-2 rounded-2xl flex items-center space-x-4 pointer-events-auto text-xs font-bold shadow-xl">
+            <div class="flex items-center space-x-1.5">
+                <span class="text-amber-400 text-base">🐾</span>
+                <div>
+                    <div class="text-[10px] text-slate-400">화면 속 동물</div>
+                    <div id="count-onscreen" class="text-sm font-mono text-amber-300 font-black">0</div>
+                </div>
+            </div>
+            <div class="h-6 w-px bg-slate-700"></div>
+            <div class="flex items-center space-x-1.5">
+                <span class="text-emerald-400 text-base">✨</span>
+                <div>
+                    <div class="text-[10px] text-slate-400">총 누적 출현</div>
+                    <div id="count-total" class="text-sm font-mono text-emerald-300 font-black">0</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Right Side Quick Control Floating Dock -->
+    <aside class="absolute top-20 right-3 z-20 flex flex-col space-y-3 pointer-events-auto">
+        <button id="btn-toggle-panel" class="glass-btn p-3 rounded-2xl flex flex-col items-center justify-center text-xs font-bold shadow-lg text-amber-300 hover:text-amber-200">
+            <i class="fa-solid fa-sliders text-lg mb-1"></i>
+            <span>설정</span>
+        </button>
+        <button id="btn-tsunami" class="glass-btn p-3 rounded-2xl flex flex-col items-center justify-center text-xs font-bold shadow-lg text-pink-400 hover:text-pink-300 pulse-glow">
+            <i class="fa-solid fa-bolt-lightning text-lg mb-1 animate-bounce"></i>
+            <span>대폭발</span>
+        </button>
+        <button id="btn-clear" class="glass-btn p-3 rounded-2xl flex flex-col items-center justify-center text-xs font-bold shadow-lg text-slate-300 hover:text-red-400">
+            <i class="fa-solid fa-trash-can text-lg mb-1"></i>
+            <span>초기화</span>
+        </button>
+        <button id="btn-sound" class="glass-btn p-3 rounded-2xl flex flex-col items-center justify-center text-xs font-bold shadow-lg text-cyan-300">
+            <i id="sound-icon" class="fa-solid fa-volume-high text-lg mb-1"></i>
+            <span id="sound-text">소리 켬</span>
+        </button>
+    </aside>
+
+    <!-- Control & Customization Drawer Panel -->
+    <div id="control-panel" class="glass-panel fixed bottom-0 left-0 right-0 z-30 max-h-[80vh] rounded-t-3xl p-5 shadow-2xl transition-transform duration-300 transform translate-y-0 overflow-y-auto max-w-4xl mx-auto border-t-2 border-amber-400/30">
+        
+        <!-- Panel Header with Close Button -->
+        <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-700/60">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-paw text-amber-400 text-lg"></i>
+                <h2 class="text-lg font-black text-white">동물 세상 설정 & 선택</h2>
+            </div>
+            <button id="btn-close-panel" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- SECTION 1: Background Picker -->
+            <div class="space-y-3">
+                <label class="text-sm font-bold text-amber-300 flex items-center gap-2">
+                    <i class="fa-solid fa-image"></i>
+                    <span>1. 배경 테마 선택 (8가지)</span>
+                </label>
+                <div id="bg-grid" class="grid grid-cols-4 gap-2">
+                    <!-- Dynamic BG Cards Injected via JS -->
+                </div>
+            </div>
+
+            <!-- SECTION 2: Animal Species Picker -->
+            <div class="space-y-3">
+                <label class="text-sm font-bold text-emerald-300 flex items-center gap-2">
+                    <i class="fa-solid fa-hippo"></i>
+                    <span>2. 동물 종 / 카테고리 선택</span>
+                </label>
+                
+                <!-- Category Tabs -->
+                <div id="species-category-tabs" class="flex flex-wrap gap-1.5 mb-2">
+                    <!-- Dynamic Category Tabs Injected via JS -->
+                </div>
+
+                <!-- Animal Emoji Multi-selector Grid -->
+                <div id="animal-emoji-grid" class="grid grid-cols-6 sm:grid-cols-8 gap-2 bg-slate-900/80 p-3 rounded-2xl border border-slate-800 max-h-36 overflow-y-auto">
+                    <!-- Dynamic Animal Emojis Injected via JS -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- SECTION 3: Infinite Spawner Controls & Movement Modes -->
+        <div class="mt-6 pt-4 border-t border-slate-700/60 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Auto Spawn Speed Slider -->
+            <div class="space-y-1">
+                <div class="flex justify-between text-xs font-bold">
+                    <span class="text-cyan-300"><i class="fa-solid fa-gauge-high mr-1"></i>자동 무한 생성 속도</span>
+                    <span id="speed-val-display" class="font-mono text-amber-400">초당 5마리</span>
+                </div>
+                <input type="range" id="spawn-speed-slider" min="0" max="50" value="5" class="w-full accent-amber-400 cursor-pointer">
+                <p class="text-[10px] text-slate-400">0으로 설정 시 터치 클릭으로만 소환됩니다.</p>
+            </div>
+
+            <!-- Movement Behavior Preset -->
+            <div class="space-y-1">
+                <div class="text-xs font-bold text-purple-300 mb-1"><i class="fa-solid fa-route mr-1"></i>동물 이동 패턴</div>
+                <select id="movement-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-200 focus:outline-none focus:border-amber-400">
+                    <option value="walk">통통 튀며 자유 산책 (기본)</option>
+                    <option value="float">무중력 둥둥 떠다니기</option>
+                    <option value="rain">하늘에서 동물 비 내리기</option>
+                    <option value="frenzy">광란의 스피드 질주</option>
+                </select>
+            </div>
+
+            <!-- Size Scaling -->
+            <div class="space-y-1">
+                <div class="flex justify-between text-xs font-bold">
+                    <span class="text-pink-300"><i class="fa-solid fa-up-right-and-down-left-from-center mr-1"></i>동물 크기 조절</span>
+                    <span id="size-val-display" class="font-mono text-pink-400">보통</span>
+                </div>
+                <input type="range" id="animal-size-slider" min="20" max="100" value="48" class="w-full accent-pink-400 cursor-pointer">
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Bottom Hint Overlay -->
+    <div class="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center">
+        <div class="bg-slate-900/70 backdrop-blur-sm border border-slate-700 px-4 py-1.5 rounded-full text-[11px] text-slate-300 shadow-lg animate-pulse">
+            💡 화면을 클릭하거나 드래그하면 원하는 곳에 동물이 무한 소환됩니다!
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Sound Engine (Web Audio API Synthesizer)
+        // ==========================================
+        class AnimalSoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playPop(pitchMultiplier = 1.0) {
+                if (!this.enabled) return;
+                this.init();
+                
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'sine';
+                    // Bubble pop frequency envelope
+                    const startFreq = 220 * pitchMultiplier;
+                    const endFreq = 660 * pitchMultiplier;
+
+                    osc.frequency.setValueAtTime(startFreq, now);
+                    osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.08);
+
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 0.09);
+                } catch(e) { console.error(e); }
+            }
+
+            playTsunamiSound() {
+                if (!this.enabled) return;
+                this.init();
+
+                try {
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.4);
+
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                } catch(e) { console.error(e); }
+            }
+        }
+
+        const audio = new AnimalSoundEngine();
+
+        // ==========================================
+        // Data Configurations (Backgrounds & Species)
+        // ==========================================
+        const BACKGROUNDS = [
+            {
+                id: 'grassland',
+                name: '푸른 초원',
+                icon: '🌿',
+                bgGradient: ['#15803d', '#166534', '#052e16'],
+                particleColor: '#86efac',
+                particleType: 'leaf',
+                groundHeight: 0.85
+            },
+            {
+                id: 'deep-forest',
+                name: '비밀의 숲',
+                icon: '🌲',
+                bgGradient: ['#0f766e', '#115e59', '#042f2e'],
+                particleColor: '#5eead4',
+                particleType: 'spores',
+                groundHeight: 0.88
+            },
+            {
+                id: 'ocean',
+                name: '신비 바닷속',
+                icon: '🌊',
+                bgGradient: ['#0284c7', '#0369a1', '#082f49'],
+                particleColor: '#7dd3fc',
+                particleType: 'bubble',
+                groundHeight: 0.92
+            },
+            {
+                id: 'sky',
+                name: '구름 하늘',
+                icon: '☁️',
+                bgGradient: ['#38bdf8', '#818cf8', '#312e81'],
+                particleColor: '#ffffff',
+                particleType: 'cloud',
+                groundHeight: 0.90
+            },
+            {
+                id: 'space',
+                name: '은하수 우주',
+                icon: '🌌',
+                bgGradient: ['#311b92', '#1a237e', '#000000'],
+                particleColor: '#f472b6',
+                particleType: 'star',
+                groundHeight: 1.0
+            },
+            {
+                id: 'snow',
+                name: '포근한 설원',
+                icon: '❄️',
+                bgGradient: ['#94a3b8', '#475569', '#0f172a'],
+                particleColor: '#f8fafc',
+                particleType: 'snow',
+                groundHeight: 0.85
+            },
+            {
+                id: 'desert',
+                name: '황금 사막',
+                icon: '🏜️',
+                bgGradient: ['#d97706', '#b45309', '#451a03'],
+                particleColor: '#fde68a',
+                particleType: 'dust',
+                groundHeight: 0.85
+            },
+            {
+                id: 'rainbow',
+                name: '무지개 판타지',
+                icon: '🦄',
+                bgGradient: ['#831843', '#581c87', '#1e1b4b'],
+                particleColor: '#f43f5e',
+                particleType: 'sparkle',
+                groundHeight: 0.88
+            }
+        ];
+
+        const SPECIES_CATEGORIES = [
+            {
+                id: 'all',
+                name: '🎲 전종 무작위',
+                emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐢', '🐍', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🦣', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🦬', '🦙', '🦩', '🦚', '🦜', '🦡', '🦦', '🦥', '🦦', '🦫', '🦔', '🦕', '🦖']
+            },
+            {
+                id: 'pets',
+                name: '🐶 귀여운 반려동물',
+                emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🐥', '🐱‍👤', '🦮', '🐩', '🐈', '🦜', '🦔', '🦫', '🦥', '🐿️']
+            },
+            {
+                id: 'wild',
+                name: '🦁 야생 정글 동물',
+                emojis: ['🦁', '🐯', '🐻', '🐼', '🐨', '🦊', '🐺', '🐗', '🐵', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🦬', '🦓', '🐆', '🐅']
+            },
+            {
+                id: 'ocean',
+                name: '🐬 바다 & 수중 친구들',
+                emojis: ['🐬', '🐳', '🐋', '🦈', '🦭', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐢', '🐊', '펭']
+            },
+            {
+                id: 'birds',
+                name: '🦅 하늘 날개 친구들',
+                emojis: ['🦅', '🦉', '🦜', '🦚', '🦩', '🐦', '🐤', '🦆', '🦇', '🦋', '🐝', '🐞', '🕊️']
+            },
+            {
+                id: 'fantasy',
+                name: '🦖 공룡 & 전설',
+                emojis: ['🦖', '🦕', '🦄', '🐲', '🐉', '🦣', '🕊️', '✨']
+            }
+        ];
+
+        // ==========================================
+        // State Management
+        // ==========================================
+        let currentBgIndex = 0;
+        let selectedCategoryIndex = 0;
+        let activeEmojiList = [...SPECIES_CATEGORIES[0].emojis];
+        let spawnRate = 5; // animals per second
+        let movementPattern = 'walk';
+        let baseAnimalSize = 48;
+
+        let totalSpawnedCount = 0;
+        let animals = [];
+        let ambientParticles = [];
+        let clickEffects = [];
+
+        // Canvas Setup
+        const canvas = document.getElementById('world-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // ==========================================
+        // Animal Entity Class
+        // ==========================================
+        class AnimalEntity {
+            constructor(x, y, emojiOverride = null) {
+                this.x = x !== undefined ? x : Math.random() * canvas.width;
+                this.y = y !== undefined ? y : Math.random() * (canvas.height * 0.7) + canvas.height * 0.1;
+                
+                // Emoji Selection
+                if (emojiOverride) {
+                    this.emoji = emojiOverride;
+                } else {
+                    const idx = Math.floor(Math.random() * activeEmojiList.length);
+                    this.emoji = activeEmojiList[idx] || '🐶';
+                }
+
+                // Random variations
+                this.size = baseAnimalSize * (0.75 + Math.random() * 0.5);
+                this.vx = (Math.random() - 0.5) * (movementPattern === 'frenzy' ? 12 : 3);
+                this.vy = (Math.random() - 0.5) * (movementPattern === 'frenzy' ? 12 : 2);
+                
+                // Animation properties
+                this.wobblePhase = Math.random() * Math.PI * 2;
+                this.wobbleSpeed = 0.05 + Math.random() * 0.05;
+                this.scaleX = Math.random() > 0.5 ? 1 : -1; // Facing direction
+                this.jumpHeight = 5 + Math.random() * 15;
+                this.opacity = 0; // Fade in
+
+                // Birth effect
+                this.spawnScale = 0.1;
+
+                totalSpawnedCount++;
+            }
+
+            update(dt) {
+                // Fade in and pop growth
+                if (this.opacity < 1) this.opacity += 0.08;
+                if (this.spawnScale < 1) this.spawnScale += 0.12;
+
+                this.wobblePhase += this.wobbleSpeed;
+
+                // Movement Pattern Behaviors
+                switch (movementPattern) {
+                    case 'walk':
+                        this.x += this.vx;
+                        // Bounce on ground horizon
+                        const groundY = canvas.height * BACKGROUNDS[currentBgIndex].groundHeight - this.size;
+                        if (this.y < groundY - 50) {
+                            this.vy += 0.3; // Gravity
+                        } else {
+                            this.vy = -Math.abs(Math.sin(this.wobblePhase) * 4); // Continuous gentle hopping
+                        }
+                        this.y += this.vy;
+                        break;
+
+                    case 'float':
+                        this.x += Math.cos(this.wobblePhase) * 2 + this.vx * 0.5;
+                        this.y += Math.sin(this.wobblePhase) * 2 + this.vy * 0.5;
+                        break;
+
+                    case 'rain':
+                        this.y += Math.abs(this.vy) + 3;
+                        this.x += Math.sin(this.wobblePhase);
+                        if (this.y > canvas.height + 50) {
+                            this.y = -50;
+                            this.x = Math.random() * canvas.width;
+                        }
+                        break;
+
+                    case 'frenzy':
+                        this.x += this.vx;
+                        this.y += this.vy;
+                        break;
+                }
+
+                // Screen Boundary Wrap / Bounce
+                if (this.x < -60) {
+                    this.x = canvas.width + 50;
+                } else if (this.x > canvas.width + 60) {
+                    this.x = -50;
+                }
+
+                if (movementPattern !== 'rain') {
+                    if (this.y < 50) {
+                        this.y = 50;
+                        this.vy *= -1;
+                    } else if (this.y > canvas.height - 40) {
+                        this.y = canvas.height - 40;
+                        this.vy *= -1;
+                    }
+                }
+
+                // Update facing direction based on movement direction
+                if (Math.abs(this.vx) > 0.1) {
+                    this.scaleX = this.vx > 0 ? 1 : -1;
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Apply wobble rotation & scale
+                const wobbleRot = Math.sin(this.wobblePhase) * 0.15;
+                const currentScale = Math.min(1.0, this.spawnScale);
+                
+                ctx.scale(this.scaleX * currentScale, currentScale);
+                ctx.rotate(wobbleRot);
+
+                ctx.font = `${Math.floor(this.size)}px "Apple Color Emoji", "Segoe UI Emoji", NotoColorEmoji, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.globalAlpha = Math.min(1.0, this.opacity);
+
+                // Draw Animal Emoji
+                ctx.fillText(this.emoji, 0, 0);
+
+                ctx.restore();
+            }
+        }
+
+        // ==========================================
+        // Ambient Background Particle System
+        // ==========================================
+        class AmbientParticle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 6 + 2;
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = -Math.random() * 1.5 - 0.5;
+                this.alpha = Math.random() * 0.7 + 0.3;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.y < -20 || this.x < -20 || this.x > canvas.width + 20) {
+                    this.reset();
+                    this.y = canvas.height + 10;
+                }
+            }
+
+            draw(ctx, color) {
+                ctx.save();
+                ctx.fillStyle = color;
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Initialize Ambient Particles
+        for (let i = 0; i < 60; i++) {
+            ambientParticles.push(new AmbientParticle());
+        }
+
+        // ==========================================
+        // UI & Event Controller
+        // ==========================================
+        function initUI() {
+            // Render Background Selection Grid
+            const bgGrid = document.getElementById('bg-grid');
+            bgGrid.innerHTML = '';
+            BACKGROUNDS.forEach((bg, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `glass-btn p-2 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition ${idx === currentBgIndex ? 'active ring-2 ring-amber-400' : ''}`;
+                btn.innerHTML = `<span class="text-xl mb-1">${bg.icon}</span><span class="truncate w-full text-center text-[11px]">${bg.name}</span>`;
+                btn.addEventListener('click', () => {
+                    currentBgIndex = idx;
+                    document.querySelectorAll('#bg-grid button').forEach((b, i) => {
+                        b.classList.toggle('active', i === idx);
+                        b.classList.toggle('ring-2', i === idx);
+                        b.classList.toggle('ring-amber-400', i === idx);
+                    });
+                });
+                bgGrid.appendChild(btn);
+            });
+
+            // Render Species Category Tabs
+            const tabsContainer = document.getElementById('species-category-tabs');
+            tabsContainer.innerHTML = '';
+            SPECIES_CATEGORIES.forEach((cat, idx) => {
+                const tab = document.createElement('button');
+                tab.className = `px-3 py-1.5 rounded-xl text-xs font-bold transition ${idx === selectedCategoryIndex ? 'bg-amber-400 text-slate-950 shadow-md' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`;
+                tab.innerText = cat.name;
+                tab.addEventListener('click', () => {
+                    selectedCategoryIndex = idx;
+                    activeEmojiList = [...cat.emojis];
+                    document.querySelectorAll('#species-category-tabs button').forEach((t, i) => {
+                        t.className = `px-3 py-1.5 rounded-xl text-xs font-bold transition ${i === idx ? 'bg-amber-400 text-slate-950 shadow-md' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`;
+                    });
+                    renderEmojiGrid();
+                });
+                tabsContainer.appendChild(tab);
+            });
+
+            renderEmojiGrid();
+        }
+
+        function renderEmojiGrid() {
+            const emojiGrid = document.getElementById('animal-emoji-grid');
+            emojiGrid.innerHTML = '';
+            const currentCat = SPECIES_CATEGORIES[selectedCategoryIndex];
+
+            currentCat.emojis.forEach(emoji => {
+                const item = document.createElement('div');
+                item.className = 'w-9 h-9 rounded-xl bg-slate-800/80 border border-slate-700 hover:border-amber-400 hover:bg-slate-700 flex items-center justify-center text-lg cursor-pointer transition active:scale-95';
+                item.innerText = emoji;
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // Single spawn clicked emoji at center of canvas
+                    const a = new AnimalEntity(canvas.width / 2 + (Math.random() - 0.5) * 100, canvas.height / 2 + (Math.random() - 0.5) * 100, emoji);
+                    animals.push(a);
+                    audio.playPop(1.2);
+                });
+                emojiGrid.appendChild(item);
+            });
+        }
+
+        // Panel Toggle Controls
+        const controlPanel = document.getElementById('control-panel');
+        document.getElementById('btn-toggle-panel').addEventListener('click', () => {
+            controlPanel.classList.toggle('translate-y-full');
+        });
+        document.getElementById('btn-close-panel').addEventListener('click', () => {
+            controlPanel.classList.add('translate-y-full');
+        });
+
+        // Tsunami / Massive Burst Spawn
+        document.getElementById('btn-tsunami').addEventListener('click', () => {
+            audio.playTsunamiSound();
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const x = Math.random() * canvas.width;
+                    const y = Math.random() * canvas.height * 0.8;
+                    animals.push(new AnimalEntity(x, y));
+                }, i * 15);
+            }
+        });
+
+        // Clear Canvas
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            animals = [];
+        });
+
+        // Sound Toggle
+        document.getElementById('btn-sound').addEventListener('click', () => {
+            audio.enabled = !audio.enabled;
+            const icon = document.getElementById('sound-icon');
+            const text = document.getElementById('sound-text');
+            if (audio.enabled) {
+                icon.className = 'fa-solid fa-volume-high text-lg mb-1';
+                text.innerText = '소리 켬';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-lg mb-1 text-red-400';
+                text.innerText = '음소거';
+            }
+        });
+
+        // Sliders & Select Events
+        const spawnSlider = document.getElementById('spawn-speed-slider');
+        const speedDisplay = document.getElementById('speed-val-display');
+        spawnSlider.addEventListener('input', (e) => {
+            spawnRate = parseInt(e.target.value);
+            speedDisplay.innerText = spawnRate === 0 ? '수동 터치 전용' : `초당 ${spawnRate}마리`;
+        });
+
+        document.getElementById('movement-select').addEventListener('change', (e) => {
+            movementPattern = e.target.value;
+        });
+
+        const sizeSlider = document.getElementById('animal-size-slider');
+        const sizeDisplay = document.getElementById('size-val-display');
+        sizeSlider.addEventListener('input', (e) => {
+            baseAnimalSize = parseInt(e.target.value);
+            if (baseAnimalSize < 35) sizeDisplay.innerText = '작게';
+            else if (baseAnimalSize < 65) sizeDisplay.innerText = '보통';
+            else sizeDisplay.innerText = '거대하게';
+        });
+
+        // Interactive Touch/Click Canvas Spawner
+        let isPointerDown = false;
+        function spawnAtPointer(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            // Don't spawn if clicking inside control panel
+            const panelRect = controlPanel.getBoundingClientRect();
+            if (!controlPanel.classList.contains('translate-y-full') && clientY > panelRect.top) {
+                return;
+            }
+
+            animals.push(new AnimalEntity(x, y));
+            audio.playPop(0.8 + Math.random() * 0.6);
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isPointerDown = true;
+            spawnAtPointer(e);
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (isPointerDown && Math.random() < 0.3) {
+                spawnAtPointer(e);
+            }
+        });
+        window.addEventListener('mouseup', () => isPointerDown = false);
+
+        canvas.addEventListener('touchstart', (e) => {
+            isPointerDown = true;
+            spawnAtPointer(e);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            if (isPointerDown && Math.random() < 0.4) {
+                spawnAtPointer(e);
+            }
+        });
+        window.addEventListener('touchend', () => isPointerDown = false);
+
+        // ==========================================
+        // Main Loop & Rendering
+        // ==========================================
+        let lastSpawnTime = performance.now();
+
+        function animate(currentTime) {
+            // Automatic Spawning Logic
+            if (spawnRate > 0) {
+                const spawnInterval = 1000 / spawnRate;
+                if (currentTime - lastSpawnTime > spawnInterval) {
+                    animals.push(new AnimalEntity());
+                    lastSpawnTime = currentTime;
+                }
+            }
+
+            // Cap maximum animals for performance (e.g., 600 max on screen)
+            if (animals.length > 600) {
+                animals.splice(0, animals.length - 600);
+            }
+
+            // Draw Background Gradient
+            const currentBg = BACKGROUNDS[currentBgIndex];
+            const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGrad.addColorStop(0, currentBg.bgGradient[0]);
+            bgGrad.addColorStop(0.6, currentBg.bgGradient[1]);
+            bgGrad.addColorStop(1, currentBg.bgGradient[2]);
+
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Ground Horizon silhouette if applicable
+            if (currentBg.groundHeight < 1.0) {
+                const gY = canvas.height * currentBg.groundHeight;
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                ctx.beginPath();
+                ctx.ellipse(canvas.width / 2, gY + 100, canvas.width * 0.8, 120, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Update & Draw Ambient Particles
+            ambientParticles.forEach(p => {
+                p.update();
+                p.draw(ctx, currentBg.particleColor);
+            });
+
+            // Update & Draw Animals
+            for (let i = 0; i < animals.length; i++) {
+                animals[i].update(0.016);
+                animals[i].draw(ctx);
+            }
+
+            // Update Counters Display
+            document.getElementById('count-onscreen').innerText = animals.length.toLocaleString();
+            document.getElementById('count-total').innerText = totalSpawnedCount.toLocaleString();
+
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize Everything
+        window.onload = () => {
+            initUI();
+            requestAnimationFrame(animate);
+        };
+    </script>
+</body>
+</html>

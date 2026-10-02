@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>일론머스크 통장</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@500;700;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Noto Sans KR', sans-serif;
+            touch-action: manipulation;
+        }
+
+        .font-impact {
+            font-family: 'Black Han Sans', sans-serif;
+        }
+
+        .font-num {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        body {
+            background-color: #030712;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Gold Glow Effect */
+        .gold-glow {
+            text-shadow: 0 0 15px rgba(234, 179, 8, 0.6), 0 0 30px rgba(234, 179, 8, 0.3);
+        }
+
+        /* Red Warning Glow */
+        .red-glow {
+            text-shadow: 0 0 15px rgba(239, 68, 68, 0.8), 0 0 30px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Life Loss Flash Vignette */
+        @keyframes bloodFlash {
+            0% { box-shadow: inset 0 0 0px rgba(239, 68, 68, 0); }
+            50% { box-shadow: inset 0 0 80px rgba(239, 68, 68, 0.8); }
+            100% { box-shadow: inset 0 0 0px rgba(239, 68, 68, 0); }
+        }
+
+        .blood-flash {
+            animation: bloodFlash 0.5s ease-out;
+        }
+
+        /* Floating particles */
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-100px) scale(1.3); opacity: 0; }
+        }
+
+        .floating-text {
+            position: absolute;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            font-weight: 900;
+            z-index: 50;
+        }
+
+        /* Money particle falling */
+        @keyframes cashBurst {
+            0% { transform: translateY(0) rotate(0deg) scale(0.5); opacity: 1; }
+            50% { opacity: 1; }
+            100% { transform: translateY(400px) rotate(720deg) scale(1.2); opacity: 0; }
+        }
+
+        .cash-particle {
+            position: absolute;
+            pointer-events: none;
+            animation: cashBurst 1.2s ease-out forwards;
+            z-index: 40;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ca8a04;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body id="app-body" class="flex flex-col items-center justify-between min-h-screen p-3 sm:p-5 relative">
+
+    <!-- HEADER: APP TITLE & ELON MUSK AVATAR -->
+    <header class="w-full max-w-xl bg-slate-900/90 border-2 border-yellow-500/50 rounded-3xl p-4 shadow-2xl flex items-center justify-between mb-3 backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+            <div class="relative">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-yellow-600 via-amber-400 to-yellow-200 p-0.5 shadow-lg">
+                    <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center overflow-hidden">
+                        <span class="text-3xl">🚀</span>
+                    </div>
+                </div>
+                <span class="absolute -bottom-1 -right-1 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full border border-red-300 animate-pulse">
+                    VIP
+                </span>
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-impact text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-amber-500 tracking-wide">
+                    일론머스크 통장
+                </h1>
+                <p class="text-xs text-yellow-200/80 font-medium">"무한한 부, 단 하나의 대가"</p>
+            </div>
+        </div>
+
+        <button onclick="resetAccount()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-2 rounded-xl border border-slate-700 font-bold transition active:scale-95 flex items-center space-x-1">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>초기화</span>
+        </button>
+    </header>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <main class="w-full max-w-xl flex-1 flex flex-col justify-between space-y-4 relative z-10">
+
+        <!-- DISPLAY 1: TOTAL MONEY WITHDRAWN -->
+        <div class="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border-2 border-amber-500/60 rounded-3xl p-5 shadow-2xl relative overflow-hidden flex flex-col items-center text-center">
+            <div class="absolute -right-8 -top-8 w-32 h-32 bg-yellow-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <span class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1 flex items-center gap-1.5">
+                <i class="fa-solid fa-vault"></i> 인출된 총 금액 (WITHDRAWN AMOUNT)
+            </span>
+
+            <div id="money-display" class="text-3xl sm:text-5xl font-impact text-amber-300 gold-glow my-2 transition-all duration-300">
+                0 <span class="text-lg sm:text-2xl text-amber-400">원</span>
+            </div>
+
+            <div class="flex items-center space-x-2 text-[11px] text-slate-400 bg-slate-950/80 px-3 py-1 rounded-full border border-slate-800">
+                <span>회당 인출액: <strong class="text-amber-300 font-num">10,000,000원 (1000만원)</strong></span>
+            </div>
+        </div>
+
+        <!-- DISPLAY 2: LIFESPAN COUNTER (RED WARNING ZONE) -->
+        <div id="lifespan-card" class="bg-gradient-to-br from-slate-900 via-red-950/20 to-slate-900 border-2 border-red-600/60 rounded-3xl p-5 shadow-2xl relative overflow-hidden flex flex-col items-center text-center transition-all">
+            <div class="absolute -left-8 -bottom-8 w-32 h-32 bg-red-600/10 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div class="w-full flex items-center justify-between border-b border-red-900/40 pb-2 mb-2">
+                <span class="text-xs font-bold text-red-400 tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-heart-pulse animate-bounce"></i> 남은 생체 수명 (REMAINING LIFESPAN)
+                </span>
+                <span id="deducted-days-total" class="text-[11px] font-black text-red-300 bg-red-950/80 px-2 py-0.5 rounded-md border border-red-800">
+                    차감된 수명: 0일
+                </span>
+            </div>
+
+            <!-- Detailed Lifespan Display -->
+            <div class="my-1">
+                <div id="lifespan-text" class="text-2xl sm:text-4xl font-impact text-red-400 red-glow">
+                    75년 0개월 0일
+                </div>
+                <div class="text-xs text-red-300/80 font-num mt-1">
+                    총 <span id="lifespan-days-exact" class="font-bold text-red-200">27,375</span> 일 남음
+                </div>
+            </div>
+
+            <!-- LIFESPAN PROGRESS BAR -->
+            <div class="w-full bg-slate-950 rounded-full h-3 border border-red-900/60 p-0.5 mt-2 overflow-hidden">
+                <div id="lifespan-bar" class="bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 h-full rounded-full transition-all duration-300" style="width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- ELON MUSK DYNAMIC DIALOGUE BUBBLE -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 flex items-start space-x-3 shadow-lg">
+            <div class="text-3xl flex-shrink-0 bg-slate-950 p-2 rounded-xl border border-amber-500/30">
+                💬
+            </div>
+            <div class="flex-1">
+                <div class="text-[10px] font-black text-amber-400 tracking-wider uppercase">일론 머스크의 조언</div>
+                <p id="elon-quote" class="text-xs sm:text-sm font-bold text-slate-200 mt-0.5 leading-relaxed">
+                    "버튼 한 번에 1,000만 원이라네. 대신 자네의 시간 30일이 영원히 사라지지. 누르겠나?"
+                </p>
+            </div>
+        </div>
+
+        <!-- ATM VISUAL MONEY DISPENSER & MAIN BUTTON AREA -->
+        <div class="relative w-full flex flex-col items-center justify-center py-2">
+            
+            <!-- FLOATING PARTICLES CONTAINER -->
+            <div id="particle-container" class="absolute inset-0 pointer-events-none overflow-hidden z-30"></div>
+
+            <!-- ATM DISPENSER SLOT GRAPHIC -->
+            <div class="w-64 h-4 bg-slate-950 rounded-full border-2 border-amber-500/50 shadow-inner mb-4 relative flex items-center justify-center overflow-hidden">
+                <div class="w-48 h-1 bg-amber-400/80 rounded-full blur-[1px] animate-pulse"></div>
+            </div>
+
+            <!-- MAIN MONEY WITHDRAWAL BUTTON -->
+            <button id="withdraw-btn" onclick="withdrawMoney(event)" class="group relative w-full sm:w-80 h-28 bg-gradient-to-b from-yellow-400 via-amber-500 to-amber-700 hover:from-yellow-300 hover:to-amber-600 border-4 border-yellow-200 rounded-3xl shadow-[0_10px_35px_rgba(234,179,8,0.4)] active:scale-95 transition-all duration-150 flex flex-col items-center justify-center space-y-1 overflow-hidden cursor-pointer">
+                <!-- Glowing Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                
+                <div class="flex items-center space-x-2">
+                    <span class="text-3xl sm:text-4xl animate-bounce">💵</span>
+                    <span class="text-2xl sm:text-3xl font-impact text-slate-950 tracking-wider drop-shadow-md">
+                        1000만원 뽑기
+                    </span>
+                </div>
+
+                <div class="bg-red-950/90 border border-red-500/80 px-3 py-1 rounded-full text-red-200 font-black text-xs sm:text-sm tracking-tight shadow-inner flex items-center space-x-1">
+                    <span>⚠️</span>
+                    <span>수명 30일 차감!</span>
+                </div>
+            </button>
+
+            <p class="text-[11px] text-slate-400 mt-2 font-medium">
+                * 버튼을 한 번 누를 때마다 1,000만 원이 인출되며 수명이 30일 감소합니다.
+            </p>
+        </div>
+
+        <!-- TRANSACTION HISTORY LOG -->
+        <div class="bg-slate-950/90 border border-slate-800 rounded-2xl p-3 flex flex-col space-y-2">
+            <div class="text-xs font-bold text-slate-400 flex items-center justify-between border-b border-slate-800 pb-1.5">
+                <span>📜 거래 및 생체 차감 기록</span>
+                <span id="click-count-badge" class="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-amber-300">0회 인출됨</span>
+            </div>
+            
+            <div id="history-list" class="max-h-28 overflow-y-auto space-y-1.5 text-xs pr-1">
+                <div class="text-slate-500 text-center py-3 text-[11px]">
+                    아직 인출 기록이 없습니다. 버튼을 눌러 돈을 뽑아보세요!
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- GAME OVER / LIFESPAN DEPLETED MODAL -->
+    <div id="death-modal" class="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 hidden flex flex-col items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-red-600 rounded-3xl p-6 max-w-md w-full text-center space-y-5 shadow-[0_0_50px_rgba(239,68,68,0.5)] animate-scaleUp">
+            
+            <div class="text-6xl animate-bounce">💀</div>
+
+            <div>
+                <h2 class="text-2xl sm:text-3xl font-impact text-red-500 red-glow">수명 완전히 종결</h2>
+                <p class="text-xs text-slate-300 mt-1">
+                    모든 남은 수명이 소진되었습니다. 당신의 거래가 종료되었습니다.
+                </p>
+            </div>
+
+            <!-- RESULT SUMMARY BOX -->
+            <div class="bg-black/80 rounded-2xl p-4 border border-red-900/60 text-left space-y-2 text-xs">
+                <div class="flex justify-between border-b border-slate-800 pb-1">
+                    <span class="text-slate-400">총 인출 금액:</span>
+                    <span id="modal-final-money" class="font-impact text-amber-300 text-base">0 원</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-800 pb-1">
+                    <span class="text-slate-400">총 차감된 수명:</span>
+                    <span id="modal-final-days" class="font-bold text-red-400">0 일 (0년)</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">최종 순위:</span>
+                    <span class="font-bold text-yellow-400">전 세계 최고 부자 유골 1위</span>
+                </div>
+            </div>
+
+            <div class="p-3 bg-red-950/40 rounded-xl border border-red-800/50 text-[11px] text-red-300">
+                "돈은 산더미처럼 쌓였지만, 정작 그것을 쓸 시간은 남지 않았군요..." - 일론 머스크
+            </div>
+
+            <button onclick="resetAccount()" class="w-full bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-impact text-base py-3.5 rounded-2xl border border-amber-300 shadow-xl transition active:scale-95">
+                🔄 영혼을 되찾고 다시 시작하기
+            </button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // WEB AUDIO SYNTHESIZER (No external audio dependencies)
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playCashSound() {
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            
+            // Cha-ching cash register sound effect
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc1.type = 'triangle';
+            osc2.type = 'sine';
+
+            osc1.frequency.setValueAtTime(987.77, now); // B5
+            osc1.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+
+            osc2.frequency.setValueAtTime(1975.53, now + 0.08); // B6
+
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc1.start(now);
+            osc2.start(now);
+            osc1.stop(now + 0.35);
+            osc2.stop(now + 0.35);
+        }
+
+        function playHeartbeatLossSound() {
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+
+            // Deep thud / dark warning sound
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(120, now);
+            osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+
+        // APP STATE
+        const INITIAL_LIFESPAN_DAYS = 75 * 365; // Default 75 years = 27,375 days
+        let remainingDays = INITIAL_LIFESPAN_DAYS;
+        let totalMoney = 0;
+        let withdrawCount = 0;
+
+        // ELON MUSK QUOTES DATABASE
+        const ELON_QUOTES = [
+            "좋아, 1,000만 원 인출 완료! 자네 수명이 30일 줄었지만 통장은 든든하군!",
+            "돈은 흘러넘치는데 표정이 왜 그러지? 화성 티켓도 살 수 있다구!",
+            "30일쯤이야 인생 전체에 비하면 아주 짧은 시간이지... 안 그래?",
+            "벌써 억 단위로 모았군! 이제 수명 걱정보다 세금 걱정을 해야겠는데?",
+            "인류 최악의 거래라 불리지만, 자네 손가락은 멈추지 않는군!",
+            "화성에 갈 돈은 모았는데... 과연 살아서 화성 땅을 밟을 수 있을까?",
+            "수명이 점점 붉어지고 있네! 하지만 통장 숫자는 아름답지 않은가?",
+            "조심하게! 더 지르면 수명이 완전히 바닥날 테니까!"
+        ];
+
+        function withdrawMoney(e) {
+            if (remainingDays <= 0) return;
+
+            initAudio();
+            playCashSound();
+            playHeartbeatLossSound();
+
+            // Update State
+            const MONEY_PER_CLICK = 10000000; // 1,000만원
+            const DAYS_PER_CLICK = 30; // 30일 차감
+
+            totalMoney += MONEY_PER_CLICK;
+            remainingDays -= DAYS_PER_CLICK;
+            withdrawCount++;
+
+            if (remainingDays < 0) remainingDays = 0;
+
+            // Screen Blood Flash Effect
+            const body = document.getElementById('app-body');
+            body.classList.remove('blood-flash');
+            void body.offsetWidth; // Trigger reflow
+            body.classList.add('blood-flash');
+
+            // Trigger Visual Particle FX
+            spawnParticles(e);
+
+            // Update UI
+            updateUI();
+            addHistoryLog();
+
+            // Check Game Over Condition
+            if (remainingDays <= 0) {
+                setTimeout(() => {
+                    showDeathModal();
+                }, 500);
+            }
+        }
+
+        function spawnParticles(e) {
+            const container = document.getElementById('particle-container');
+            const rect = container.getBoundingClientRect();
+            
+            // Get click coordinate or default center
+            const x = e ? (e.clientX - rect.left) : (rect.width / 2);
+            const y = e ? (e.clientY - rect.top) : (rect.height / 2);
+
+            // 1. Floating Text: +1000만원
+            const moneyTxt = document.createElement('div');
+            moneyTxt.className = 'floating-text text-amber-300 gold-glow text-lg sm:text-2xl';
+            moneyTxt.style.left = `${x - 40}px`;
+            moneyTxt.style.top = `${y - 20}px`;
+            moneyTxt.innerText = '+1,000만원!';
+            container.appendChild(moneyTxt);
+
+            // 2. Floating Text: -30일
+            const lifeTxt = document.createElement('div');
+            lifeTxt.className = 'floating-text text-red-500 red-glow text-base sm:text-xl font-impact';
+            lifeTxt.style.left = `${x + 20}px`;
+            lifeTxt.style.top = `${y - 50}px`;
+            lifeTxt.innerText = '-30일!';
+            container.appendChild(lifeTxt);
+
+            // 3. Falling Money / Cash Burst
+            const cashEmojis = ['💸', '💵', '💰', '50,000원'];
+            for (let i = 0; i < 8; i++) {
+                const p = document.createElement('div');
+                p.className = 'cash-particle text-xl sm:text-2xl font-black text-emerald-400 drop-shadow-md';
+                p.style.left = `${Math.random() * 80 + 10}%`;
+                p.style.top = `10px`;
+                p.style.animationDuration = `${0.8 + Math.random() * 0.6}s`;
+                p.innerText = cashEmojis[Math.floor(Math.random() * cashEmojis.length)];
+                container.appendChild(p);
+
+                setTimeout(() => p.remove(), 1400);
+            }
+
+            setTimeout(() => {
+                moneyTxt.remove();
+                lifeTxt.remove();
+            }, 1000);
+        }
+
+        function updateUI() {
+            // 1. Total Money Display
+            const moneyDisplay = document.getElementById('money-display');
+            moneyDisplay.innerHTML = `${totalMoney.toLocaleString()} <span class="text-lg sm:text-2xl text-amber-400">원</span>`;
+
+            // 2. Lifespan Calculation
+            const years = Math.floor(remainingDays / 365);
+            const months = Math.floor((remainingDays % 365) / 30);
+            const days = (remainingDays % 365) % 30;
+
+            const lifespanText = document.getElementById('lifespan-text');
+            lifespanText.innerText = `${years}년 ${months}개월 ${days}일`;
+            document.getElementById('lifespan-days-exact').innerText = remainingDays.toLocaleString();
+
+            const totalDeductedDays = withdrawCount * 30;
+            document.getElementById('deducted-days-total').innerText = `차감된 수명: ${totalDeductedDays.toLocaleString()}일`;
+
+            // 3. Progress Bar Ratio
+            const percentage = Math.max(0, (remainingDays / INITIAL_LIFESPAN_DAYS) * 100);
+            const progressBar = document.getElementById('lifespan-bar');
+            progressBar.style.width = `${percentage}%`;
+
+            if (percentage < 20) {
+                progressBar.className = 'bg-gradient-to-r from-red-600 to-rose-700 h-full rounded-full transition-all duration-300 animate-pulse';
+            } else {
+                progressBar.className = 'bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 h-full rounded-full transition-all duration-300';
+            }
+
+            // 4. Click Badge Count
+            document.getElementById('click-count-badge').innerText = `${withdrawCount}회 인출됨`;
+
+            // 5. Dynamic Elon Musk Quote
+            const quoteIdx = Math.min(Math.floor(withdrawCount / 3), ELON_QUOTES.length - 1);
+            document.getElementById('elon-quote').innerText = `"${ELON_QUOTES[quoteIdx]}"`;
+        }
+
+        function addHistoryLog() {
+            const list = document.getElementById('history-list');
+            if (withdrawCount === 1) {
+                list.innerHTML = ''; // Clear placeholder
+            }
+
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between bg-slate-900 border border-slate-800 p-2 rounded-xl text-[11px] animate-fadeIn';
+            
+            const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            item.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <span class="text-amber-400 font-bold">#${withdrawCount}</span>
+                    <span class="text-slate-300">${timeStr}</span>
+                    <span class="text-emerald-400 font-black">+10,000,000원</span>
+                </div>
+                <span class="text-red-400 font-bold bg-red-950/60 px-1.5 py-0.5 rounded border border-red-900/50">-30일</span>
+            `;
+
+            list.insertBefore(item, list.firstChild);
+        }
+
+        function showDeathModal() {
+            document.getElementById('modal-final-money').innerText = `${totalMoney.toLocaleString()} 원`;
+            const deductedDays = withdrawCount * 30;
+            const deductedYears = (deductedDays / 365).toFixed(1);
+            document.getElementById('modal-final-days').innerText = `${deductedDays.toLocaleString()} 일 (${deductedYears}년)`;
+            
+            document.getElementById('death-modal').classList.remove('hidden');
+        }
+
+        function resetAccount() {
+            remainingDays = INITIAL_LIFESPAN_DAYS;
+            totalMoney = 0;
+            withdrawCount = 0;
+
+            document.getElementById('death-modal').classList.add('hidden');
+            document.getElementById('history-list').innerHTML = `
+                <div class="text-slate-500 text-center py-3 text-[11px]">
+                    아직 인출 기록이 없습니다. 버튼을 눌러 돈을 뽑아보세요!
+                </div>
+            `;
+
+            updateUI();
+        }
+
+        // INITIALIZATION
+        window.onload = function() {
+            updateUI();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>돈비가 내리는 앱 - 억만장자의 돈벼락 게임</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Black Han Sans & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .font-title {
+            font-family: 'Black Han Sans', sans-serif;
+        }
+        body {
+            background-color: #070a12;
+            background-image: 
+                radial-gradient(circle at 50% 20%, rgba(234, 179, 8, 0.25) 0%, transparent 60%),
+                radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 20% 80%, rgba(245, 158, 11, 0.15) 0%, transparent 50%);
+        }
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #d97706 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gold-border {
+            border: 2px solid #f59e0b;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        }
+        .btn-active:active {
+            transform: scale(0.95);
+        }
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        .floating-rich {
+            animation: float-slow 3.5s ease-in-out infinite;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #d97706; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 overflow-x-hidden">
+
+    <!-- Main Outer Container -->
+    <div class="relative w-full max-w-md h-[92vh] max-h-[850px] flex flex-col justify-between bg-slate-950/90 backdrop-blur-2xl border-2 border-amber-500/40 rounded-3xl shadow-2xl overflow-hidden p-4 my-auto">
+        
+        <!-- Top Status Bar & Rich Character Header -->
+        <header class="flex flex-col gap-2 z-20">
+            <div class="flex justify-between items-center bg-slate-900/80 p-3 rounded-2xl border border-amber-500/30">
+                <!-- Rich Character Profile -->
+                <div class="flex items-center gap-2.5">
+                    <div class="relative w-12 h-12 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 p-0.5 shadow-lg flex items-center justify-center">
+                        <div class="w-full h-full bg-slate-950 rounded-full flex items-center justify-center overflow-hidden">
+                            <span id="richAvatar" class="text-2xl">🤑</span>
+                        </div>
+                        <span class="absolute -bottom-1 -right-1 bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-slate-900">VVIP</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1">
+                            <h1 class="font-title text-base text-amber-300 tracking-wide">돈비가 내리는 앱</h1>
+                        </div>
+                        <p id="richStatusText" class="text-[11px] text-amber-200/90 font-medium">"20초 안에 30만원 다 집어가봐!"</p>
+                    </div>
+                </div>
+
+                <!-- Mute / Info Controls -->
+                <div class="flex items-center gap-1.5">
+                    <button id="soundToggleBtn" class="w-8 h-8 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 border border-amber-600/40 flex items-center justify-center text-amber-300 text-xs transition">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <button id="infoBtn" class="w-8 h-8 rounded-xl bg-amber-950/60 hover:bg-amber-900/80 border border-amber-600/40 flex items-center justify-center text-amber-300 text-xs transition">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Game Dashboards -->
+            <div class="grid grid-cols-2 gap-2 mt-0.5">
+                <!-- Money Counter -->
+                <div class="bg-gradient-to-br from-amber-950/60 to-slate-900/90 border border-amber-500/40 rounded-2xl p-2.5 flex flex-col justify-between">
+                    <div class="text-[10px] text-amber-300/80 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <i class="fa-solid fa-sack-dollar text-amber-400"></i> 모은 금액 (목표 30만)
+                    </div>
+                    <div id="moneyCounter" class="font-title text-xl text-amber-300 tracking-tight text-right mt-1">
+                        ₩0
+                    </div>
+                </div>
+
+                <!-- Timer Counter -->
+                <div class="bg-gradient-to-br from-rose-950/60 to-slate-900/90 border border-rose-500/40 rounded-2xl p-2.5 flex flex-col justify-between">
+                    <div class="text-[10px] text-rose-300/80 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <i class="fa-solid fa-stopwatch text-rose-400"></i> 남은 시간
+                    </div>
+                    <div id="timerDisplay" class="font-title text-xl text-rose-300 tracking-tight text-right mt-1">
+                        20.0s
+                    </div>
+                </div>
+            </div>
+
+            <!-- Target Progress Bar -->
+            <div class="w-full bg-slate-900/90 rounded-full h-3 border border-amber-500/30 overflow-hidden relative p-0.5">
+                <div id="progressBar" class="bg-gradient-to-r from-amber-500 via-yellow-300 to-emerald-400 h-full rounded-full transition-all duration-150 w-0"></div>
+                <span class="absolute inset-0 flex items-center justify-center text-[9px] font-black text-amber-100 drop-shadow">
+                    목표 달성률 30만원 (<span id="progressPercent">0%</span>)
+                </span>
+            </div>
+        </header>
+
+        <!-- Center Game Canvas Container -->
+        <div class="relative w-full flex-1 my-2 rounded-2xl border border-amber-500/20 overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900/90 to-slate-950 flex items-center justify-center">
+            
+            <!-- Falling Money Canvas -->
+            <canvas id="gameCanvas" class="w-full h-full cursor-pointer z-10"></canvas>
+
+            <!-- Touch Start Overlay (Before Game Begins) -->
+            <div id="startOverlay" class="absolute inset-0 z-20 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+                <div class="w-20 h-20 bg-gradient-to-tr from-amber-500 to-yellow-300 rounded-3xl p-0.5 shadow-2xl shadow-amber-500/30 mb-4 floating-rich flex items-center justify-center">
+                    <div class="w-full h-full bg-slate-950 rounded-[22px] flex items-center justify-center text-4xl">
+                        💰
+                    </div>
+                </div>
+                <h2 class="font-title text-2xl gold-gradient-text mb-1">하늘에서 돈이 내려온다!</h2>
+                <p class="text-xs text-amber-200/80 mb-6 leading-relaxed">
+                    부자 사장님이 기분이 좋아 돈을 퍼붓는 중!<br>
+                    하늘에서 떨어지는 돈을 빠르게 터치해 획득하세요.<br>
+                    <span class="text-amber-400 font-bold underline">제한시간 20초 안에 최소 30만원</span>을 벌어야 성공!
+                </p>
+                <button id="startGameBtn" class="btn-active w-full py-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-title text-lg rounded-2xl shadow-xl shadow-amber-900/50 border-b-4 border-amber-800 transition">
+                    <i class="fa-solid fa-play mr-1"></i> 돈벼락 맞으러 가기! (START)
+                </button>
+            </div>
+
+            <!-- Touch Visual Combo Popup / Floaty Overlay Container -->
+            <div id="effectOverlay" class="absolute inset-0 pointer-events-none z-15 overflow-hidden"></div>
+        </div>
+
+        <!-- Bottom Dialogue & Control Bar -->
+        <footer class="z-20 flex flex-col gap-2">
+            <div class="bg-amber-950/40 border border-amber-500/30 rounded-2xl p-2.5 text-center flex items-center justify-between">
+                <div class="text-xs text-amber-200 font-medium flex items-center gap-2">
+                    <span class="text-base">💬</span>
+                    <span id="richDialogue">"어이 친구! 내 돈 주머니는 더 큰 금액이 들어있다구!"</span>
+                </div>
+                <span id="streakBadge" class="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/40">
+                    연속 콤보: 0
+                </span>
+            </div>
+        </footer>
+
+        <!-- Game Result Modal (Success / Fail) -->
+        <div id="resultModal" class="absolute inset-0 z-30 bg-slate-950/95 backdrop-blur-xl hidden flex-col items-center justify-center p-6 text-center">
+            
+            <div id="resultIconBox" class="w-20 h-20 rounded-3xl p-0.5 shadow-2xl mb-3 flex items-center justify-center">
+                <div class="w-full h-full bg-slate-950 rounded-[22px] flex items-center justify-center text-4xl" id="resultIcon">
+                    🏆
+                </div>
+            </div>
+
+            <h2 id="resultTitle" class="font-title text-2xl mb-1">결과 발표</h2>
+            <p id="resultSubtitle" class="text-xs text-slate-300 mb-4">내용이 표시됩니다.</p>
+
+            <div class="w-full bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 space-y-3 mb-6">
+                <div class="flex justify-between items-center text-sm border-b border-slate-800 pb-2">
+                    <span class="text-slate-400">총 획득 금액</span>
+                    <span id="finalScore" class="font-title text-xl text-amber-300">₩0</span>
+                </div>
+                <div class="flex justify-between items-center text-sm border-b border-slate-800 pb-2">
+                    <span class="text-slate-400">목표 금액</span>
+                    <span class="font-title text-base text-emerald-400">₩300,000</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-slate-400">최대 터치 콤보</span>
+                    <span id="finalCombo" class="font-bold text-amber-400">0회</span>
+                </div>
+            </div>
+
+            <button id="restartGameBtn" class="btn-active w-full py-4 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-slate-950 font-title text-lg rounded-2xl shadow-xl shadow-amber-900/50 border-b-4 border-amber-800 transition">
+                <i class="fa-solid fa-rotate-right mr-1"></i> <span id="restartBtnText">다시 도전하기</span>
+            </button>
+        </div>
+
+        <!-- Info / Rules Modal -->
+        <div id="infoModal" class="absolute inset-0 z-30 bg-slate-950/95 backdrop-blur-xl hidden flex-col items-center justify-center p-6 text-left">
+            <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center text-2xl border border-amber-500/40 mb-3">
+                <i class="fa-solid fa-sack-dollar"></i>
+            </div>
+            <h2 class="font-title text-2xl text-amber-300 mb-2">돈비가 내리는 앱 규칙</h2>
+            <div class="text-xs leading-relaxed space-y-3 text-slate-200 max-h-[55vh] overflow-y-auto pr-1">
+                <p class="text-amber-200"><strong>하늘에서 돈다발과 보물 상자가 떨어진다!</strong></p>
+                <p>화면에 보이는 돈 아이템을 빠르게 손가락으로 터치하세요. 각 아이템마다 들어있는 금액이 무작위로 적립됩니다!</p>
+                
+                <div class="bg-amber-950/30 p-3 rounded-xl border border-amber-700/40 space-y-2">
+                    <div class="flex items-center gap-2 text-amber-300 font-bold">💵 5만원권 / 1만원권</div>
+                    <div>기본 지폐! 터치 시 ₩1,000 ~ ₩50,000 무작위 획득.</div>
+                </div>
+
+                <div class="bg-amber-950/30 p-3 rounded-xl border border-amber-700/40 space-y-2">
+                    <div class="flex items-center gap-2 text-yellow-300 font-bold">💰 황금 돈자루</div>
+                    <div>럭키 아이템! 터치 시 ₩50,000 ~ ₩100,000 대박 획득!</div>
+                </div>
+
+                <div class="bg-rose-950/30 p-3 rounded-xl border border-rose-700/40 space-y-2">
+                    <div class="flex items-center gap-2 text-rose-300 font-bold">⚠️ 탈락 조건</div>
+                    <div>제한시간 **20초** 안에 **30만원**을 채우지 못하면 즉시 게임 오버 및 처음부터 재시작입니다!</div>
+                </div>
+            </div>
+            <button id="closeInfoBtn" class="mt-5 w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-400 font-title text-slate-950 rounded-xl">
+                확인했습니다!
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // Web Audio Synthesizer for Rich Sound Effects
+        class RichSoundEngine {
+            constructor() {
+                this.audioCtx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.audioCtx = new AudioContext();
+                }
+            }
+
+            playCoinSound() {
+                if (!this.enabled || !this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+                
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, now); // B5
+                osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.12); // E6
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+
+            playGoldBagSound() {
+                if (!this.enabled || !this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+
+                // High pitch sparkling triad
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.2);
+
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start(now + idx * 0.05);
+                    osc.stop(now + idx * 0.05 + 0.2);
+                });
+            }
+
+            playWinSound() {
+                if (!this.enabled || !this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99];
+
+                notes.forEach((freq, i) => {
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.08);
+
+                    gain.gain.setValueAtTime(0.25, now + i * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    osc.start(now + i * 0.08);
+                    osc.stop(now + i * 0.08 + 0.3);
+                });
+            }
+
+            playFailSound() {
+                if (!this.enabled || !this.audioCtx) return;
+                const now = this.audioCtx.currentTime;
+
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.4);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
+        const soundEngine = new RichSoundEngine();
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // DOM Elements
+        const moneyCounterEl = document.getElementById('moneyCounter');
+        const timerDisplayEl = document.getElementById('timerDisplay');
+        const progressBarEl = document.getElementById('progressBar');
+        const progressPercentEl = document.getElementById('progressPercent');
+        const richStatusTextEl = document.getElementById('richStatusText');
+        const richDialogueEl = document.getElementById('richDialogue');
+        const richAvatarEl = document.getElementById('richAvatar');
+        const streakBadgeEl = document.getElementById('streakBadge');
+        const startOverlay = document.getElementById('startOverlay');
+        const resultModal = document.getElementById('resultModal');
+        const effectOverlay = document.getElementById('effectOverlay');
+
+        // Game Configuration & State
+        const TARGET_AMOUNT = 300000; // 30만원
+        const TIME_LIMIT = 20.0; // 20초
+
+        let gameRunning = false;
+        let moneyCollected = 0;
+        let timeRemaining = TIME_LIMIT;
+        let lastTimestamp = 0;
+        let currentCombo = 0;
+        let maxCombo = 0;
+
+        let fallingItems = [];
+        let particles = [];
+        let spawnTimer = 0;
+
+        // Rich Dialogues
+        const richDialogues = [
+            '"어이 친구! 30만원도 못 가져가면 부자의 자격이 없지!"',
+            '"더 빨리 눌러봐! 돈비가 마구 내린다구!"',
+            '"황금 돈자루에는 더 큰 대박이 들어있다네!"',
+            '"손가락에 불이 나도록 터치해라 얍!"',
+            '"하늘에서 내리는 5만원권 맛이 어떠냐?!"',
+            '"시간 얼마 안 남았다! 더 분발해보게!"'
+        ];
+
+        // Item Types
+        const ITEM_TYPES = [
+            { type: 'BILL_50K', label: '5만원', emoji: '💵', color: '#f59e0b', bg: '#fef3c7', minVal: 10000, maxVal: 50000, chance: 0.50, speed: 2.2, size: 48 },
+            { type: 'BILL_10K', label: '1만원', emoji: '💶', color: '#10b981', bg: '#d1fae5', minVal: 5000, maxVal: 20000, chance: 0.30, speed: 2.6, size: 44 },
+            { type: 'GOLD_BAG', label: '돈자루', emoji: '💰', color: '#eab308', bg: '#fef9c3', minVal: 50000, maxVal: 100000, chance: 0.15, speed: 3.2, size: 56 },
+            { type: 'GOLD_BAR', label: '골드바', emoji: '🧈', color: '#f59e0b', bg: '#fffbeb', minVal: 30000, maxVal: 70000, chance: 0.05, speed: 3.8, size: 50 }
+        ];
+
+        // Resize Canvas to fit wrapper
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * (window.devicePixelRatio || 1);
+            canvas.height = rect.height * (window.devicePixelRatio || 1);
+            ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function spawnMoneyItem() {
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const rand = Math.random();
+            let accumulatedChance = 0;
+            let selectedType = ITEM_TYPES[0];
+
+            for (const item of ITEM_TYPES) {
+                accumulatedChance += item.chance;
+                if (rand <= accumulatedChance) {
+                    selectedType = item;
+                    break;
+                }
+            }
+
+            const x = Math.random() * (width - 70) + 35;
+            fallingItems.push({
+                x: x,
+                y: -60,
+                type: selectedType,
+                speed: selectedType.speed + Math.random() * 1.2,
+                rotation: (Math.random() - 0.5) * 0.4,
+                rotationSpeed: (Math.random() - 0.5) * 0.05,
+                sway: Math.random() * Math.PI * 2,
+                swaySpeed: 0.03 + Math.random() * 0.03,
+                id: crypto.randomUUID()
+            });
+        }
+
+        function createSparkles(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 2;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 1,
+                    radius: Math.random() * 4 + 2,
+                    color: color,
+                    alpha: 1,
+                    life: 25
+                });
+            }
+        }
+
+        function createFloatyText(x, y, text, color) {
+            const el = document.createElement('div');
+            el.className = 'absolute font-title text-sm pointer-events-none transform -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ease-out z-20';
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            el.style.color = color;
+            el.style.textShadow = '0 0 6px rgba(0,0,0,0.9), 0 0 10px rgba(245, 158, 11, 0.8)';
+            el.innerHTML = text;
+
+            effectOverlay.appendChild(el);
+
+            requestAnimationFrame(() => {
+                el.style.transform = `translate(-50%, -80px) scale(1.2)`;
+                el.style.opacity = '0';
+            });
+
+            setTimeout(() => el.remove(), 700);
+        }
+
+        function updateAndRender(timestamp) {
+            if (!gameRunning) return;
+
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const deltaTime = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+
+            // Timer update
+            timeRemaining = Math.max(0, timeRemaining - deltaTime);
+            timerDisplayEl.textContent = `${timeRemaining.toFixed(1)}s`;
+
+            if (timeRemaining <= 5.0) {
+                timerDisplayEl.classList.add('animate-pulse', 'text-red-500');
+            } else {
+                timerDisplayEl.classList.remove('animate-pulse', 'text-red-500');
+            }
+
+            // Check Game Over Condition
+            if (timeRemaining <= 0) {
+                endGame();
+                return;
+            }
+
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Spawn Items
+            spawnTimer += deltaTime;
+            if (spawnTimer >= 0.22) { // spawn every 0.22s
+                spawnMoneyItem();
+                spawnTimer = 0;
+            }
+
+            // Draw Falling Money
+            for (let i = fallingItems.length - 1; i >= 0; i--) {
+                const item = fallingItems[i];
+                item.y += item.speed * (1 + (20 - timeRemaining) * 0.02); // gets faster
+                item.sway += item.swaySpeed;
+                item.x += Math.sin(item.sway) * 0.8;
+                item.rotation += item.rotationSpeed;
+
+                // Remove off-screen
+                if (item.y > height + 60) {
+                    fallingItems.splice(i, 1);
+                    currentCombo = 0; // combo reset if item missed
+                    streakBadgeEl.textContent = `연속 콤보: 0`;
+                    continue;
+                }
+
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                ctx.rotate(item.rotation);
+
+                // Outer Glow / Card Body
+                ctx.shadowColor = item.type.color;
+                ctx.shadowBlur = 12;
+
+                ctx.fillStyle = item.type.bg;
+                ctx.strokeStyle = item.type.color;
+                ctx.lineWidth = 2;
+
+                const boxW = item.type.size * 1.3;
+                const boxH = item.type.size * 0.8;
+
+                ctx.beginPath();
+                ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, 10);
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw Emoji & Text inside
+                ctx.font = `${item.type.size * 0.5}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#000';
+                ctx.fillText(`${item.type.emoji}`, 0, 0);
+
+                ctx.restore();
+            }
+
+            // Update & Draw Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.04;
+                p.life--;
+
+                if (p.life <= 0 || p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            requestAnimationFrame(updateAndRender);
+        }
+
+        function handleTouchInput(clientX, clientY) {
+            if (!gameRunning) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const clickX = clientX - rect.left;
+            const clickY = clientY - rect.top;
+
+            for (let i = fallingItems.length - 1; i >= 0; i--) {
+                const item = fallingItems[i];
+                const boxW = item.type.size * 1.5;
+                const boxH = item.type.size * 1.2;
+
+                // Hitbox Check
+                if (
+                    clickX >= item.x - boxW / 2 &&
+                    clickX <= item.x + boxW / 2 &&
+                    clickY >= item.y - boxH / 2 &&
+                    clickY <= item.y + boxH / 2
+                ) {
+                    // Calculate Random Cash Reward within Item Range
+                    const randomVal = Math.floor(
+                        Math.random() * (item.type.maxVal - item.type.minVal + 1) + item.type.minVal
+                    );
+                    
+                    // Round to thousands
+                    const cashGained = Math.round(randomVal / 1000) * 1000;
+                    moneyCollected += cashGained;
+
+                    // Combo Tracking
+                    currentCombo++;
+                    if (currentCombo > maxCombo) maxCombo = currentCombo;
+                    streakBadgeEl.textContent = `연속 콤보: ${currentCombo}🔥`;
+
+                    // Update UI Counters
+                    moneyCounterEl.textContent = `₩${moneyCollected.toLocaleString()}`;
+                    const progressPercent = Math.min(100, Math.floor((moneyCollected / TARGET_AMOUNT) * 100));
+                    progressBarEl.style.width = `${progressPercent}%`;
+                    progressPercentEl.textContent = `${progressPercent}%`;
+
+                    // Sound & Visual Particles
+                    if (item.type.type === 'GOLD_BAG' || item.type.type === 'GOLD_BAR') {
+                        soundEngine.playGoldBagSound();
+                        createFloatyText(clickX, clickY, `+₩${cashGained.toLocaleString()} 💰`, '#fef08a');
+                        richAvatarEl.textContent = '🤑';
+                    } else {
+                        soundEngine.playCoinSound();
+                        createFloatyText(clickX, clickY, `+₩${cashGained.toLocaleString()}`, '#6ee7b7');
+                    }
+
+                    createSparkles(clickX, clickY, item.type.color);
+
+                    // Random Dialogue Change
+                    if (currentCombo % 5 === 0) {
+                        richDialogueEl.textContent = richDialogues[Math.floor(Math.random() * richDialogues.length)];
+                    }
+
+                    // Remove Collected Item
+                    fallingItems.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        canvas.addEventListener('pointerdown', (e) => {
+            soundEngine.init();
+            handleTouchInput(e.clientX, e.clientY);
+        });
+
+        function startGame() {
+            soundEngine.init();
+            moneyCollected = 0;
+            timeRemaining = TIME_LIMIT;
+            currentCombo = 0;
+            maxCombo = 0;
+            fallingItems = [];
+            particles = [];
+            lastTimestamp = 0;
+            spawnTimer = 0;
+
+            moneyCounterEl.textContent = '₩0';
+            timerDisplayEl.textContent = `${TIME_LIMIT.toFixed(1)}s`;
+            progressBarEl.style.width = '0%';
+            progressPercentEl.textContent = '0%';
+            streakBadgeEl.textContent = '연속 콤보: 0';
+            richStatusTextEl.textContent = '"20초 안에 30만원 다 집어가봐!"';
+            richAvatarEl.textContent = '🤑';
+
+            startOverlay.classList.add('hidden');
+            resultModal.classList.add('hidden');
+            resultModal.classList.remove('flex');
+
+            gameRunning = true;
+            requestAnimationFrame(updateAndRender);
+        }
+
+        function endGame() {
+            gameRunning = false;
+
+            const isSuccess = moneyCollected >= TARGET_AMOUNT;
+            
+            const resultIconBox = document.getElementById('resultIconBox');
+            const resultIcon = document.getElementById('resultIcon');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultSubtitle = document.getElementById('resultSubtitle');
+            const finalScore = document.getElementById('finalScore');
+            const finalCombo = document.getElementById('finalCombo');
+            const restartBtnText = document.getElementById('restartBtnText');
+
+            finalScore.textContent = `₩${moneyCollected.toLocaleString()}`;
+            finalCombo.textContent = `${maxCombo}회`;
+
+            if (isSuccess) {
+                soundEngine.playWinSound();
+                resultIconBox.className = "w-20 h-20 rounded-3xl p-0.5 shadow-2xl mb-3 flex items-center justify-center bg-gradient-to-tr from-emerald-500 to-yellow-300 shadow-emerald-500/50";
+                resultIcon.textContent = '🎉';
+                resultTitle.className = "font-title text-2xl text-emerald-400 mb-1";
+                resultTitle.textContent = "목표 달성 성공! 억만장자 수제자!";
+                resultSubtitle.textContent = `"허허! 20초 만에 30만원 넘게 쓸어가다니 대단하군!"`;
+                restartBtnText.textContent = "한 번 더 최고기록 도전하기";
+                richStatusTextEl.textContent = '"오호! 자네 제법 손이 빠르구만!"';
+                richAvatarEl.textContent = '👑';
+            } else {
+                soundEngine.playFailSound();
+                resultIconBox.className = "w-20 h-20 rounded-3xl p-0.5 shadow-2xl mb-3 flex items-center justify-center bg-gradient-to-tr from-rose-600 to-amber-600 shadow-rose-600/50";
+                resultIcon.textContent = '💸';
+                resultTitle.className = "font-title text-2xl text-rose-400 mb-1";
+                resultTitle.textContent = "30만원 미달성! 처음부터 다시!";
+                resultSubtitle.textContent = `"쯧쯧... 20초 동안 30만원도 못 가져가다니! 다시 도전하게!"`;
+                restartBtnText.textContent = "처음부터 다시 시작하기";
+                richStatusTextEl.textContent = '"이거 실망이군... 손가락 운동 좀 더 하고 오게!"';
+                richAvatarEl.textContent = '🤣';
+            }
+
+            resultModal.classList.remove('hidden');
+            resultModal.classList.add('flex');
+        }
+
+        // Event Listeners
+        document.getElementById('startGameBtn').addEventListener('click', startGame);
+        document.getElementById('restartGameBtn').addEventListener('click', startGame);
+
+        // Sound Toggle
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        soundToggleBtn.addEventListener('click', () => {
+            soundEngine.enabled = !soundEngine.enabled;
+            soundToggleBtn.innerHTML = soundEngine.enabled ? 
+                '<i class="fa-solid fa-volume-high"></i>' : 
+                '<i class="fa-solid fa-volume-xmark"></i>';
+        });
+
+        // Info Modal
+        const infoModal = document.getElementById('infoModal');
+        document.getElementById('infoBtn').addEventListener('click', () => {
+            infoModal.classList.remove('hidden');
+            infoModal.classList.add('flex');
+        });
+        document.getElementById('closeInfoBtn').addEventListener('click', () => {
+            infoModal.classList.add('hidden');
+            infoModal.classList.remove('flex');
+        });
+
+        // Initial Load
+        window.onload = function() {
+            resizeCanvas();
+        };
+    </script>
+</body>
+</html>

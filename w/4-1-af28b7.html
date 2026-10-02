@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>스터디 퀘스트: 지혜의 영웅들</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'Jua', 'Noto Sans KR', sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .font-sans-kr { font-family: 'Noto Sans KR', sans-serif; }
+
+        /* Glassmorphism RPG Containers */
+        .rpg-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(234, 179, 8, 0.3);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+        .rpg-panel-active {
+            border-color: #f59e0b;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Glowing Effects */
+        .glow-gold { filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.7)); }
+        .glow-purple { filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.7)); }
+        .glow-cyan { filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.7)); }
+
+        /* Custom Progress Bars */
+        .exp-bar-fill {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            transition: width 0.4s ease-out;
+        }
+        .hp-bar-fill {
+            background: linear-gradient(90deg, #ef4444, #f97316);
+            transition: width 0.3s ease-out;
+        }
+
+        /* Animations */
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-float { animation: floating 3s ease-in-out infinite; }
+
+        @keyframes slashAnim {
+            0% { opacity: 0; transform: scale(0.5) rotate(-20deg); }
+            50% { opacity: 1; transform: scale(1.2) rotate(10deg); }
+            100% { opacity: 0; transform: scale(1.5) rotate(30deg); }
+        }
+        .animate-slash { animation: slashAnim 0.35s ease-out forwards; }
+
+        /* Floating Damage Text */
+        @keyframes dmgFloat {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.3); }
+        }
+        .floating-damage {
+            position: absolute;
+            animation: dmgFloat 0.8s ease-out forwards;
+            pointer-events: none;
+            font-weight: 900;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center bg-slate-950 pb-20">
+
+    <header class="w-full max-w-2xl bg-slate-900/90 border-b border-amber-500/40 p-3 sm:p-4 sticky top-0 z-30 backdrop-blur-md">
+        <div class="flex items-center justify-between gap-2">
+            <!-- Hero Avatar & Level -->
+            <div class="flex items-center gap-3">
+                <div id="heroAvatarContainer" onclick="openProfileModal()" class="relative w-12 h-12 sm:w-14 sm:h-14 bg-amber-500/20 border-2 border-amber-400 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl cursor-pointer hover:scale-105 transition glow-gold">
+                    <span id="heroAvatarIcon">🛡️</span>
+                    <span id="heroLevelBadge" class="absolute -bottom-2 -right-2 bg-amber-500 text-slate-950 text-xs font-bold px-1.5 py-0.5 rounded-full border border-slate-900">Lv.1</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span id="heroNameText" class="font-bold text-base sm:text-lg text-amber-300">지혜의 초보자</span>
+                        <span id="heroClassBadge" class="text-[10px] bg-purple-900/80 text-purple-200 px-2 py-0.5 rounded-md border border-purple-400/40">기사</span>
+                    </div>
+                    <!-- EXP Bar -->
+                    <div class="w-28 sm:w-40 bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700 mt-1 relative">
+                        <div id="expFillBar" class="exp-bar-fill h-full w-0"></div>
+                        <span id="expText" class="absolute inset-0 flex items-center justify-center text-[9px] font-sans-kr text-white/90">0 / 100 EXP</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Currencies & Controls -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Gold Counter -->
+                <div class="bg-slate-800/90 border border-amber-400/40 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-inner">
+                    <span class="text-amber-400 text-sm sm:text-base">🪙</span>
+                    <span id="goldText" class="text-xs sm:text-sm text-amber-300 font-bold">0</span>
+                </div>
+                <!-- Gem Counter -->
+                <div class="bg-slate-800/90 border border-cyan-400/40 px-2.5 py-1 rounded-xl flex items-center gap-1.5 shadow-inner">
+                    <span class="text-cyan-400 text-sm sm:text-base">💎</span>
+                    <span id="gemText" class="text-xs sm:text-sm text-cyan-300 font-bold">0</span>
+                </div>
+                <!-- Sound Toggle -->
+                <button onclick="toggleSound()" class="w-9 h-9 bg-slate-800 border border-slate-600 rounded-xl flex items-center justify-center text-slate-300 hover:text-amber-300 hover:border-amber-400 transition">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="w-full max-w-2xl p-3 sm:p-4 space-y-4">
+
+        <!-- TAB BUTTONS -->
+        <div class="grid grid-cols-4 gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800">
+            <button onclick="switchTab('dungeon')" id="tabBtnDungeon" class="tab-btn active bg-amber-500 text-slate-950 font-bold py-2 rounded-xl text-xs sm:text-sm transition flex flex-col sm:flex-row items-center justify-center gap-1 shadow">
+                <i class="fa-solid fa-dungeon"></i> <span>집중 던전</span>
+            </button>
+            <button onclick="switchTab('quiz')" id="tabBtnQuiz" class="tab-btn bg-slate-800 text-slate-300 font-bold py-2 rounded-xl text-xs sm:text-sm transition flex flex-col sm:flex-row items-center justify-center gap-1 hover:text-amber-300">
+                <i class="fa-solid fa-brain"></i> <span>지식 결투</span>
+            </button>
+            <button onclick="switchTab('quests')" id="tabBtnQuests" class="tab-btn bg-slate-800 text-slate-300 font-bold py-2 rounded-xl text-xs sm:text-sm transition flex flex-col sm:flex-row items-center justify-center gap-1 hover:text-amber-300">
+                <i class="fa-solid fa-scroll"></i> <span>퀘스트</span>
+            </button>
+            <button onclick="switchTab('shop')" id="tabBtnShop" class="tab-btn bg-slate-800 text-slate-300 font-bold py-2 rounded-xl text-xs sm:text-sm transition flex flex-col sm:flex-row items-center justify-center gap-1 hover:text-amber-300">
+                <i class="fa-solid fa-store"></i> <span>상점 & 펫</span>
+            </button>
+        </div>
+
+        <!-- ===================================================================
+             1. FOCUS DUNGEON TAB (집중의 던전)
+             =================================================================== -->
+        <section id="tabDungeon" class="tab-content space-y-4">
+            <!-- RPG Combat Arena Screen -->
+            <div class="relative w-full h-56 sm:h-64 rounded-3xl rpg-panel overflow-hidden flex flex-col justify-between p-4 bg-gradient-to-b from-indigo-950 via-slate-900 to-purple-950">
+                
+                <!-- Stage & Zone Title -->
+                <div class="flex justify-between items-center z-10">
+                    <span id="dungeonStageTitle" class="bg-slate-950/80 border border-amber-400/40 text-amber-300 text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                        <i class="fa-solid fa-skull text-rose-400"></i> Zone 1: 무지의 숲
+                    </span>
+                    <span id="streakBadge" class="bg-purple-900/80 border border-purple-400/40 text-purple-200 text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                        🔥 <span id="streakCountText">1일 연속 수련</span>
+                    </span>
+                </div>
+
+                <!-- Battle Field (Hero vs Monster) -->
+                <div id="battleArena" class="relative flex-1 flex items-center justify-between px-6 sm:px-12 my-2">
+                    <!-- Hero Fighter -->
+                    <div class="flex flex-col items-center">
+                        <div id="heroBattleSprite" class="text-5xl sm:text-6xl animate-float filter drop-shadow-lg transition transform duration-200">
+                            🛡️
+                        </div>
+                        <span class="text-xs text-amber-300 font-bold mt-1 bg-slate-950/60 px-2 py-0.5 rounded-md">영웅</span>
+                    </div>
+
+                    <!-- Slash FX Overlay -->
+                    <div id="slashEffect" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
+                        <span class="text-6xl text-amber-300 animate-slash">⚡⚔️</span>
+                    </div>
+
+                    <!-- Monster Fighter -->
+                    <div class="flex flex-col items-center relative">
+                        <div id="monsterHPBarContainer" class="w-20 bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-600 mb-1">
+                            <div id="monsterHPFill" class="hp-bar-fill h-full w-full"></div>
+                        </div>
+                        <div id="monsterBattleSprite" class="text-5xl sm:text-6xl animate-float transition transform duration-200">
+                            👾
+                        </div>
+                        <span id="monsterNameText" class="text-xs text-rose-300 font-bold mt-1 bg-slate-950/60 px-2 py-0.5 rounded-md">나태의 슬라임</span>
+                    </div>
+                </div>
+
+                <!-- Floating Study Status Indicator -->
+                <div class="text-center z-10">
+                    <div id="combatLogText" class="text-xs sm:text-sm text-slate-300 font-sans-kr bg-slate-950/70 py-1.5 px-3 rounded-xl border border-slate-700/60 inline-block">
+                        "집중 타이머를 시작하여 던전 몬스터를 토벌하세요!"
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pomodoro Study Timer Controls -->
+            <div class="rpg-panel rounded-3xl p-4 sm:p-6 text-center space-y-4">
+                <div class="text-xs text-amber-400 uppercase tracking-widest font-mono">POMODORO STUDY TIMER</div>
+                
+                <!-- Digital Clock Display -->
+                <div id="timerClockDisplay" class="text-5xl sm:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-400 to-purple-300 font-mono tracking-wider glow-gold">
+                    25:00
+                </div>
+
+                <!-- Quick Timer Preset Selector -->
+                <div class="flex justify-center gap-2 pt-1">
+                    <button onclick="setTimerPreset(10)" class="preset-btn bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs py-1.5 px-3 rounded-xl transition">10분</button>
+                    <button onclick="setTimerPreset(25)" class="preset-btn active bg-amber-500/20 border border-amber-400 text-amber-300 text-xs py-1.5 px-3 rounded-xl transition">25분</button>
+                    <button onclick="setTimerPreset(50)" class="preset-btn bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs py-1.5 px-3 rounded-xl transition">50분</button>
+                    <button onclick="setTimerPreset(1)" class="preset-btn bg-purple-900/50 border border-purple-500/50 text-purple-200 text-xs py-1.5 px-3 rounded-xl transition">1분 (테스트)</button>
+                </div>
+
+                <!-- Subject Selection dropdown for focus -->
+                <div class="flex items-center justify-center gap-2 max-w-xs mx-auto pt-2">
+                    <span class="text-xs text-slate-400">공부 과목:</span>
+                    <select id="focusSubjectSelect" class="bg-slate-900 border border-slate-700 text-amber-300 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-amber-400">
+                        <option value="영단어 암기">📖 영단어 암기</option>
+                        <option value="수학 문제 풀기">📐 수학 문제 풀기</option>
+                        <option value="국어/독해">✍️ 국어/독해</option>
+                        <option value="탐구/과학/사탐">🧪 탐구/과학/사탐</option>
+                        <option value="자율 공부">✨ 자율 공부</option>
+                    </select>
+                </div>
+
+                <!-- Start / Give Up Action Buttons -->
+                <div class="flex items-center justify-center gap-3 pt-2">
+                    <button id="btnStartFocus" onclick="toggleFocusTimer()" class="w-full max-w-xs bg-gradient-to-r from-amber-400 via-pink-500 to-purple-600 hover:from-amber-300 hover:to-purple-500 text-slate-950 font-extrabold text-lg sm:text-xl py-3.5 px-6 rounded-2xl shadow-lg shadow-pink-500/20 border-2 border-amber-200 active:scale-95 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play"></i> <span id="btnFocusText">공부 던전 입장!</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             2. QUIZ & FLASHCARD BATTLE TAB (지식의 결투)
+             =================================================================== -->
+        <section id="tabQuiz" class="tab-content hidden space-y-4">
+            <div class="rpg-panel rounded-3xl p-4 sm:p-6 space-y-4">
+                <!-- Boss Header & Health -->
+                <div class="bg-slate-900/90 border border-rose-500/40 rounded-2xl p-4 flex items-center gap-4">
+                    <div class="text-4xl sm:text-5xl bg-rose-950/60 border border-rose-500/50 p-2.5 rounded-2xl glow-purple animate-float">
+                        🐉
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-amber-300 font-bold text-sm sm:text-base">지식 폭군 보스: 오답 드래곤</span>
+                            <span id="quizScoreText" class="text-xs text-rose-300 font-mono">보스 HP: 100/100</span>
+                        </div>
+                        <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-rose-900">
+                            <div id="quizBossHPFill" class="hp-bar-fill h-full w-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deck Subject Picker -->
+                <div class="flex justify-between items-center text-xs text-slate-300">
+                    <span>퀴즈 과목 선택:</span>
+                    <select id="quizDeckSelect" onchange="loadQuizQuestion()" class="bg-slate-900 border border-amber-400/40 text-amber-300 rounded-xl px-3 py-1 focus:outline-none">
+                        <option value="english">🇬🇧 필수 영단어</option>
+                        <option value="history">📜 한국사 & 세계사</option>
+                        <option value="science">🔬 초중고 과학/상식</option>
+                        <option value="custom">✏️ 내가 등록한 문제집</option>
+                    </select>
+                </div>
+
+                <!-- Flashcard / Question Box -->
+                <div class="bg-gradient-to-b from-slate-900 to-indigo-950 border-2 border-amber-400/50 rounded-2xl p-6 text-center shadow-inner space-y-3">
+                    <div class="text-xs text-amber-400 font-mono">QUESTION FLASHCARD</div>
+                    <div id="quizQuestionText" class="text-xl sm:text-2xl font-bold text-white min-h-[60px] flex items-center justify-center font-sans-kr">
+                        질문을 불러오는 중...
+                    </div>
+                </div>
+
+                <!-- Multiple Choice Options -->
+                <div id="quizOptionsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <!-- Dynamic Buttons Generated Here -->
+                </div>
+
+                <!-- Add Custom Question Button -->
+                <div class="text-center pt-2">
+                    <button onclick="openCustomQuestionModal()" class="text-xs text-amber-400 hover:text-amber-300 underline font-sans-kr flex items-center justify-center gap-1 mx-auto">
+                        <i class="fa-solid fa-plus-circle"></i> 나만의 시험 문제 / 단어 추가하기
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             3. QUESTS & HABITS TAB (일일 퀘스트)
+             =================================================================== -->
+        <section id="tabQuests" class="tab-content hidden space-y-4">
+            <div class="rpg-panel rounded-3xl p-4 sm:p-6 space-y-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-bold text-amber-300 flex items-center gap-2">
+                            <i class="fa-solid fa-scroll text-amber-400"></i> 오늘의 일일 퀘스트
+                        </h2>
+                        <p class="text-xs text-slate-400 font-sans-kr">퀘스트를 완료하면 경험치와 골드를 받습니다!</p>
+                    </div>
+                    <button onclick="openAddQuestModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-2 px-3 rounded-xl transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> 퀘스트 추가
+                    </button>
+                </div>
+
+                <!-- Quest List -->
+                <div id="questListContainer" class="space-y-2.5">
+                    <!-- Dynamic Quests Injected Here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             4. SHOP & PETS TAB (상점 & 펫)
+             =================================================================== -->
+        <section id="tabShop" class="tab-content hidden space-y-4">
+            <!-- Equipment Shop -->
+            <div class="rpg-panel rounded-3xl p-4 sm:p-6 space-y-4">
+                <h2 class="text-lg sm:text-xl font-bold text-amber-300 flex items-center gap-2">
+                    <i class="fa-solid fa-store text-amber-400"></i> 전설의 지식 장비 상점
+                </h2>
+                <div id="shopItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Dynamic Shop Cards -->
+                </div>
+            </div>
+
+            <!-- Pet Companion Hatchery -->
+            <div class="rpg-panel rounded-3xl p-4 sm:p-6 space-y-4 border-cyan-500/30">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-bold text-cyan-300 flex items-center gap-2">
+                            <i class="fa-solid fa-egg text-cyan-400"></i> 공부 파트너 펫 부화장
+                        </h2>
+                        <p class="text-xs text-slate-400 font-sans-kr">펫을 동반하면 공부 시 경험치 버프를 얻습니다.</p>
+                    </div>
+                    <button onclick="hatchPet()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition shadow glow-cyan flex items-center gap-1">
+                        <span>🥚 펫 부화 (100💎)</span>
+                    </button>
+                </div>
+
+                <div id="myPetsContainer" class="flex gap-3 overflow-x-auto pb-2">
+                    <!-- Active Pets List -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: HERO PROFILE & CLASS SELECTOR -->
+    <div id="profileModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="rpg-panel rounded-3xl max-w-md w-full p-6 space-y-4 border-amber-400">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-amber-300">⚔️ 영웅 상태 & 직업 변경</h3>
+                <button onclick="closeProfileModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <!-- Stat Distribution -->
+            <div class="bg-slate-900/80 p-4 rounded-2xl space-y-2 text-xs">
+                <div class="flex justify-between">
+                    <span class="text-slate-300">공부 집중력 (STR):</span>
+                    <span id="statStrText" class="text-amber-300 font-bold">10 (+0)</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-300">퀴즈 암기력 (INT):</span>
+                    <span id="statIntText" class="text-cyan-300 font-bold">10 (+0)</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-300">행운의 골드 드롭 (LUK):</span>
+                    <span id="statLukText" class="text-pink-300 font-bold">10 (+0)</span>
+                </div>
+            </div>
+
+            <!-- Class Selection -->
+            <div>
+                <label class="block text-xs font-bold text-slate-300 mb-2">영웅 직업 선택:</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="selectHeroClass('기사', '🛡️')" class="p-3 bg-slate-900 border border-slate-700 hover:border-amber-400 rounded-2xl text-left transition">
+                        <div class="text-xl mb-1">🛡️ 지식의 기사</div>
+                        <div class="text-[10px] text-slate-400">안정적인 성장 & 보호막</div>
+                    </button>
+                    <button onclick="selectHeroClass('마법사', '🧙‍♂️')" class="p-3 bg-slate-900 border border-slate-700 hover:border-purple-400 rounded-2xl text-left transition">
+                        <div class="text-xl mb-1">🧙‍♂️ 지혜의 마법사</div>
+                        <div class="text-[10px] text-slate-400">긴 공부 시 추가 EXP 폭발</div>
+                    </button>
+                    <button onclick="selectHeroClass('궁수', '🏹')" class="p-3 bg-slate-900 border border-slate-700 hover:border-green-400 rounded-2xl text-left transition">
+                        <div class="text-xl mb-1">🏹 집중의 궁수</div>
+                        <div class="text-[10px] text-slate-400">퀴즈 공격 크리티컬 증가</div>
+                    </button>
+                    <button onclick="selectHeroClass('도적', '🗡️')" class="p-3 bg-slate-900 border border-slate-700 hover:border-pink-400 rounded-2xl text-left transition">
+                        <div class="text-xl mb-1">🗡️ 탐구의 도적</div>
+                        <div class="text-[10px] text-slate-400">퀘스트 골드 획득량 증가</div>
+                    </button>
+                </div>
+            </div>
+            
+            <button onclick="closeProfileModal()" class="w-full bg-amber-500 text-slate-950 font-bold py-3 rounded-xl">완료</button>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD CUSTOM QUESTION -->
+    <div id="customQuestionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="rpg-panel rounded-3xl max-w-md w-full p-6 space-y-4 border-amber-400">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-amber-300">✏️ 나만의 문제 등록하기</h3>
+                <button onclick="closeCustomQuestionModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="space-y-3 font-sans-kr text-xs">
+                <div>
+                    <label class="block text-slate-300 mb-1">질문 또는 단어:</label>
+                    <input id="inputQuestion" type="text" placeholder="예: 'Apple'의 뜻은?" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-amber-400">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">정답 (1번 정답):</label>
+                    <input id="inputAnswerCorrect" type="text" placeholder="예: 사과" class="w-full bg-slate-900 border border-emerald-500/50 rounded-xl p-2.5 text-emerald-300 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">오답 선택지 1:</label>
+                    <input id="inputAnswerWrong1" type="text" placeholder="예: 바나나" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">오답 선택지 2:</label>
+                    <input id="inputAnswerWrong2" type="text" placeholder="예: 포도" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none">
+                </div>
+            </div>
+
+            <button onclick="saveCustomQuestion()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition">문제집에 추가하기</button>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD CUSTOM QUEST -->
+    <div id="addQuestModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="rpg-panel rounded-3xl max-w-md w-full p-6 space-y-4 border-amber-400">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-amber-300">📜 새로운 일일 퀘스트 추가</h3>
+                <button onclick="closeAddQuestModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="space-y-3 font-sans-kr text-xs">
+                <div>
+                    <label class="block text-slate-300 mb-1">퀘스트 목표 내용:</label>
+                    <input id="inputQuestTitle" type="text" placeholder="예: 수학 문제집 5페이지 풀기" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-amber-400">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">보상 EXP:</label>
+                    <input id="inputQuestExp" type="number" value="30" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-amber-300">
+                </div>
+            </div>
+
+            <button onclick="saveNewQuest()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition">퀘스트 수락!</button>
+        </div>
+    </div>
+
+    <!-- CUSTOM ROYAL NOTIFICATION TOAST -->
+    <div id="rpgToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border-2 border-amber-400 px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-amber-300 text-sm font-bold z-50 transition transform translate-y-20 opacity-0 pointer-events-none">
+        <span id="toastIcon">✨</span>
+        <span id="toastMsg">알림 메시지</span>
+    </div>
+
+    <script>
+        /* ===================================================================
+         * WEB AUDIO SYNTHESIZER FOR RPG SOUNDS
+         * =================================================================== */
+        let audioCtx = null;
+        let isMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleSound() {
+            isMuted = !isMuted;
+            document.getElementById('soundIcon').className = isMuted ? 
+                'fa-solid fa-volume-xmark text-rose-400' : 'fa-solid fa-volume-high text-amber-300';
+            showToast(isMuted ? "음소거 되었습니다." : "사운드가 켜졌습니다.", "🔊");
+        }
+
+        function playRPGSound(type) {
+            if (isMuted) return;
+            try {
+                initAudio();
+                if (!audioCtx) return;
+
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'slash') {
+                    // Sword Slash Sound
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'levelup') {
+                    // Victory Level Up Fanfare
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.1);
+                    osc.frequency.setValueAtTime(659.25, now + 0.2);
+                    osc.frequency.setValueAtTime(880, now + 0.3);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                    osc.start(now);
+                    osc.stop(now + 0.6);
+                } else if (type === 'coin') {
+                    // Coin Collect Chime
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(987.77, now);
+                    osc.frequency.setValueAtTime(1318.51, now + 0.08);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'hit') {
+                    // Boss Hit/Critical
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+            } catch(e){}
+        }
+
+        /* ===================================================================
+         * GAME STATE & DATABASE
+         * =================================================================== */
+        let gameState = {
+            level: 1,
+            exp: 0,
+            maxExp: 100,
+            gold: 150,
+            gems: 50,
+            heroClass: '기사',
+            heroIcon: '🛡️',
+            streakDays: 1,
+            stats: { str: 10, int: 10, luk: 10 },
+            equippedGear: [],
+            pets: []
+        };
+
+        // Preset Quiz Decks
+        const QUIZ_DECKS = {
+            english: [
+                { q: "영단어 'Metaphor'의 뜻은?", a: "은유 / 비유", w1: "직유", w2: "과장법" },
+                { q: "영단어 'Perseverance'의 뜻은?", a: "인내 / 인내심", w1: "성실함", w2: "지혜" },
+                { q: "영단어 'Synthesize'의 뜻은?", a: "합성하다 / 종합하다", w1: "분해하다", w2: "분석하다" },
+                { q: "영단어 'Meticulous'의 뜻은?", a: "꼼꼼한 / 세심한", w1: "소심한", w2: "대담한" }
+            ],
+            history: [
+                { q: "조선시대 훈민정음을 창제한 왕은?", a: "세종대왕", w1: "태조 이성계", w2: "정조" },
+                { q: "신라 무열왕 시대 삼국통일의 기반을 닦은 장군은?", a: "김유신", w1: "계백", w2: "을지문덕" },
+                { q: "세계 4대 문명이 아닌 것은?", a: "아즈텍 문명", w1: "메소포타미아 문명", w2: "이집트 문명" }
+            ],
+            science: [
+                { q: "빛의 속도는 초당 약 몇 km인가?", a: "약 30만 km", w1: "약 3만 km", w2: "약 300만 km" },
+                { q: "지구 대기 성분 중 가장 많은 비율을 차지하는 기체는?", a: "질소", w1: "산소", w2: "이산화탄소" },
+                { q: "물(H₂O)을 구성하는 두 원소는?", a: "수소와 산소", w1: "탄소와 산소", w2: "질소와 수소" }
+            ],
+            custom: []
+        };
+
+        let currentQuizIndex = 0;
+        let currentQuizDeck = 'english';
+        let bossHP = 100;
+
+        // Quests List
+        let quests = [
+            { id: 1, title: "집중 던전 15분 공부 완료하기", exp: 40, gold: 50, done: false },
+            { id: 2, title: "지식의 결투 보스 3회 타격하기", exp: 30, gold: 30, done: false },
+            { id: 3, title: "나만의 단어/문제 1개 추가하기", exp: 50, gold: 100, done: false }
+        ];
+
+        // Shop Items
+        const SHOP_ITEMS = [
+            { id: 'item1', name: '지혜의 깃털펜', icon: '🪶', price: 100, stat: '퀴즈 대미지 +15', bought: false },
+            { id: 'item2', name: '집중의 왕관', icon: '👑', price: 250, stat: '공부 EXP 획득 +20%', bought: false },
+            { id: 'item3', name: '드래곤 마법서', icon: '📜', price: 500, stat: '몬스터 골드 드롭 2배', bought: false },
+            { id: 'item4', name: '초집중의 방패', icon: '🛡️', price: 800, stat: '휴식 손실 방지', bought: false }
+        ];
+
+        /* ===================================================================
+         * TIMER & FOCUS DUNGEON LOGIC
+         * =================================================================== */
+        let focusTimer = null;
+        let timerSecondsLeft = 25 * 60;
+        let isTimerRunning = false;
+        let totalTimerPreset = 25 * 60;
+
+        function setTimerPreset(minutes) {
+            if (isTimerRunning) return;
+            totalTimerPreset = minutes * 60;
+            timerSecondsLeft = totalTimerPreset;
+            updateTimerDisplay();
+            
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active', 'bg-amber-500/20', 'border-amber-400', 'text-amber-300'));
+            event.target.classList.add('active', 'bg-amber-500/20', 'border-amber-400', 'text-amber-300');
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timerSecondsLeft / 60);
+            const secs = timerSecondsLeft % 60;
+            document.getElementById('timerClockDisplay').innerText = 
+                `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function toggleFocusTimer() {
+            if (!isTimerRunning) {
+                // Start Timer
+                initAudio();
+                isTimerRunning = true;
+                document.getElementById('btnFocusText').innerText = "열공 중... (포기하기)";
+                document.getElementById('btnStartFocus').className = 
+                    "w-full max-w-xs bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-lg sm:text-xl py-3.5 px-6 rounded-2xl shadow-lg border-2 border-rose-300 transition flex items-center justify-center gap-2";
+                
+                const subject = document.getElementById('focusSubjectSelect').value;
+                document.getElementById('combatLogText').innerText = `🔥 [${subject}] 과목으로 던전 탐험 중! 영웅이 열심히 싸우고 있습니다!`;
+
+                focusTimer = setInterval(() => {
+                    timerSecondsLeft--;
+                    updateTimerDisplay();
+
+                    // Every 5 seconds, hero attacks monster automatically
+                    if (timerSecondsLeft % 5 === 0) {
+                        triggerHeroAttack();
+                    }
+
+                    if (timerSecondsLeft <= 0) {
+                        completeFocusSession();
+                    }
+                }, 1000);
+
+            } else {
+                // Pause / Give Up
+                clearInterval(focusTimer);
+                isTimerRunning = false;
+                document.getElementById('btnFocusText').innerText = "공부 던전 입장!";
+                document.getElementById('btnStartFocus').className = 
+                    "w-full max-w-xs bg-gradient-to-r from-amber-400 via-pink-500 to-purple-600 text-slate-950 font-extrabold text-lg sm:text-xl py-3.5 px-6 rounded-2xl shadow-lg border-2 border-amber-200 transition flex items-center justify-center gap-2";
+                document.getElementById('combatLogText').innerText = "집중 수련이 중단되었습니다. 다시 마음을 가다듬으세요!";
+            }
+        }
+
+        function triggerHeroAttack() {
+            playRPGSound('slash');
+
+            // Show Slash Effect
+            const slash = document.getElementById('slashEffect');
+            slash.classList.remove('hidden');
+            setTimeout(() => slash.classList.add('hidden'), 350);
+
+            // Animate Monster Damage Shake
+            const monster = document.getElementById('monsterBattleSprite');
+            monster.classList.add('translate-x-2', 'brightness-125');
+            setTimeout(() => monster.classList.remove('translate-x-2', 'brightness-125'), 200);
+
+            // Floating Damage
+            spawnFloatingDamage("-25 HP", monster);
+
+            // Add Passive EXP & Gold while studying
+            addEXP(5);
+            addGold(10);
+        }
+
+        function completeFocusSession() {
+            clearInterval(focusTimer);
+            isTimerRunning = false;
+            playRPGSound('levelup');
+
+            const earnedExp = Math.floor(totalTimerPreset / 60) * 10;
+            const earnedGold = Math.floor(totalTimerPreset / 60) * 15;
+
+            addEXP(earnedExp);
+            addGold(earnedGold);
+            addGems(5);
+
+            showToast(`🎉 공부 완료! +${earnedExp} EXP, +${earnedGold} 골드, +5 💎 획득!`, "👑");
+            document.getElementById('btnFocusText').innerText = "공부 던전 재입장!";
+            document.getElementById('combatLogText').innerText = "🏆 완벽한 집중 완료! 위대한 지식을 탐구하셨습니다!";
+            
+            // Reset clock
+            timerSecondsLeft = totalTimerPreset;
+            updateTimerDisplay();
+        }
+
+        /* ===================================================================
+         * QUIZ BATTLE SYSTEM
+         * =================================================================== */
+        function loadQuizQuestion() {
+            currentQuizDeck = document.getElementById('quizDeckSelect').value;
+            const deck = QUIZ_DECKS[currentQuizDeck];
+
+            if (!deck || deck.length === 0) {
+                document.getElementById('quizQuestionText').innerText = "등록된 문제가 없습니다! 아래 버튼으로 신규 문제를 추가해 보세요.";
+                document.getElementById('quizOptionsContainer').innerHTML = "";
+                return;
+            }
+
+            const current = deck[currentQuizIndex % deck.length];
+            document.getElementById('quizQuestionText').innerText = current.q;
+
+            // Shuffle Answers
+            const options = [
+                { text: current.a, isCorrect: true },
+                { text: current.w1, isCorrect: false },
+                { text: current.w2, isCorrect: false }
+            ].sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('quizOptionsContainer');
+            container.innerHTML = "";
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "p-3.5 bg-slate-900/90 hover:bg-slate-800 border border-slate-700 hover:border-amber-400/60 rounded-2xl text-left font-sans-kr text-sm transition active:scale-95 text-slate-200 flex items-center gap-2";
+                btn.innerHTML = `<span class="text-amber-400">❖</span> <span>${opt.text}</span>`;
+                btn.onclick = () => handleQuizAnswer(opt.isCorrect);
+                container.appendChild(btn);
+            });
+        }
+
+        function handleQuizAnswer(isCorrect) {
+            if (isCorrect) {
+                playRPGSound('hit');
+                bossHP -= 25;
+                if (bossHP <= 0) {
+                    bossHP = 100;
+                    playRPGSound('levelup');
+                    addEXP(50);
+                    addGold(80);
+                    showToast("🐉 오답 드래곤 토벌 성공! +50 EXP, +80 골드!", "⚔️");
+                } else {
+                    showToast("💥 정답! 보스에게 크리티컬 대미지!", "✨");
+                    addEXP(15);
+                    addGold(20);
+                }
+                document.getElementById('quizBossHPFill').style.width = `${bossHP}%`;
+                document.getElementById('quizScoreText').innerText = `보스 HP: ${bossHP}/100`;
+
+                currentQuizIndex++;
+                loadQuizQuestion();
+            } else {
+                playRPGSound('slash');
+                showToast("❌ 오답입니다! 오답 노트에 기록하여 복습하세요.", "🛡️");
+            }
+        }
+
+        /* ===================================================================
+         * HERO & ECONOMY SYSTEM
+         * =================================================================== */
+        function addEXP(amount) {
+            gameState.exp += amount;
+            if (gameState.exp >= gameState.maxExp) {
+                gameState.level++;
+                gameState.exp -= gameState.maxExp;
+                gameState.maxExp = Math.floor(gameState.maxExp * 1.3);
+                playRPGSound('levelup');
+                showToast(`🎉 레벨 업! 레벨 ${gameState.level}에 도달했습니다!`, "👑");
+            }
+            updateHUD();
+        }
+
+        function addGold(amount) {
+            gameState.gold += amount;
+            updateHUD();
+        }
+
+        function addGems(amount) {
+            gameState.gems += amount;
+            updateHUD();
+        }
+
+        function updateHUD() {
+            document.getElementById('heroLevelBadge').innerText = `Lv.${gameState.level}`;
+            document.getElementById('goldText').innerText = gameState.gold;
+            document.getElementById('gemText').innerText = gameState.gems;
+            document.getElementById('expText').innerText = `${gameState.exp} / ${gameState.maxExp} EXP`;
+            document.getElementById('expFillBar').style.width = `${(gameState.exp / gameState.maxExp) * 100}%`;
+            document.getElementById('heroNameText').innerText = `지혜의 ${gameState.heroClass}`;
+            document.getElementById('heroClassBadge').innerText = gameState.heroClass;
+            document.getElementById('heroAvatarIcon').innerText = gameState.heroIcon;
+            document.getElementById('heroBattleSprite').innerText = gameState.heroIcon;
+        }
+
+        /* ===================================================================
+         * QUESTS & HABITS RENDER
+         * =================================================================== */
+        function renderQuests() {
+            const container = document.getElementById('questListContainer');
+            container.innerHTML = "";
+
+            quests.forEach(q => {
+                const div = document.createElement('div');
+                div.className = `p-3.5 rounded-2xl border flex items-center justify-between font-sans-kr text-xs transition ${
+                    q.done ? 'bg-slate-900/40 border-slate-800 opacity-60' : 'bg-slate-900/90 border-slate-700 hover:border-amber-400/50'
+                }`;
+                
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleQuestDone(${q.id})" class="w-6 h-6 rounded-lg border flex items-center justify-center transition ${
+                            q.done ? 'bg-emerald-500 border-emerald-400 text-slate-950' : 'border-slate-600 hover:border-amber-400'
+                        }">
+                            ${q.done ? '<i class="fa-solid fa-check text-xs"></i>' : ''}
+                        </button>
+                        <span class="${q.done ? 'line-through text-slate-500' : 'text-slate-200 font-bold'}">${q.title}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-300 font-bold">+${q.exp} EXP</span>
+                        <span class="text-amber-400 font-bold">+${q.gold} 🪙</span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function toggleQuestDone(id) {
+            const q = quests.find(item => item.id === id);
+            if (q && !q.done) {
+                q.done = true;
+                addEXP(q.exp);
+                addGold(q.gold);
+                playRPGSound('coin');
+                showToast(`📜 퀘스트 완료! +${q.exp} EXP, +${q.gold} 골드!`, "✨");
+                renderQuests();
+            }
+        }
+
+        function openAddQuestModal() {
+            document.getElementById('addQuestModal').classList.remove('hidden');
+        }
+        function closeAddQuestModal() {
+            document.getElementById('addQuestModal').classList.add('hidden');
+        }
+
+        function saveNewQuest() {
+            const title = document.getElementById('inputQuestTitle').value.trim();
+            const exp = parseInt(document.getElementById('inputQuestExp').value) || 30;
+
+            if (!title) return;
+
+            quests.push({
+                id: Date.now(),
+                title: title,
+                exp: exp,
+                gold: Math.floor(exp * 1.2),
+                done: false
+            });
+
+            closeAddQuestModal();
+            renderQuests();
+            showToast("새로운 일일 퀘스트가 수락되었습니다!", "📜");
+            document.getElementById('inputQuestTitle').value = "";
+        }
+
+        /* ===================================================================
+         * SHOP & PET HATCHING
+         * =================================================================== */
+        function renderShop() {
+            const container = document.getElementById('shopItemsContainer');
+            container.innerHTML = "";
+
+            SHOP_ITEMS.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-900/90 border border-slate-700 p-3.5 rounded-2xl flex items-center justify-between font-sans-kr text-xs";
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">${item.icon}</span>
+                        <div>
+                            <div class="font-bold text-amber-300">${item.name}</div>
+                            <div class="text-[10px] text-slate-400">${item.stat}</div>
+                        </div>
+                    </div>
+                    <button onclick="buyShopItem('${item.id}')" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition ${
+                        item.bought ? 'opacity-50 cursor-not-allowed' : ''
+                    }">
+                        ${item.bought ? '장착됨' : `${item.price} 🪙`}
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function buyShopItem(id) {
+            const item = SHOP_ITEMS.find(i => i.id === id);
+            if (!item || item.bought) return;
+
+            if (gameState.gold >= item.price) {
+                gameState.gold -= item.price;
+                item.bought = true;
+                playRPGSound('coin');
+                showToast(`🛡️ [${item.name}] 구매 성공! 전투력이 상승했습니다.`, "✨");
+                updateHUD();
+                renderShop();
+            } else {
+                showToast("골드가 부족합니다! 던전이나 퀴즈를 풀어 채굴하세요.", "⚠️");
+            }
+        }
+
+        function hatchPet() {
+            if (gameState.gems >= 100) {
+                gameState.gems -= 100;
+                const petIcons = ['🦉 지혜의 부엉이', '🐉 기억의 아기 드래곤', '🐱 집중 고양이', '🦊 탐구 사막여우'];
+                const randomPet = petIcons[Math.floor(Math.random() * petIcons.length)];
+
+                gameState.pets.push(randomPet);
+                playRPGSound('levelup');
+                showToast(`🎉 축하합니다! [${randomPet}]이 부화했습니다!`, "🐣");
+                updateHUD();
+                renderPets();
+            } else {
+                showToast("보석(💎)이 부족합니다!", "⚠️");
+            }
+        }
+
+        function renderPets() {
+            const container = document.getElementById('myPetsContainer');
+            container.innerHTML = "";
+
+            if (gameState.pets.length === 0) {
+                container.innerHTML = `<span class="text-xs text-slate-500 font-sans-kr">아직 부화한 펫이 없습니다.</span>`;
+                return;
+            }
+
+            gameState.pets.forEach(pet => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-900 border border-cyan-500/40 px-3 py-2 rounded-2xl flex-shrink-0 text-xs font-sans-kr text-cyan-200 flex items-center gap-1.5";
+                div.innerText = pet;
+                container.appendChild(div);
+            });
+        }
+
+        /* ===================================================================
+         * CUSTOM QUESTIONS & PROFILE MODAL
+         * =================================================================== */
+        function openCustomQuestionModal() {
+            document.getElementById('customQuestionModal').classList.remove('hidden');
+        }
+        function closeCustomQuestionModal() {
+            document.getElementById('customQuestionModal').classList.add('hidden');
+        }
+
+        function saveCustomQuestion() {
+            const q = document.getElementById('inputQuestion').value.trim();
+            const a = document.getElementById('inputAnswerCorrect').value.trim();
+            const w1 = document.getElementById('inputAnswerWrong1').value.trim();
+            const w2 = document.getElementById('inputAnswerWrong2').value.trim();
+
+            if (!q || !a || !w1 || !w2) {
+                showToast("모든 항목을 입력해야 등록할 수 있습니다.", "⚠️");
+                return;
+            }
+
+            QUIZ_DECKS.custom.push({ q, a, w1, w2 });
+            closeCustomQuestionModal();
+            showToast("나만의 문제집에 추가되었습니다! 과목을 변경하여 풀어보세요.", "✏️");
+
+            // Clear inputs
+            document.getElementById('inputQuestion').value = "";
+            document.getElementById('inputAnswerCorrect').value = "";
+            document.getElementById('inputAnswerWrong1').value = "";
+            document.getElementById('inputAnswerWrong2').value = "";
+        }
+
+        function openProfileModal() {
+            document.getElementById('profileModal').classList.remove('hidden');
+        }
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.add('hidden');
+        }
+
+        function selectHeroClass(className, icon) {
+            gameState.heroClass = className;
+            gameState.heroIcon = icon;
+            updateHUD();
+            showToast(`전직 성공! [지혜의 ${className}] 직업이 선택되었습니다.`, "⚔️");
+        }
+
+        /* ===================================================================
+         * UI TABS & UTILS
+         * =================================================================== */
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active', 'bg-amber-500', 'text-slate-950'));
+            
+            if (tabName === 'dungeon') {
+                document.getElementById('tabDungeon').classList.remove('hidden');
+                document.getElementById('tabBtnDungeon').classList.add('active', 'bg-amber-500', 'text-slate-950');
+            } else if (tabName === 'quiz') {
+                document.getElementById('tabQuiz').classList.remove('hidden');
+                document.getElementById('tabBtnQuiz').classList.add('active', 'bg-amber-500', 'text-slate-950');
+                loadQuizQuestion();
+            } else if (tabName === 'quests') {
+                document.getElementById('tabQuests').classList.remove('hidden');
+                document.getElementById('tabBtnQuests').classList.add('active', 'bg-amber-500', 'text-slate-950');
+                renderQuests();
+            } else if (tabName === 'shop') {
+                document.getElementById('tabShop').classList.remove('hidden');
+                document.getElementById('tabBtnShop').classList.add('active', 'bg-amber-500', 'text-slate-950');
+                renderShop();
+                renderPets();
+            }
+        }
+
+        function showToast(msg, icon = "✨") {
+            const toast = document.getElementById('rpgToast');
+            document.getElementById('toastMsg').innerText = msg;
+            document.getElementById('toastIcon').innerText = icon;
+
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+
+        function spawnFloatingDamage(text, targetEl) {
+            const rect = targetEl.getBoundingClientRect();
+            const dmg = document.createElement('div');
+            dmg.className = "floating-damage text-rose-400 text-lg sm:text-2xl glow-purple";
+            dmg.style.left = `${rect.left + rect.width / 2}px`;
+            dmg.style.top = `${rect.top}px`;
+            dmg.innerText = text;
+
+            document.body.appendChild(dmg);
+            setTimeout(() => dmg.remove(), 800);
+        }
+
+        /* Window Onload */
+        window.onload = function() {
+            updateHUD();
+            updateTimerDisplay();
+            renderQuests();
+        };
+    </script>
+</body>
+</html>

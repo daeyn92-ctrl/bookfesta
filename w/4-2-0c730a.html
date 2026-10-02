@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>토끼 힐링 어플</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .font-gaegu {
+            font-family: 'Gaegu', cursive;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #dbeafe;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        /* Glassmorphic Cards */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 24px rgba(149, 157, 165, 0.2);
+        }
+        .btn-bounce {
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+        }
+        .btn-bounce:hover {
+            transform: scale(1.06);
+        }
+        .btn-bounce:active {
+            transform: scale(0.94);
+        }
+    </style>
+</head>
+<body class="relative w-full h-screen overflow-hidden">
+
+    <!-- 3D Canvas element -->
+    <div id="canvas-container" class="w-full h-full absolute inset-0 z-0"></div>
+
+    <!-- TOP HEADER OVERLAY -->
+    <header class="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
+        <!-- Title Badge -->
+        <div class="glass-panel px-5 py-2.5 rounded-full flex items-center space-x-3 pointer-events-auto shadow-lg">
+            <div class="w-10 h-10 rounded-full bg-pink-100 border-2 border-pink-300 flex items-center justify-center text-xl shadow-inner animate-bounce">
+                🐰
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-xl font-bold text-pink-600 font-gaegu leading-tight">토끼 힐링 마을</h1>
+                <p class="text-[11px] text-slate-500 font-medium">바닥을 터치하면 귀여운 토끼가 튀어나와요!</p>
+            </div>
+        </div>
+
+        <!-- Bunny Counter & Sound Toggle -->
+        <div class="flex items-center space-x-2 pointer-events-auto">
+            <div class="glass-panel px-4 py-2 rounded-full flex items-center space-x-2">
+                <span class="text-sm font-bold text-pink-500">마을 토끼:</span>
+                <span id="bunnyCount" class="text-lg font-black text-slate-800 font-gaegu">1마리</span>
+            </div>
+            <button id="btnSound" onclick="toggleAudio()" class="glass-panel p-3 rounded-full btn-bounce text-pink-500 hover:text-pink-600 shadow-md">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- RABBIT DIALOGUE OVERLAY -->
+    <div id="dialogueBox" class="absolute top-24 left-1/2 -translate-x-1/2 z-10 glass-panel px-6 py-3 rounded-2xl shadow-xl transition-all duration-300 transform opacity-0 translate-y-2 pointer-events-none max-w-xs sm:max-w-md text-center border-2 border-pink-200">
+        <div class="text-xs font-bold text-pink-400 mb-0.5">🐰 리더 토끼의 한마디</div>
+        <div id="dialogueText" class="text-sm sm:text-base font-bold text-slate-700 font-gaegu">
+            안녕! 푸른 언덕 마을에 온 걸 환영해! 깡충!
+        </div>
+    </div>
+
+    <!-- BOTTOM CONTROL BAR -->
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 w-full max-w-md px-4 pointer-events-none">
+        <div class="glass-panel p-3 rounded-3xl flex items-center justify-around pointer-events-auto shadow-2xl border-2 border-white/80">
+            <!-- Action 1: Summon Bunny -->
+            <button onclick="summonBunnyAction()" class="btn-bounce flex flex-col items-center justify-center p-2 rounded-2xl hover:bg-pink-50 text-slate-700 transition">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-400 to-rose-400 text-white flex items-center justify-center text-xl shadow-md mb-1">
+                    ✨
+                </div>
+                <span class="text-xs font-bold font-gaegu text-slate-700">토끼 소환</span>
+            </button>
+
+            <!-- Action 2: Feed Carrot -->
+            <button onclick="feedCarrotAction()" class="btn-bounce flex flex-col items-center justify-center p-2 rounded-2xl hover:bg-amber-50 text-slate-700 transition">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-400 text-white flex items-center justify-center text-xl shadow-md mb-1">
+                    🥕
+                </div>
+                <span class="text-xs font-bold font-gaegu text-slate-700">당근 주기</span>
+            </button>
+
+            <!-- Action 3: Time Cycle -->
+            <button onclick="cycleTimeOfDay()" class="btn-bounce flex flex-col items-center justify-center p-2 rounded-2xl hover:bg-purple-50 text-slate-700 transition">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-500 text-white flex items-center justify-center text-xl shadow-md mb-1">
+                    <i id="timeIcon" class="fa-solid fa-sun"></i>
+                </div>
+                <span id="timeLabel" class="text-xs font-bold font-gaegu text-slate-700">포근한 낮</span>
+            </button>
+
+            <!-- Action 4: Camera View Reset -->
+            <button onclick="resetCameraView()" class="btn-bounce flex flex-col items-center justify-center p-2 rounded-2xl hover:bg-emerald-50 text-slate-700 transition">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 text-white flex items-center justify-center text-xl shadow-md mb-1">
+                    <i class="fa-solid fa-camera-rotate"></i>
+                </div>
+                <span class="text-xs font-bold font-gaegu text-slate-700">시점 리셋</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // WEB AUDIO SYNTHESIZER (HEALING SFX & BGM)
+        // ==========================================
+        let audioCtx = null;
+        let isAudioOn = true;
+        let bgmInterval = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                startHealingBGM();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudio() {
+            isAudioOn = !isAudioOn;
+            const icon = document.getElementById('soundIcon');
+            if (isAudioOn) {
+                icon.className = 'fa-solid fa-volume-high text-lg';
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-lg text-slate-400';
+            }
+        }
+
+        // Play Cute Bunny Hop SFX
+        function playHopSFX() {
+            if (!isAudioOn) return;
+            initAudio();
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(640, now + 0.12);
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } catch(e) {}
+        }
+
+        // Play Carrot Munch SFX
+        function playMunchSFX() {
+            if (!isAudioOn) return;
+            initAudio();
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.setValueAtTime(500, now + 0.05);
+                osc.frequency.setValueAtTime(900, now + 0.1);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } catch(e) {}
+        }
+
+        // Gentle Ambient Pentatonic Healing Chimes
+        function startHealingBGM() {
+            const notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C, D, E, G, A, C
+            bgmInterval = setInterval(() => {
+                if (!isAudioOn || !audioCtx) return;
+                try {
+                    const freq = notes[Math.floor(Math.random() * notes.length)];
+                    const now = audioCtx.currentTime;
+
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    gain.gain.setValueAtTime(0.02, now);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.5);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 2.5);
+                } catch(e) {}
+            }, 1800);
+        }
+
+        // ==========================================
+        // THREE.JS 3D SCENE SETUP
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+
+        // Palette Colors for Rabbits
+        const RABBIT_COLORS = [
+            0xffffff, // Pure White
+            0xffb7c5, // Pastel Pink
+            0xdbeafe, // Soft Sky Blue
+            0xfef08a, // Custard Yellow
+            0xe9d5ff, // Lavender
+            0xd97706, // Caramel Brown
+            0xa7f3d0  // Mint Green
+        ];
+
+        // Camera Setup
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 12, 22);
+
+        // WebGL Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // Orbit Controls for smooth interactive panning/rotation
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Don't clip ground
+        controls.minDistance = 5;
+        controls.maxDistance = 45;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffaed, 0.85);
+        dirLight.position.set(15, 25, 15);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 60;
+        dirLight.shadow.camera.left = -20;
+        dirLight.shadow.camera.right = 20;
+        dirLight.shadow.camera.top = 20;
+        dirLight.shadow.camera.bottom = -20;
+        scene.add(dirLight);
+
+        const hemisphereLight = new THREE.HemisphereLight(0xbfdbfe, 0xbbf7d0, 0.3);
+        scene.add(hemisphereLight);
+
+        // ==========================================
+        // VILLAGE ENVIRONMENT GENERATION
+        // ==========================================
+        let timeMode = 0; // 0: Day, 1: Sunset, 2: Night
+
+        function setVillageLighting(mode) {
+            if (mode === 0) { // Day
+                scene.background = new THREE.Color(0xdbeafe);
+                scene.fog = new THREE.FogExp2(0xdbeafe, 0.015);
+                ambientLight.color.setHex(0xffffff);
+                ambientLight.intensity = 0.7;
+                dirLight.color.setHex(0xfffaed);
+                dirLight.intensity = 0.85;
+                dirLight.position.set(15, 25, 15);
+                document.getElementById('timeLabel').innerText = '포근한 낮';
+                document.getElementById('timeIcon').className = 'fa-solid fa-sun';
+            } else if (mode === 1) { // Sunset
+                scene.background = new THREE.Color(0xfed7aa);
+                scene.fog = new THREE.FogExp2(0xfed7aa, 0.018);
+                ambientLight.color.setHex(0xffedd5);
+                ambientLight.intensity = 0.6;
+                dirLight.color.setHex(0xf97316);
+                dirLight.intensity = 0.9;
+                dirLight.position.set(-20, 10, -10);
+                document.getElementById('timeLabel').innerText = '노을빛 언덕';
+                document.getElementById('timeIcon').className = 'fa-solid fa-cloud-sun';
+            } else { // Night
+                scene.background = new THREE.Color(0x0f172a);
+                scene.fog = new THREE.FogExp2(0x0f172a, 0.022);
+                ambientLight.color.setHex(0x38bdf8);
+                ambientLight.intensity = 0.3;
+                dirLight.color.setHex(0x818cf8);
+                dirLight.intensity = 0.4;
+                dirLight.position.set(10, 20, -10);
+                document.getElementById('timeLabel').innerText = '별빛 밤';
+                document.getElementById('timeIcon').className = 'fa-solid fa-moon';
+            }
+        }
+
+        // Ground Floor
+        const groundGeo = new THREE.CylinderGeometry(22, 22, 1, 48);
+        const groundMat = new THREE.MeshStandardMaterial({
+            color: 0x86efac,
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.position.y = -0.5;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Soft Central Hill
+        const hillGeo = new THREE.SphereGeometry(12, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.35);
+        const hill = new THREE.Mesh(hillGeo, groundMat);
+        hill.position.set(0, -2.8, 0);
+        hill.scale.set(1.4, 0.4, 1.4);
+        hill.receiveShadow = true;
+        scene.add(hill);
+
+        // Houses, Trees & Flowers Generator
+        function buildVillageElements() {
+            // Cozy Cottage 1
+            createCottage(-8, 0, -6, 0xef4444, 0xfeefc3);
+            // Cozy Cottage 2
+            createCottage(10, 0, -4, 0x3b82f6, 0xfffbeb);
+
+            // Trees
+            const treePositions = [
+                [-14, -8], [-12, 8], [14, 6], [8, -12], [-4, -14], [12, -12]
+            ];
+            treePositions.forEach(pos => createTree(pos[0], pos[1]));
+
+            // Flowers
+            for (let i = 0; i < 40; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 4 + Math.random() * 14;
+                createFlower(Math.cos(angle) * dist, Math.sin(angle) * dist);
+            }
+        }
+
+        function createCottage(x, z, colorRoof, colorWall) {
+            const group = new THREE.Group();
+            
+            // Wall
+            const wall = new THREE.Mesh(
+                new THREE.BoxGeometry(2.5, 2, 2.5),
+                new THREE.MeshStandardMaterial({ color: colorWall, roughness: 0.6 })
+            );
+            wall.position.y = 1;
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            group.add(wall);
+
+            // Roof
+            const roof = new THREE.Mesh(
+                new THREE.ConeGeometry(2.2, 1.5, 4),
+                new THREE.MeshStandardMaterial({ color: colorRoof, roughness: 0.5 })
+            );
+            roof.position.y = 2.75;
+            roof.rotation.y = Math.PI / 4;
+            roof.castShadow = true;
+            group.add(roof);
+
+            // Door
+            const door = new THREE.Mesh(
+                new THREE.BoxGeometry(0.6, 1.1, 0.1),
+                new THREE.MeshStandardMaterial({ color: 0x78350f })
+            );
+            door.position.set(0, 0.55, 1.26);
+            group.add(door);
+
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+
+        function createTree(x, z) {
+            const group = new THREE.Group();
+            
+            // Trunk
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.25, 0.35, 1.8, 8),
+                new THREE.MeshStandardMaterial({ color: 0x92400e })
+            );
+            trunk.position.y = 0.9;
+            trunk.castShadow = true;
+            group.add(trunk);
+
+            // Foliage (Puffy spheres)
+            const foliageMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.7 });
+            const f1 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2), foliageMat);
+            f1.position.y = 2.2;
+            f1.castShadow = true;
+            group.add(f1);
+
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+
+        function createFlower(x, z) {
+            const colors = [0xf43f5e, 0xfbfb24, 0xa855f7, 0x38bdf8, 0xffa500];
+            const flower = new THREE.Mesh(
+                new THREE.SphereGeometry(0.18, 8, 8),
+                new THREE.MeshBasicMaterial({ color: colors[Math.floor(Math.random() * colors.length)] })
+            );
+            flower.position.set(x, 0.15, z);
+            scene.add(flower);
+        }
+
+        buildVillageElements();
+        setVillageLighting(0);
+
+        // ==========================================
+        // 3D PROCEDURAL BUNNY BUILDER & ANIMATOR
+        // ==========================================
+        const bunnies = [];
+
+        class Bunny {
+            constructor(x, z, colorHex, isLeader = false) {
+                this.isLeader = isLeader;
+                this.colorHex = colorHex;
+                this.group = new THREE.Group();
+
+                // Custom Soft Material
+                const bunnyMat = new THREE.MeshStandardMaterial({
+                    color: colorHex,
+                    roughness: 0.5,
+                    metalness: 0.05
+                });
+                const innerEarMat = new THREE.MeshStandardMaterial({ color: 0xffb7c5, roughness: 0.6 });
+                const blackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+                const pinkNoseMat = new THREE.MeshStandardMaterial({ color: 0xf43f5e });
+
+                // Body
+                const body = new THREE.Mesh(new THREE.SphereGeometry(0.65, 16, 16), bunnyMat);
+                body.scale.set(1, 0.85, 1.1);
+                body.position.y = 0.55;
+                body.castShadow = true;
+                this.group.add(body);
+
+                // Head
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), bunnyMat);
+                head.position.set(0, 0.95, 0.35);
+                head.castShadow = true;
+                this.group.add(head);
+
+                // Ears (Left & Right)
+                const earGeo = new THREE.CylinderGeometry(0.08, 0.14, 0.7, 12);
+                
+                this.leftEar = new THREE.Mesh(earGeo, bunnyMat);
+                this.leftEar.position.set(-0.2, 1.5, 0.3);
+                this.leftEar.rotation.z = -0.15;
+                this.leftEar.rotation.x = -0.1;
+                this.leftEar.castShadow = true;
+                this.group.add(this.leftEar);
+
+                this.rightEar = new THREE.Mesh(earGeo, bunnyMat);
+                this.rightEar.position.set(0.2, 1.5, 0.3);
+                this.rightEar.rotation.z = 0.15;
+                this.rightEar.rotation.x = -0.1;
+                this.rightEar.castShadow = true;
+                this.group.add(this.rightEar);
+
+                // Eyes
+                const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), blackMat);
+                leftEye.position.set(-0.2, 1.05, 0.78);
+                const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), blackMat);
+                rightEye.position.set(0.2, 1.05, 0.78);
+                this.group.add(leftEye);
+                this.group.add(rightEye);
+
+                // Nose
+                const nose = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), pinkNoseMat);
+                nose.position.set(0, 0.95, 0.83);
+                this.group.add(nose);
+
+                // Fluffy Tail
+                const tail = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), bunnyMat);
+                tail.position.set(0, 0.5, -0.75);
+                this.group.add(tail);
+
+                // Leader Crown (Special distinction for main rabbit)
+                if (isLeader) {
+                    const crownMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.5, roughness: 0.2 });
+                    const crown = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.3, 5), crownMat);
+                    crown.position.set(0, 1.6, 0.35);
+                    this.group.add(crown);
+                }
+
+                this.group.position.set(x, 0, z);
+                scene.add(this.group);
+
+                // Animation State Parameters
+                this.targetPos = new THREE.Vector3(x, 0, z);
+                this.hopPhase = Math.random() * Math.PI * 2;
+                this.hopSpeed = 3 + Math.random() * 2;
+                this.isHopping = false;
+                this.idleTimer = Math.random() * 2;
+            }
+
+            update(delta) {
+                // Ear Wiggle Motion
+                const earWiggle = Math.sin(Date.now() * 0.008 + this.hopPhase) * 0.1;
+                this.leftEar.rotation.z = -0.15 + earWiggle;
+                this.rightEar.rotation.z = 0.15 - earWiggle;
+
+                // Movement Logic
+                const dist = this.group.position.distanceTo(this.targetPos);
+
+                if (dist > 0.3) {
+                    this.isHopping = true;
+                    // Face movement direction smoothly
+                    const dir = new THREE.Vector3().subVectors(this.targetPos, this.group.position).normalize();
+                    const targetAngle = Math.atan2(dir.x, dir.z);
+                    this.group.rotation.y = THREE.MathUtils.lerp(this.group.rotation.y, targetAngle, 0.15);
+
+                    // Move forward
+                    this.group.position.add(dir.multiplyScalar(delta * 2.5));
+
+                    // Hop Arc Physics (Y axis bounce)
+                    this.hopPhase += delta * 12;
+                    this.group.position.y = Math.abs(Math.sin(this.hopPhase)) * 0.5;
+                } else {
+                    this.isHopping = false;
+                    this.group.position.y = THREE.MathUtils.lerp(this.group.position.y, 0, 0.2);
+
+                    // Pick new random wander target periodically
+                    this.idleTimer -= delta;
+                    if (this.idleTimer <= 0) {
+                        this.pickNewTarget();
+                        this.idleTimer = 3 + Math.random() * 4;
+                    }
+                }
+            }
+
+            pickNewTarget() {
+                const radius = 12;
+                const angle = Math.random() * Math.PI * 2;
+                this.targetPos.set(
+                    Math.cos(angle) * (2 + Math.random() * radius),
+                    0,
+                    Math.sin(angle) * (2 + Math.random() * radius)
+                );
+            }
+
+            jumpJoy() {
+                this.hopPhase = 0;
+                this.group.position.y = 1.2;
+                playHopSFX();
+            }
+        }
+
+        // Spawn Initial Leader Rabbit
+        const leaderBunny = new Bunny(0, 0, 0xffffff, true);
+        bunnies.push(leaderBunny);
+
+        // ==========================================
+        // CARROTS & HEART PARTICLES ENGINE
+        // ==========================================
+        const carrots = [];
+
+        function spawnCarrot(x, z) {
+            const group = new THREE.Group();
+
+            // Carrot Root
+            const root = new THREE.Mesh(
+                new THREE.ConeGeometry(0.2, 0.7, 8),
+                new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.5 })
+            );
+            root.rotation.x = Math.PI;
+            root.position.y = 0.35;
+            root.castShadow = true;
+            group.add(root);
+
+            // Leaf Top
+            const leaf = new THREE.Mesh(
+                new THREE.DodecahedronGeometry(0.15),
+                new THREE.MeshBasicMaterial({ color: 0x22c55e })
+            );
+            leaf.position.y = 0.75;
+            group.add(leaf);
+
+            group.position.set(x, 0, z);
+            scene.add(group);
+            carrots.push(group);
+
+            playMunchSFX();
+
+            // Make nearby rabbits hop towards carrot
+            bunnies.forEach(b => {
+                b.targetPos.set(x + (Math.random() - 0.5), 0, z + (Math.random() - 0.5));
+            });
+        }
+
+        // Heart Burst Particles
+        const particles = [];
+        function createHeartParticle(x, y, z) {
+            const p = new THREE.Mesh(
+                new THREE.SphereGeometry(0.1, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0xf43f5e })
+            );
+            p.position.set(x, y + 0.8, z);
+            scene.add(p);
+
+            particles.push({
+                mesh: p,
+                vy: 0.03 + Math.random() * 0.02,
+                life: 1.0
+            });
+        }
+
+        // ==========================================
+        // USER INTERACTION & RAYCASTING
+        // ==========================================
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function updateBunnyCountUI() {
+            document.getElementById('bunnyCount').innerText = `${bunnies.length}마리`;
+        }
+
+        // Spawn a new rabbit
+        function spawnNewBunny(x = 0, z = 0) {
+            const color = RABBIT_COLORS[Math.floor(Math.random() * RABBIT_COLORS.length)];
+            const bunny = new Bunny(x, z, color);
+            bunny.jumpJoy();
+            bunnies.push(bunny);
+            updateBunnyCountUI();
+
+            showDialogue(['새로운 토끼 친구가 놀러왔어요! 🐰💖', '깡충깡충! 신나게 같이 놀자!', '알록달록 예쁜 토끼가 등장했어요!'][Math.floor(Math.random() * 3)]);
+        }
+
+        function showDialogue(text) {
+            const box = document.getElementById('dialogueBox');
+            const txt = document.getElementById('dialogueText');
+            txt.innerText = text;
+            box.classList.remove('opacity-0', 'translate-y-2');
+            box.classList.add('opacity-100', 'translate-y-0');
+
+            clearTimeout(window.dialogueTimer);
+            window.dialogueTimer = setTimeout(() => {
+                box.classList.remove('opacity-100', 'translate-y-0');
+                box.classList.add('opacity-0', 'translate-y-2');
+            }, 3000);
+        }
+
+        // Click / Touch Detection
+        window.addEventListener('pointerdown', (e) => {
+            // Ignore if clicking UI buttons
+            if (e.target.closest('button') || e.target.closest('.glass-panel')) return;
+
+            initAudio();
+
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                const point = hit.point;
+
+                // Check if clicked directly on a bunny
+                let clickedBunny = null;
+                bunnies.forEach(b => {
+                    b.group.traverse(child => {
+                        if (child === hit.object) clickedBunny = b;
+                    });
+                });
+
+                if (clickedBunny) {
+                    clickedBunny.jumpJoy();
+                    createHeartParticle(clickedBunny.group.position.x, clickedBunny.group.position.y, clickedBunny.group.position.z);
+                    showDialogue(['토끼를 쓰다듬어주셨어요! 쓰담쓰담~ 💕', '히히, 기분 좋아! 🐰✨', '당신을 정말 좋아하나 봐요!'][Math.floor(Math.random() * 3)]);
+                } else {
+                    // Clicked on Ground: Spawn new bunny at location!
+                    spawnNewBunny(point.x, point.z);
+                }
+            }
+        });
+
+        // UI Button Actions
+        function summonBunnyAction() {
+            initAudio();
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * 6;
+            spawnNewBunny(Math.cos(angle) * dist, Math.sin(angle) * dist);
+        }
+
+        function feedCarrotAction() {
+            initAudio();
+            const x = (Math.random() - 0.5) * 8;
+            const z = (Math.random() - 0.5) * 8;
+            spawnCarrot(x, z);
+            showDialogue('맛있는 당근이다! 토끼들이 모여들고 있어요! 🥕');
+        }
+
+        function cycleTimeOfDay() {
+            initAudio();
+            timeMode = (timeMode + 1) % 3;
+            setVillageLighting(timeMode);
+        }
+
+        function resetCameraView() {
+            initAudio();
+            controls.reset();
+            camera.position.set(0, 12, 22);
+        }
+
+        // ==========================================
+        // MAIN ANIMATION RENDER LOOP
+        // ==========================================
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            // Update Controls
+            controls.update();
+
+            // Update All Bunnies
+            bunnies.forEach(b => b.update(delta));
+
+            // Update Heart Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.mesh.position.y += p.vy;
+                p.life -= delta * 1.5;
+                p.mesh.scale.setScalar(p.life);
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Render Scene
+            renderer.render(scene, camera);
+        }
+
+        // Window Resize Handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start 3D Loop & Greeting on Load
+        window.onload = function() {
+            animate();
+            setTimeout(() => {
+                showDialogue('안녕! 마을의 평화로운 하루야~ 땅을 눌러 토끼를 새로 불러봐! 🐰🌸');
+            }, 800);
+        };
+    </script>
+</body>
+</html>

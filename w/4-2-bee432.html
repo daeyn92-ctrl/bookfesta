@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>마라탕 게임 - 얼얼하고 맛있는 나만의 마라탕!</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@600;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Jua', 'Noto Sans KR', sans-serif;
+            touch-action: manipulation;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #2a080c 0%, #110305 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* Broth Bubbling Animation */
+        @keyframes bubbleRise {
+            0% { transform: translateY(20px) scale(0.6); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-60px) scale(1.2); opacity: 0; }
+        }
+
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: bubbleRise 2s infinite ease-in;
+        }
+
+        /* Steam Rise Animation */
+        @keyframes steamRise {
+            0% { transform: translateY(0) scaleX(1); opacity: 0.2; }
+            50% { transform: translateY(-40px) scaleX(1.3); opacity: 0.5; }
+            100% { transform: translateY(-90px) scaleX(1.8); opacity: 0; }
+        }
+
+        .steam {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            filter: blur(8px);
+            pointer-events: none;
+            animation: steamRise 3s infinite ease-out;
+        }
+
+        /* Floating Ingredient Animation */
+        @keyframes floatItem {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(4deg); }
+        }
+
+        .floating-ingredient {
+            animation: floatItem 3s infinite ease-in-out;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Custom Scrollbar for Ingredient Modal */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f43f5e;
+            border-radius: 10px;
+        }
+
+        .glow-spicy-0 { box-shadow: 0 0 25px rgba(254, 240, 138, 0.4); }
+        .glow-spicy-1 { box-shadow: 0 0 30px rgba(251, 146, 60, 0.5); }
+        .glow-spicy-2 { box-shadow: 0 0 35px rgba(244, 63, 94, 0.7); }
+        .glow-spicy-3 { box-shadow: 0 0 45px rgba(225, 29, 72, 0.9); }
+        .glow-spicy-4 { box-shadow: 0 0 55px rgba(168, 85, 247, 1); }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between p-2 sm:p-4 min-h-screen">
+
+    <!-- HEADER APP TITLE -->
+    <header class="w-full max-w-2xl flex items-center justify-between bg-red-950/70 border-2 border-red-600/40 backdrop-blur-md rounded-2xl px-4 py-3 shadow-2xl my-2">
+        <div class="flex items-center space-x-3">
+            <span class="text-3xl animate-bounce">🍲</span>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-400 to-red-500">
+                    마라탕 게임
+                </h1>
+                <p class="text-xs text-rose-200">"안녕! 나는 얼얼하고 맛있는 마라탕이야!" 🌶️</p>
+            </div>
+        </div>
+        
+        <!-- Quick Action Info -->
+        <div class="flex items-center space-x-2">
+            <button id="btn-open-custom" class="bg-gradient-to-r from-amber-500 to-rose-600 hover:scale-105 active:scale-95 text-white font-black text-xs sm:text-sm px-3 py-2 rounded-xl shadow-lg border border-amber-300 flex items-center space-x-1 transition">
+                <span>🥬 재료 직접 선택</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN MARATANG CANVAS / POT DISPLAY AREA -->
+    <main class="w-full max-w-2xl flex-1 flex flex-col items-center justify-center relative my-2">
+        
+        <!-- SPEECH BUBBLE FROM MARATANG -->
+        <div id="speech-bubble" class="z-20 mb-3 bg-amber-100 text-red-950 px-4 py-2 rounded-2xl border-2 border-rose-500 shadow-2xl font-black text-sm sm:text-base flex items-center space-x-2 transition-all duration-300 transform scale-100">
+            <span class="text-xl">🌶️</span>
+            <span id="speech-text">"원하는 재료를 가득 넣고, 매운 단계를 골라줘!"</span>
+        </div>
+
+        <!-- THE DYNAMIC POT CONTAINER -->
+        <div id="pot-wrapper" class="relative w-80 h-80 sm:w-96 sm:h-96 flex items-center justify-center transition-all duration-500">
+            
+            <!-- OUTER POT SHAPE & HANDLES (RENDERED VIA DYNAMIC SVG / CSS) -->
+            <div id="pot-body" class="relative w-full h-full rounded-full border-8 border-amber-600/80 shadow-2xl flex items-center justify-center transition-all duration-500 glow-spicy-2 overflow-hidden" style="background: #1c0a0c;">
+                
+                <!-- BROTH SURFACE WITH SPICE COLOR GRADIENT -->
+                <div id="broth-layer" class="absolute inset-2 rounded-full transition-all duration-700 flex items-center justify-center overflow-hidden" style="background: radial-gradient(circle, #e11d48 0%, #9f1239 70%, #4c0519 100%);">
+                    
+                    <!-- BUBBLES CONTAINER -->
+                    <div id="bubbles-container" class="absolute inset-0 pointer-events-none"></div>
+
+                    <!-- STEAM CONTAINER -->
+                    <div id="steam-container" class="absolute inset-0 pointer-events-none"></div>
+
+                    <!-- FLOATING INGREDIENTS CONTAINER -->
+                    <div id="ingredients-layer" class="absolute inset-4 flex flex-wrap items-center justify-center gap-2 p-4 overflow-hidden z-10">
+                        <!-- Dynamic Ingredient Badges will float here -->
+                    </div>
+
+                    <!-- BROTH SHINE/OIL RINGS -->
+                    <div class="absolute inset-0 border-8 border-rose-500/20 rounded-full pointer-events-none"></div>
+                    <div class="absolute w-3/4 h-3/4 border-4 border-amber-300/10 rounded-full pointer-events-none"></div>
+                </div>
+
+                <!-- POT DECORATIVE HANDLE LEFT -->
+                <div id="handle-left" class="absolute -left-6 top-1/2 -translate-y-1/2 w-8 h-16 bg-amber-700 border-2 border-amber-400 rounded-l-2xl shadow-xl z-0"></div>
+                <!-- POT DECORATIVE HANDLE RIGHT -->
+                <div id="handle-right" class="absolute -right-6 top-1/2 -translate-y-1/2 w-8 h-16 bg-amber-700 border-2 border-amber-400 rounded-r-2xl shadow-xl z-0"></div>
+            </div>
+        </div>
+
+        <!-- POT NAME & SPICY STATUS BADGE -->
+        <div class="mt-4 flex items-center space-x-3 bg-red-950/80 px-4 py-1.5 rounded-full border border-rose-500/50 shadow-lg text-xs sm:text-sm">
+            <span class="text-amber-300 font-bold" id="pot-name-display">🍲 놋쇠 전통 가마솥</span>
+            <span class="text-rose-400">|</span>
+            <span class="text-rose-300 font-black" id="spicy-level-display">🔥 2단계: 보통맛</span>
+        </div>
+    </main>
+
+    <!-- CONTROL PANEL & BUTTONS -->
+    <section class="w-full max-w-2xl bg-red-950/80 border-2 border-red-600/50 backdrop-blur-md rounded-3xl p-3 sm:p-4 shadow-2xl space-y-3 my-2">
+        
+        <!-- 1. SPICINESS LEVEL SELECTOR BUTTONS -->
+        <div>
+            <div class="text-xs text-rose-300 font-bold mb-1.5 flex items-center justify-between">
+                <span>🔥 마라탕 매운 단계 조절:</span>
+                <span id="spice-desc" class="text-amber-300 font-black">2단계 맛있게 매운 보통맛</span>
+            </div>
+            <div class="grid grid-cols-5 gap-1.5 sm:gap-2">
+                <button onclick="setSpiciness(0)" class="spice-btn bg-amber-100 text-stone-900 border-2 border-amber-300 hover:bg-amber-200 py-2 rounded-xl text-xs sm:text-sm font-black transition flex flex-col items-center shadow">
+                    <span>🥛 0단계</span>
+                    <span class="text-[10px] text-stone-600">백탕</span>
+                </button>
+                <button onclick="setSpiciness(1)" class="spice-btn bg-orange-500 text-white border-2 border-orange-300 hover:bg-orange-600 py-2 rounded-xl text-xs sm:text-sm font-black transition flex flex-col items-center shadow">
+                    <span>🌶️ 1단계</span>
+                    <span class="text-[10px] text-orange-100">순한맛</span>
+                </button>
+                <button onclick="setSpiciness(2)" class="spice-btn bg-rose-600 text-white border-2 border-rose-300 hover:bg-rose-700 py-2 rounded-xl text-xs sm:text-sm font-black transition flex flex-col items-center shadow ring-2 ring-amber-400">
+                    <span>🔥🔥 2단계</span>
+                    <span class="text-[10px] text-rose-100">보통맛</span>
+                </button>
+                <button onclick="setSpiciness(3)" class="spice-btn bg-red-700 text-white border-2 border-red-400 hover:bg-red-800 py-2 rounded-xl text-xs sm:text-sm font-black transition flex flex-col items-center shadow">
+                    <span>🔥🔥🔥 3단계</span>
+                    <span class="text-[10px] text-red-200">매운맛</span>
+                </button>
+                <button onclick="setSpiciness(4)" class="spice-btn bg-purple-900 text-purple-200 border-2 border-purple-400 hover:bg-purple-950 py-2 rounded-xl text-xs sm:text-sm font-black transition flex flex-col items-center shadow">
+                    <span>⚡ 4단계</span>
+                    <span class="text-[10px] text-purple-300">지옥마라</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. ACTION BUTTONS (RANDOM POT, RANDOM INGREDIENTS, EAT) -->
+        <div class="grid grid-cols-3 gap-2 pt-1">
+            <button id="btn-random-pot" class="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black text-xs sm:text-sm py-3 rounded-2xl border border-amber-300 shadow-xl active:scale-95 transition flex flex-col items-center justify-center space-y-0.5">
+                <span class="text-base sm:text-lg">🏺 냄비 랜덤</span>
+                <span class="text-[10px] text-amber-200">모양 & 디자인 변경</span>
+            </button>
+
+            <button id="btn-random-ingredients" class="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-black text-xs sm:text-sm py-3 rounded-2xl border border-rose-300 shadow-xl active:scale-95 transition flex flex-col items-center justify-center space-y-0.5">
+                <span class="text-base sm:text-lg">🎲 재료 무작위</span>
+                <span class="text-[10px] text-rose-200">랜덤 재료 팍팍!</span>
+            </button>
+
+            <button id="btn-eat-maratang" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm py-3 rounded-2xl border border-emerald-300 shadow-xl active:scale-95 transition flex flex-col items-center justify-center space-y-0.5">
+                <span class="text-base sm:text-lg">🥢 마라탕 먹기</span>
+                <span class="text-[10px] text-emerald-200">보글보글 맛보기!</span>
+            </button>
+        </div>
+
+    </section>
+
+    <!-- INGREDIENT SELECTION MODAL DRAWER -->
+    <div id="custom-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-slate-900 border-2 border-rose-500/60 w-full max-w-lg rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col max-h-[85vh]">
+            
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <span class="text-2xl">🥬</span>
+                    <h2 class="text-xl font-black text-amber-300">마라탕 재료 직접 선택하기</h2>
+                </div>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-white text-2xl font-black px-2">✕</button>
+            </div>
+
+            <!-- Modal Category Tabs -->
+            <div class="flex space-x-1 my-3 bg-slate-950 p-1 rounded-xl text-xs font-bold text-slate-300 overflow-x-auto">
+                <button onclick="filterCategory('all')" class="cat-tab px-3 py-1.5 rounded-lg bg-rose-600 text-white">전체</button>
+                <button onclick="filterCategory('meat')" class="cat-tab px-3 py-1.5 rounded-lg hover:bg-slate-800">🥩 고기류</button>
+                <button onclick="filterCategory('veg')" class="cat-tab px-3 py-1.5 rounded-lg hover:bg-slate-800">🥬 야채류</button>
+                <button onclick="filterCategory('noodle')" class="cat-tab px-3 py-1.5 rounded-lg hover:bg-slate-800">🍜 면/떡류</button>
+                <button onclick="filterCategory('special')" class="cat-tab px-3 py-1.5 rounded-lg hover:bg-slate-800">🍡 완자/토핑</button>
+            </div>
+
+            <!-- Ingredient Checkbox Grid -->
+            <div id="ingredient-grid" class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-2.5 pr-1 py-1">
+                <!-- Dynamic Checkbox Items injected via JS -->
+            </div>
+
+            <!-- Modal Footer Controls -->
+            <div class="pt-3 mt-2 border-t border-slate-800 flex justify-between items-center">
+                <div class="text-xs text-slate-400 font-bold">
+                    선택된 재료: <span id="modal-selected-count" class="text-amber-400 font-black text-sm">0</span>개
+                </div>
+                <div class="flex space-x-2">
+                    <button id="btn-clear-ingredients" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl">전체 해제</button>
+                    <button id="btn-apply-ingredients" class="px-5 py-2 bg-gradient-to-r from-rose-500 to-amber-500 hover:scale-105 active:scale-95 text-white font-black text-xs rounded-xl shadow-lg">냄비에 담기 완료!</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- AUDIO SYNTHESIZER & GAME LOGIC -->
+    <script>
+        // Web Audio API Synthesizer for Maratang SFX
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'bubble') {
+                // Plop / Bubble Sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300 + Math.random() * 250, now);
+                osc.frequency.exponentialRampToValueAtTime(800 + Math.random() * 200, now + 0.08);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'spice') {
+                // Sizzle / Fire Spark sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(600, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'pot_change') {
+                // Metallic / Ceramic Pot Clang
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.25);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'slurp') {
+                // Yummy Slurp / Eating Fanfare Sound
+                const notes = [400, 600, 800, 1000];
+                notes.forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.05);
+                    gain.gain.setValueAtTime(0.15, now + i * 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.1);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + i * 0.05);
+                    osc.stop(now + i * 0.05 + 0.12);
+                });
+            }
+        }
+
+        // MASTER INGREDIENT LIST DATABASE
+        const INGREDIENTS_DB = [
+            { id: 'beef', name: '소고기', category: 'meat', emoji: '🥩', bg: '#ef4444' },
+            { id: 'lamb', name: '양고기', category: 'meat', emoji: '🍖', bg: '#dc2626' },
+            { id: 'spam', name: '스팸/햄', category: 'meat', emoji: '🥓', bg: '#f87171' },
+            { id: 'sausage', name: '비엔나소세지', category: 'meat', emoji: '🌭', bg: '#fb923c' },
+            
+            { id: 'bokchoy', name: '청경채', category: 'veg', emoji: '🥬', bg: '#22c55e' },
+            { id: 'cabbage', name: '배추', category: 'veg', emoji: '🥗', bg: '#4ade80' },
+            { id: 'enoki', name: '팽이버섯', category: 'veg', emoji: '🍄', bg: '#fef08a' },
+            { id: 'woodear', name: '목이버섯', category: 'veg', emoji: '🖤', bg: '#334155' },
+            { id: 'coriander', name: '고수', category: 'veg', emoji: '🌿', bg: '#16a34a' },
+
+            { id: 'glass_noodle', name: '중국당면', category: 'noodle', emoji: '🍜', bg: '#fbbf24' },
+            { id: 'bunmoja', name: '분모자', category: 'noodle', emoji: '🍡', bg: '#fef08a' },
+            { id: 'corn_noodle', name: '옥수수면', category: 'noodle', emoji: '🍝', bg: '#eab308' },
+            { id: 'ricecake', name: '치즈떡', category: 'noodle', emoji: '🧀', bg: '#facc15' },
+
+            { id: 'octopus_ball', name: '문어완자', category: 'special', emoji: '🐙', bg: '#f43f5e' },
+            { id: 'fried_tofu', name: '유부', category: 'special', emoji: '🟨', bg: '#d97706' },
+            { id: 'puju', name: '푸주/건두부', category: 'special', emoji: '🍢', bg: '#ca8a04' },
+            { id: 'shrimp', name: '통새우', category: 'special', emoji: '🍤', bg: '#f97316' },
+            { id: 'crab_stick', name: '게살완자', category: 'special', emoji: '🦀', bg: '#f43f5e' }
+        ];
+
+        // POT VARIETIES DATABASE (NON-BORING RANDOM POTS)
+        const POT_VARIETIES = [
+            {
+                name: '🍲 놋쇠 전통 가마솥',
+                border: 'border-amber-600/90',
+                bodyBg: '#1c0a0c',
+                handleBg: 'bg-amber-700 border-amber-400',
+                shapeClass: 'rounded-full'
+            },
+            {
+                name: '🐱 귀여운 고양이 뚝배기',
+                border: 'border-stone-800',
+                bodyBg: '#0c0a09',
+                handleBg: 'bg-pink-500 border-pink-300 rounded-t-full',
+                shapeClass: 'rounded-full'
+            },
+            {
+                name: '👑 황금 팔각 마라냄비',
+                border: 'border-yellow-400',
+                bodyBg: '#291e08',
+                handleBg: 'bg-yellow-500 border-amber-200',
+                shapeClass: 'rounded-[2.5rem]'
+            },
+            {
+                name: '⚡ 네온 사이버 솥',
+                border: 'border-cyan-400',
+                bodyBg: '#030712',
+                handleBg: 'bg-fuchsia-600 border-cyan-300',
+                shapeClass: 'rounded-full'
+            },
+            {
+                name: '💖 사랑스러운 하트 냄비',
+                border: 'border-rose-400',
+                bodyBg: '#270811',
+                handleBg: 'bg-rose-500 border-pink-200',
+                shapeClass: 'rounded-[3rem]'
+            },
+            {
+                name: '🐉 마왕의 용문양 화로',
+                border: 'border-red-900',
+                bodyBg: '#180003',
+                handleBg: 'bg-red-950 border-rose-600',
+                shapeClass: 'rounded-3xl'
+            },
+            {
+                name: '🌌 우주 은하수 냄비',
+                border: 'border-indigo-500',
+                bodyBg: '#09051d',
+                handleBg: 'bg-purple-800 border-indigo-300',
+                shapeClass: 'rounded-full'
+            }
+        ];
+
+        // GAME STATE
+        let currentSpiciness = 2; // 0 ~ 4
+        let currentPotIdx = 0;
+        let selectedIngredientIds = ['beef', 'glass_noodle', 'bokchoy', 'enoki', 'octopus_ball', 'fried_tofu', 'bunmoja'];
+
+        // BROTH COLOR STYLES ACCORDING TO SPICINESS
+        const SPICE_BROTH_STYLES = [
+            {
+                // 0단계 백탕
+                bg: 'radial-gradient(circle, #fef08a 0%, #fef3c7 60%, #d97706 100%)',
+                glow: 'glow-spicy-0',
+                name: '🔥 0단계: 담백 백탕',
+                desc: '매운맛 0%! 고소하고 순수한 뽀얀 사골 백탕',
+                speech: '"0단계 백탕이야! 어린이도 부담 없이 고소하게 먹을 수 있어~"'
+            },
+            {
+                // 1단계 순한맛
+                bg: 'radial-gradient(circle, #fb923c 0%, #f97316 60%, #7c2d12 100%)',
+                glow: 'glow-spicy-1',
+                name: '🔥 1단계: 순한맛',
+                desc: '맛있게 은은한 살짝 매콤한 라면 수준!',
+                speech: '"1단계 순한맛! 혀끝이 살짝 알싸해지는 맛있는 매콤함이야!"'
+            },
+            {
+                // 2단계 보통맛
+                bg: 'radial-gradient(circle, #e11d48 0%, #be123c 60%, #4c0519 100%)',
+                glow: 'glow-spicy-2',
+                name: '🔥🔥 2단계: 보통맛',
+                desc: '마라 고수들이 가장 사랑하는 정통 보통맛!',
+                speech: '"2단계 보통맛! 얼얼한 화조유 기름과 매콤함의 황금 비율!"'
+            },
+            {
+                // 3단계 매운맛
+                bg: 'radial-gradient(circle, #dc2626 0%, #991b1b 60%, #450a0a 100%)',
+                glow: 'glow-spicy-3',
+                name: '🔥🔥🔥 3단계: 매운맛',
+                desc: '불닭 레벨! 땀이 송골송골 맺히는 얼얼한 매운맛!',
+                speech: '"3단계 매운맛! 쿨피스 준비해! 혀가 찌릿찌릿 마비될지도 몰라!"'
+            },
+            {
+                // 4단계 지옥마라
+                bg: 'radial-gradient(circle, #a855f7 0%, #7e22ce 50%, #3b0764 100%)',
+                glow: 'glow-spicy-4',
+                name: '⚡ 4단계: 얼얼 지옥마라',
+                desc: '마라 폭탄!! 화염과 보랏빛 얼얼함의 궁극 마라탕',
+                speech: '"4단계 극강의 얼얼함! 캡사이신과 화조유가 폭발하고 있어!! 🔥"'
+            }
+        ];
+
+        // RENDER FLOATING INGREDIENTS IN POT
+        function renderPotIngredients() {
+            const container = document.getElementById('ingredients-layer');
+            container.innerHTML = '';
+
+            if (selectedIngredientIds.length === 0) {
+                container.innerHTML = `
+                    <div class="text-amber-200/60 font-black text-sm text-center my-auto">
+                        냄비가 텅 비어있어냥! 😭<br>'재료 무작위' 또는 '재료 선택' 버튼을 눌러줘!
+                    </div>
+                `;
+                return;
+            }
+
+            selectedIngredientIds.forEach((id, idx) => {
+                const item = INGREDIENTS_DB.find(i => i.id === id);
+                if (!item) return;
+
+                const el = document.createElement('div');
+                el.className = 'floating-ingredient flex items-center space-x-1 px-2.5 py-1.5 rounded-full shadow-lg border border-white/30 text-white font-black text-xs sm:text-sm cursor-pointer hover:scale-110 active:scale-90';
+                el.style.backgroundColor = item.bg;
+                el.style.animationDelay = `${(idx * 0.25) % 2}s`;
+                el.innerHTML = `
+                    <span class="text-base">${item.emoji}</span>
+                    <span>${item.name}</span>
+                `;
+
+                // Click to remove individual ingredient
+                el.addEventListener('click', () => {
+                    playSound('bubble');
+                    selectedIngredientIds.splice(idx, 1);
+                    renderPotIngredients();
+                    updateSpeech('🌶️', `"${item.name}을(를) 냄비에서 뺐어!"`);
+                });
+
+                container.appendChild(el);
+            });
+        }
+
+        // GENERATE BUBBLE & STEAM EFFECTS
+        function createBrothParticles() {
+            const bubbleBox = document.getElementById('bubbles-container');
+            const steamBox = document.getElementById('steam-container');
+            
+            bubbleBox.innerHTML = '';
+            steamBox.innerHTML = '';
+
+            // Bubbles count based on spiciness
+            const bubbleCount = 8 + currentSpiciness * 4;
+            for (let i = 0; i < bubbleCount; i++) {
+                const b = document.createElement('div');
+                b.className = 'bubble';
+                const size = 6 + Math.random() * 14;
+                b.style.width = `${size}px`;
+                b.style.height = `${size}px`;
+                b.style.left = `${10 + Math.random() * 80}%`;
+                b.style.top = `${20 + Math.random() * 60}%`;
+                b.style.animationDelay = `${Math.random() * 2}s`;
+                b.style.animationDuration = `${1.2 + Math.random() * 1.5}s`;
+                bubbleBox.appendChild(b);
+            }
+
+            // Steam effects
+            for (let i = 0; i < 4; i++) {
+                const s = document.createElement('div');
+                s.className = 'steam';
+                s.style.width = `${60 + Math.random() * 60}px`;
+                s.style.height = `${60 + Math.random() * 60}px`;
+                s.style.left = `${15 + Math.random() * 70}%`;
+                s.style.top = `${10 + Math.random() * 50}%`;
+                s.style.animationDelay = `${Math.random() * 3}s`;
+                steamBox.appendChild(s);
+            }
+        }
+
+        // UPDATE SPICINESS UI
+        function setSpiciness(level) {
+            currentSpiciness = level;
+            playSound('spice');
+
+            const style = SPICE_BROTH_STYLES[level];
+            const broth = document.getElementById('broth-layer');
+            const potBody = document.getElementById('pot-body');
+
+            broth.style.background = style.bg;
+
+            // Update glow class
+            potBody.className = `relative w-full h-full rounded-full border-8 border-amber-600/80 shadow-2xl flex items-center justify-center transition-all duration-500 overflow-hidden ${style.glow}`;
+
+            document.getElementById('spicy-level-display').innerText = style.name;
+            document.getElementById('spice-desc').innerText = style.desc;
+
+            // Update active state on spice buttons
+            document.querySelectorAll('.spice-btn').forEach((btn, idx) => {
+                if (idx === level) {
+                    btn.classList.add('ring-2', 'ring-amber-400', 'scale-105');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-amber-400', 'scale-105');
+                }
+            });
+
+            createBrothParticles();
+            updateSpeech('🌶️', style.speech);
+        }
+
+        // RANDOM POT DESIGN GENERATOR
+        function randomizePot() {
+            playSound('pot_change');
+            currentPotIdx = (currentPotIdx + 1) % POT_VARIETIES.length;
+            const pot = POT_VARIETIES[currentPotIdx];
+
+            const potBody = document.getElementById('pot-body');
+            const handleL = document.getElementById('handle-left');
+            const handleR = document.getElementById('handle-right');
+
+            potBody.className = `relative w-full h-full border-8 shadow-2xl flex items-center justify-center transition-all duration-500 overflow-hidden ${pot.border} ${pot.shapeClass} ${SPICE_BROTH_STYLES[currentSpiciness].glow}`;
+            potBody.style.backgroundColor = pot.bodyBg;
+
+            handleL.className = `absolute -left-6 top-1/2 -translate-y-1/2 w-8 h-16 border-2 shadow-xl z-0 ${pot.handleBg}`;
+            handleR.className = `absolute -right-6 top-1/2 -translate-y-1/2 w-8 h-16 border-2 shadow-xl z-0 ${pot.handleBg}`;
+
+            document.getElementById('pot-name-display').innerText = pot.name;
+            updateSpeech('🏺', `"${pot.name}(으)로 냄비 변신 완료!"`);
+        }
+
+        // RANDOM INGREDIENT PICKER
+        function randomizeIngredients() {
+            playSound('bubble');
+            // Pick 5 to 9 random ingredients from DB
+            const count = 5 + Math.floor(Math.random() * 5);
+            const shuffled = [...INGREDIENTS_DB].sort(() => 0.5 - Math.random());
+            selectedIngredientIds = shuffled.slice(0, count).map(i => i.id);
+
+            renderPotIngredients();
+            updateSpeech('🎲', `"맛있는 재료 ${count}개가 무작위로 냄비에 풍덩!"`);
+        }
+
+        // EAT MARATANG ACTION
+        function eatMaratang() {
+            if (selectedIngredientIds.length === 0) {
+                updateSpeech('😱', '"냄비에 재료가 없어서 먹을 수 없어! 재료를 담아줘!"');
+                playSound('bubble');
+                return;
+            }
+
+            playSound('slurp');
+            
+            // Animation Pulse
+            const potWrapper = document.getElementById('pot-wrapper');
+            potWrapper.classList.add('scale-105');
+            setTimeout(() => potWrapper.classList.remove('scale-105'), 300);
+
+            const reviews = [
+                '"후루룩~! 국물이 진하고 얼얼함이 온몸에 퍼져나간다냥!"',
+                '"바삭한 유부와 쫀득한 중국당면의 환상 조화! 100점 만점에 100점!"',
+                '"캬~! 알싸한 마라 향이 뇌를 자극하는 최고의 맛이다냥!"',
+                '"얼얼한 화조유 기름과 야채의 식감이 진짜 끝내준다냥!"'
+            ];
+            const randomReview = reviews[Math.floor(Math.random() * reviews.length)];
+
+            updateSpeech('🥢', randomReview);
+        }
+
+        function updateSpeech(emoji, text) {
+            const box = document.getElementById('speech-bubble');
+            document.getElementById('speech-text').innerText = text;
+
+            box.classList.remove('scale-100');
+            box.classList.add('scale-95');
+            setTimeout(() => {
+                box.classList.remove('scale-95');
+                box.classList.add('scale-100');
+            }, 150);
+        }
+
+        // INGREDIENT MODAL DRAWER FUNCTIONS
+        function renderModalIngredientGrid(filter = 'all') {
+            const grid = document.getElementById('ingredient-grid');
+            grid.innerHTML = '';
+
+            const items = filter === 'all' 
+                ? INGREDIENTS_DB 
+                : INGREDIENTS_DB.filter(i => i.category === filter);
+
+            items.forEach(item => {
+                const isSelected = selectedIngredientIds.includes(item.id);
+                const card = document.createElement('div');
+                card.className = `p-2.5 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition ${
+                    isSelected ? 'bg-rose-950/80 border-rose-500 text-amber-300' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl">${item.emoji}</span>
+                        <span class="text-xs font-bold">${item.name}</span>
+                    </div>
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} class="w-4 h-4 accent-rose-500 pointer-events-none">
+                `;
+
+                card.addEventListener('click', () => {
+                    playSound('bubble');
+                    if (selectedIngredientIds.includes(item.id)) {
+                        selectedIngredientIds = selectedIngredientIds.filter(id => id !== item.id);
+                    } else {
+                        selectedIngredientIds.push(item.id);
+                    }
+                    renderModalIngredientGrid(filter);
+                    updateModalSelectedCount();
+                });
+
+                grid.appendChild(card);
+            });
+
+            updateModalSelectedCount();
+        }
+
+        function filterCategory(cat) {
+            document.querySelectorAll('.cat-tab').forEach(btn => {
+                btn.className = 'cat-tab px-3 py-1.5 rounded-lg hover:bg-slate-800';
+            });
+            event.target.className = 'cat-tab px-3 py-1.5 rounded-lg bg-rose-600 text-white';
+            renderModalIngredientGrid(cat);
+        }
+
+        function updateModalSelectedCount() {
+            document.getElementById('modal-selected-count').innerText = selectedIngredientIds.length;
+        }
+
+        // EVENT LISTENERS
+        document.getElementById('btn-random-pot').addEventListener('click', randomizePot);
+        document.getElementById('btn-random-ingredients').addEventListener('click', randomizeIngredients);
+        document.getElementById('btn-eat-maratang').addEventListener('click', eatMaratang);
+
+        // Modal Controls
+        const modal = document.getElementById('custom-modal');
+        document.getElementById('btn-open-custom').addEventListener('click', () => {
+            playSound('bubble');
+            renderModalIngredientGrid('all');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+        });
+
+        document.getElementById('btn-close-modal').addEventListener('click', () => {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        document.getElementById('btn-apply-ingredients').addEventListener('click', () => {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            renderPotIngredients();
+            updateSpeech('🥬', `"나만의 마라탕 재료 ${selectedIngredientIds.length}개 준비 완료!"`);
+        });
+
+        document.getElementById('btn-clear-ingredients').addEventListener('click', () => {
+            playSound('bubble');
+            selectedIngredientIds = [];
+            renderModalIngredientGrid('all');
+        });
+
+        // INIT ONLOAD
+        window.onload = function() {
+            setSpiciness(2);
+            renderPotIngredients();
+            createBrothParticles();
+        };
+    </script>
+</body>
+</html>

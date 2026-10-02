@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K-POP 아이돌 포카 꾸미기 - Fan Love Studio</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Pretendard:wght@400;600;800;900&display=swap');
+
+    * {
+      font-family: 'Pretendard', 'Gowun Dodum', sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Custom Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #f43f5e;
+      border-radius: 9999px;
+    }
+
+    /* Holographic Shining Card Effect */
+    .holo-card {
+      position: relative;
+      overflow: hidden;
+    }
+    .holo-card::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        115deg,
+        transparent 20%,
+        rgba(255, 255, 255, 0.3) 35%,
+        rgba(255, 182, 193, 0.4) 45%,
+        rgba(186, 85, 211, 0.4) 55%,
+        rgba(255, 255, 255, 0.3) 65%,
+        transparent 80%
+      );
+      transform: rotate(25deg) translateY(-100%);
+      transition: transform 0.8s ease;
+      pointer-events: none;
+    }
+    .holo-card:hover::after {
+      transform: rotate(25deg) translateY(100%);
+    }
+
+    /* Card Shuffling Pulse Animation */
+    @keyframes cardShuffle {
+      0% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.05) rotate(-5deg); }
+      50% { transform: scale(0.95) rotate(5deg); }
+      75% { transform: scale(1.08) rotate(-3deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .animate-shuffle {
+      animation: cardShuffle 0.6s ease-in-out infinite;
+    }
+
+    /* Lightstick Glow Animation */
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 0 15px rgba(244, 63, 94, 0.6), 0 0 30px rgba(244, 63, 94, 0.3); }
+      50% { box-shadow: 0 0 30px rgba(236, 72, 153, 0.9), 0 0 60px rgba(217, 70, 239, 0.6); }
+    }
+    .glow-lightstick {
+      animation: glowPulse 2s infinite ease-in-out;
+    }
+
+    /* Floating sticker dragging cursor */
+    .sticker-item {
+      cursor: grab;
+      touch-action: none;
+    }
+    .sticker-item:active {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-between p-2 sm:p-6 overflow-x-hidden">
+
+  <!-- Toast Notification Bar -->
+  <div id="toast" class="fixed top-5 z-50 bg-pink-900/90 border border-pink-500/50 text-pink-100 text-xs sm:text-sm px-5 py-2.5 rounded-full shadow-2xl backdrop-blur-md hidden transition-all duration-300 flex items-center space-x-2">
+    <i data-lucide="sparkles" class="w-4 h-4 text-pink-300 animate-spin"></i>
+    <span id="toast-message">덕질 메시지</span>
+  </div>
+
+  <!-- Header Banner -->
+  <header class="w-full max-w-4xl flex items-center justify-between py-3 px-4 bg-slate-900/80 border border-slate-800 rounded-2xl backdrop-blur-md shadow-xl mb-4">
+    <div class="flex items-center space-x-3">
+      <div class="bg-gradient-to-tr from-pink-500 via-rose-500 to-purple-600 p-2.5 rounded-xl shadow-lg shadow-pink-500/30 flex items-center justify-center">
+        <i data-lucide="heart-handshake" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-base sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-pink-300 via-purple-200 to-indigo-200 bg-clip-text text-transparent">
+          K-POP 최애 포카 꾸미기 ✨
+        </h1>
+        <p class="text-[11px] sm:text-xs text-pink-400 font-medium">아이브 · 뉴진스 · 에스파 · 르세라핌 · 블랙핑크 등 최애 걸그룹 모음</p>
+      </div>
+    </div>
+
+    <!-- Lightstick Cheer Button -->
+    <button onclick="cheerFanLight()" class="glow-lightstick bg-gradient-to-r from-pink-500 to-purple-600 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-1.5 active:scale-95 transition-transform text-white">
+      <i data-lucide="zap" class="w-4 h-4 fill-yellow-300 text-yellow-300"></i>
+      <span class="hidden sm:inline">응원봉</span>
+      <span id="cheer-count" class="bg-black/30 px-2 py-0.5 rounded-md text-[10px]">1,280</span>
+    </button>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="w-full max-w-4xl flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 items-start mb-6">
+
+    <!-- LEFT PANEL: Random Card Drawer & Info (5 Cols) -->
+    <section class="md:col-span-5 bg-slate-900/60 border border-slate-800/90 rounded-3xl p-5 flex flex-col items-center backdrop-blur-sm shadow-2xl relative">
+      
+      <div class="w-full flex justify-between items-center mb-4 border-b border-slate-800/80 pb-3">
+        <span class="text-xs font-bold text-pink-400 uppercase tracking-wider flex items-center gap-1">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 랜덤 아이돌 뽑기
+        </span>
+        <span id="idol-group-badge" class="bg-pink-500/20 text-pink-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-pink-500/30">
+          아이브 (IVE)
+        </span>
+      </div>
+
+      <!-- PHOTOCARD DISPLAY PREVIEW CARD -->
+      <div id="card-wrapper" class="relative w-64 h-[380px] rounded-2xl bg-slate-950 border-4 border-pink-500/40 shadow-2xl overflow-hidden holo-card transition-all duration-300 transform group">
+        <!-- Photo Image -->
+        <img id="idol-photo" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600" alt="Idol Photo" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+        
+        <!-- Frame Overlay -->
+        <div id="card-frame-overlay" class="absolute inset-0 pointer-events-none border-[12px] border-transparent transition-all"></div>
+
+        <!-- Stickers Layer Container -->
+        <div id="decor-stickers-container" class="absolute inset-0 overflow-hidden pointer-events-none">
+          <!-- Dynamically placed stickers will appear here -->
+        </div>
+
+        <!-- Idol Details Overlay Bar -->
+        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent p-4 flex flex-col justify-end text-left pointer-events-none z-10">
+          <div class="flex items-center space-x-2">
+            <span id="idol-name" class="text-lg font-black text-white drop-shadow-md">장원영</span>
+            <span id="idol-role" class="text-[10px] bg-purple-500/80 text-white font-bold px-1.5 py-0.5 rounded">센터 / 비주얼</span>
+          </div>
+          <p id="idol-quote" class="text-xs text-slate-300 mt-1 line-clamp-1 italic font-light">"오늘도 우리 최애님과 함께 행복한 하루! 💕"</p>
+        </div>
+      </div>
+
+      <!-- DRAW BUTTONS -->
+      <div class="w-full space-y-2 mt-5">
+        <button onclick="drawRandomIdol()" id="draw-btn" class="w-full py-3.5 bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 rounded-2xl font-black text-sm text-white shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 active:scale-98 transition-all flex items-center justify-center space-x-2">
+          <i data-lucide="dices" class="w-5 h-5"></i>
+          <span>랜덤 아이돌 카드 뽑기! 🎲</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="filterGroup('IVE')" class="py-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl text-xs text-pink-300 font-semibold transition-colors flex items-center justify-center gap-1">
+            <i data-lucide="star" class="w-3.5 h-3.5 text-pink-400"></i> 아이브만 뽑기
+          </button>
+          <button onclick="resetDeco()" class="py-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl text-xs text-slate-300 font-semibold transition-colors flex items-center justify-center gap-1">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> 꾸미기 초기화
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL: Photocard Decoration Studio (포꾸) (7 Cols) -->
+    <section class="md:col-span-7 bg-slate-900/60 border border-slate-800/90 rounded-3xl p-5 flex flex-col space-y-5 backdrop-blur-sm shadow-2xl">
+      
+      <!-- Top Studio Title -->
+      <div class="flex justify-between items-center border-b border-slate-800/80 pb-3">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="palette" class="w-5 h-5 text-pink-400"></i>
+          <h2 class="text-sm font-extrabold text-white">포토카드 데코레이션 스튜디오</h2>
+        </div>
+        <span class="text-[11px] text-slate-400">스티커를 터치하여 카드에 추가하세요!</span>
+      </div>
+
+      <!-- DECORATION TAB MENU -->
+      <div class="flex space-x-2 border-b border-slate-800 pb-2 overflow-x-auto">
+        <button onclick="switchDecoTab('stickers')" id="tab-stickers" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-pink-500 text-white transition-all flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="heart" class="w-3.5 h-3.5"></i>
+          <span>스티커</span>
+        </button>
+        <button onclick="switchDecoTab('frames')" id="tab-frames" class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="square" class="w-3.5 h-3.5"></i>
+          <span>프레임</span>
+        </button>
+        <button onclick="switchDecoTab('text')" id="tab-text" class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all flex items-center space-x-1.5 whitespace-nowrap">
+          <i data-lucide="type" class="w-3.5 h-3.5"></i>
+          <span>응원 멘트</span>
+        </button>
+      </div>
+
+      <!-- TAB CONTENT 1: STICKERS TRAY -->
+      <div id="content-stickers" class="space-y-3">
+        <div class="grid grid-cols-5 gap-2">
+          <!-- Emoji / Symbol Stickers -->
+          <button onclick="addSticker('💖')" class="p-3 bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 rounded-xl text-2xl active:scale-90 transition-transform">💖</button>
+          <button onclick="addSticker('👑')" class="p-3 bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 rounded-xl text-2xl active:scale-90 transition-transform">👑</button>
+          <button onclick="addSticker('🎀')" class="p-3 bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 rounded-xl text-2xl active:scale-90 transition-transform">🎀</button>
+          <button onclick="addSticker('✨')" class="p-3 bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 rounded-xl text-2xl active:scale-90 transition-transform">✨</button>
+          <button onclick="addSticker('🐱')" class="p-3 bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 rounded-xl text-2xl active:scale-90 transition-transform">🐱</button>
+          <button onclick="addSticker('🐰')" class="p-3 bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 rounded-xl text-2xl active:scale-90 transition-transform">🐰</button>
+          <button onclick="addSticker('🔥')" class="p-3 bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 rounded-xl text-2xl active:scale-90 transition-transform">🔥</button>
+          <button onclick="addSticker('🌸')" class="p-3 bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 rounded-xl text-2xl active:scale-90 transition-transform">🌸</button>
+          <button onclick="addSticker('🍀')" class="p-3 bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 rounded-xl text-2xl active:scale-90 transition-transform">🍀</button>
+          <button onclick="addSticker('💎')" class="p-3 bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 rounded-xl text-2xl active:scale-90 transition-transform">💎</button>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800">
+          <span class="text-xs font-bold text-slate-400 block mb-2">덕질 전용 배지 스티커</span>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="addBadgeSticker('최애 ❤️', 'bg-pink-600 text-white')" class="px-3 py-1.5 bg-pink-600 rounded-full text-xs font-extrabold shadow active:scale-95 transition-transform">최애 ❤️</button>
+            <button onclick="addBadgeSticker('입덕완료 ✨', 'bg-purple-600 text-white')" class="px-3 py-1.5 bg-purple-600 rounded-full text-xs font-extrabold shadow active:scale-95 transition-transform">입덕완료 ✨</button>
+            <button onclick="addBadgeSticker('갓벽 👑', 'bg-amber-500 text-black')" class="px-3 py-1.5 bg-amber-500 text-black rounded-full text-xs font-extrabold shadow active:scale-95 transition-transform">갓벽 👑</button>
+            <button onclick="addBadgeSticker('얼굴천재 💖', 'bg-rose-500 text-white')" class="px-3 py-1.5 bg-rose-500 rounded-full text-xs font-extrabold shadow active:scale-95 transition-transform">얼굴천재 💖</button>
+            <button onclick="addBadgeSticker('IVE DIVE 🌊', 'bg-blue-600 text-white')" class="px-3 py-1.5 bg-blue-600 rounded-full text-xs font-extrabold shadow active:scale-95 transition-transform">IVE DIVE 🌊</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT 2: FRAMES -->
+      <div id="content-frames" class="hidden space-y-3">
+        <span class="text-xs font-bold text-slate-400 block mb-2">포카 테두리 선택</span>
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="applyFrame('none')" class="p-3 bg-slate-800/80 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:border-pink-500">기본 (없음)</button>
+          <button onclick="applyFrame('pink-lace')" class="p-3 bg-slate-800/80 border-2 border-pink-400 rounded-xl text-xs font-bold text-pink-300 hover:scale-105 transition-transform">핑크 레이스</button>
+          <button onclick="applyFrame('holo-purple')" class="p-3 bg-slate-800/80 border-2 border-purple-400 rounded-xl text-xs font-bold text-purple-300 hover:scale-105 transition-transform">홀로그램 퍼플</button>
+          <button onclick="applyFrame('gold-shine')" class="p-3 bg-slate-800/80 border-2 border-amber-400 rounded-xl text-xs font-bold text-amber-300 hover:scale-105 transition-transform">골드 크라운</button>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT 3: CUSTOM FAN MESSAGE -->
+      <div id="content-text" class="hidden space-y-3">
+        <label class="text-xs font-bold text-slate-400 block">최애에게 남길 응원 한마디</label>
+        <div class="flex space-x-2">
+          <input
+            type="text"
+            id="custom-fan-input"
+            placeholder="예: 원영아 영원히 사란해~💕"
+            class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-pink-500"
+          />
+          <button onclick="addCustomTextSticker()" class="px-4 py-2.5 bg-pink-500 rounded-xl text-xs font-bold text-white hover:bg-pink-600 active:scale-95 transition-all">
+            붙이기
+          </button>
+        </div>
+      </div>
+
+      <!-- FAN CHEER CHAT BOARD -->
+      <div class="pt-4 border-t border-slate-800 flex flex-col space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-extrabold text-pink-300 flex items-center gap-1">
+            <i data-lucide="message-square-heart" class="w-4 h-4"></i> 실시간 덕질 응원 보드
+          </span>
+          <span class="text-[10px] text-slate-400">방금 올라온 응원글</span>
+        </div>
+
+        <div id="fan-cheer-list" class="h-28 overflow-y-auto space-y-2 bg-slate-950/60 rounded-2xl p-3 border border-slate-800/80 text-xs">
+          <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Cheer Input -->
+        <form onsubmit="submitFanCheer(event)" class="flex space-x-2">
+          <input
+            type="text"
+            id="cheer-input"
+            placeholder="최애님에게 실시간 응원 메시지 보내기..."
+            class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-pink-500"
+          />
+          <button type="submit" class="px-3.5 py-2 bg-gradient-to-r from-pink-500 to-rose-600 rounded-xl text-xs font-bold text-white flex items-center justify-center">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          </button>
+        </form>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="w-full max-w-4xl py-3 text-center border-t border-slate-800/80 text-[11px] text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+    <span>K-POP Idol Photocard Fan App © 2026 • Dedicated to all K-POP Lovers</span>
+    <div class="flex items-center space-x-3 text-pink-400">
+      <span class="cursor-pointer hover:underline" onclick="showToast('아이브 장원영, 안유진 카드가 등장 중!')">#IVE</span>
+      <span class="cursor-pointer hover:underline" onclick="showToast('뉴진스 민지, 하니 카드가 등장 중!')">#NewJeans</span>
+      <span class="cursor-pointer hover:underline" onclick="showToast('에스파 카리나, 윈터 카드가 등장 중!')">#aespa</span>
+      <span class="cursor-pointer hover:underline" onclick="showToast('르세라핌 채원 카드가 등장 중!')">#LE_SSERAFIM</span>
+    </div>
+  </footer>
+
+  <script>
+    // K-POP Girl Group Members Dataset
+    const KPOP_IDOLS = [
+      {
+        id: 'ive_wonyoung',
+        group: '아이브 (IVE)',
+        groupKey: 'IVE',
+        name: '장원영',
+        role: '센터 / 비주얼',
+        quote: '"오늘도 내 자신을 사랑하자! 갓생 살기 💕"',
+        badgeBg: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+        photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600'
+      },
+      {
+        id: 'ive_yujin',
+        group: '아이브 (IVE)',
+        groupKey: 'IVE',
+        name: '안유진',
+        role: '리더 / 메인보컬',
+        quote: '"DIVE 여러분, 오늘 하루도 힘내세요! 🔥"',
+        badgeBg: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+        photo: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=600'
+      },
+      {
+        id: 'ive_rei',
+        group: '아이브 (IVE)',
+        groupKey: 'IVE',
+        name: '레이',
+        role: '래퍼 / 큐티 담당',
+        quote: '"콩순이 레이가 응원할게요 🎀"',
+        badgeBg: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+        photo: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=600'
+      },
+      {
+        id: 'nj_minji',
+        group: '뉴진스 (NewJeans)',
+        groupKey: 'NJ',
+        name: '민지',
+        role: '리더 / 보컬',
+        quote: '"버니즈~ 오늘도 행복한 하루 보내기! 🐰"',
+        badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+        photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=600'
+      },
+      {
+        id: 'nj_hanni',
+        group: '뉴진스 (NewJeans)',
+        groupKey: 'NJ',
+        name: '하니',
+        role: '메인보컬 / 댄스',
+        quote: '"Hype Boy 들으면서 신나게 파이팅! ✨"',
+        badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+        photo: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=600'
+      },
+      {
+        id: 'aespa_karina',
+        group: '에스파 (aespa)',
+        groupKey: 'AESPA',
+        name: '카리나',
+        role: '리더 / 메인댄서',
+        quote: '"MY들 카리나가 오직 당신만을 응원해요 💙"',
+        badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+        photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600'
+      },
+      {
+        id: 'aespa_winter',
+        group: '에스파 (aespa)',
+        groupKey: 'AESPA',
+        name: '윈터',
+        role: '메인보컬 / 리드댄서',
+        quote: '"오늘도 레전드 무대 보여줄게요 ❄️"',
+        badgeBg: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+        photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=600'
+      },
+      {
+        id: 'ls_chaewon',
+        group: '르세라핌 (LE SSERAFIM)',
+        groupKey: 'LS',
+        name: '김채원',
+        role: '리더 / 리드보컬',
+        quote: '"FEARNOT 여러분 사랑해요! 피어나~🌸"',
+        badgeBg: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+        photo: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&q=80&w=600'
+      }
+    ];
+
+    let currentIdolIndex = 0;
+    let cheerCount = 1280;
+    let stickerCount = 0;
+
+    // Initial Fan Cheer Board Messages
+    let cheerMessages = [
+      { name: 'DIVE_러브', text: '원영아 오늘도 완벽 비주얼 최고야 😭💖', time: '방금 전' },
+      { name: '카리나덕후', text: '에스파 신곡 무대 보고 심장 멈춤...⚡', time: '1분 전' },
+      { name: '버니즈_01', text: '뉴진스 민지 음색 미쳤다 진짜 🐰', time: '3분 전' }
+    ];
+
+    // Helper: Toast Message
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.innerText = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2500);
+    }
+
+    // Draw Random Idol
+    function drawRandomIdol() {
+      const cardWrapper = document.getElementById('card-wrapper');
+      cardWrapper.classList.add('animate-shuffle');
+
+      // Random Confetti Effect on Draw
+      confetti({
+        particleCount: 40,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ['#f43f5e', '#ec4899', '#a855f7']
+      });
+
+      setTimeout(() => {
+        let newIndex;
+        do {
+          newIndex = Math.floor(Math.random() * KPOP_IDOLS.length);
+        } while (newIndex === currentIdolIndex && KPOP_IDOLS.length > 1);
+
+        currentIdolIndex = newIndex;
+        renderIdolCard(KPOP_IDOLS[currentIdolIndex]);
+        cardWrapper.classList.remove('animate-shuffle');
+
+        showToast(`🎉 ✨ [${KPOP_IDOLS[currentIdolIndex].group}] ${KPOP_IDOLS[currentIdolIndex].name} 포카 당첨!`);
+      }, 500);
+    }
+
+    // Filter Group to IVE
+    function filterGroup(groupKey) {
+      const filtered = KPOP_IDOLS.filter(i => i.groupKey === groupKey);
+      const randomPicked = filtered[Math.floor(Math.random() * filtered.length)];
+      currentIdolIndex = KPOP_IDOLS.findIndex(i => i.id === randomPicked.id);
+      renderIdolCard(randomPicked);
+      showToast(`🌟 아이브(IVE) 멤버 [${randomPicked.name}] 카드가 나왔습니다!`);
+    }
+
+    // Render Idol Info
+    function renderIdolCard(idol) {
+      document.getElementById('idol-photo').src = idol.photo;
+      document.getElementById('idol-name').innerText = idol.name;
+      document.getElementById('idol-role').innerText = idol.role;
+      document.getElementById('idol-quote').innerText = idol.quote;
+
+      const badge = document.getElementById('idol-group-badge');
+      badge.innerText = idol.group;
+      badge.className = `text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${idol.badgeBg}`;
+    }
+
+    // Switch Decoration Tabs
+    function switchDecoTab(tab) {
+      ['stickers', 'frames', 'text'].forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        const content = document.getElementById(`content-${t}`);
+        if (t === tab) {
+          btn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-pink-500 text-white transition-all flex items-center space-x-1.5 whitespace-nowrap';
+          content.classList.remove('hidden');
+        } else {
+          btn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all flex items-center space-x-1.5 whitespace-nowrap';
+          content.classList.add('hidden');
+        }
+      });
+    }
+
+    // Add Emoji Sticker to Card
+    function addSticker(emoji) {
+      const container = document.getElementById('decor-stickers-container');
+      const sticker = document.createElement('div');
+      stickerCount++;
+      
+      const randomX = Math.floor(Math.random() * 160) + 20;
+      const randomY = Math.floor(Math.random() * 220) + 20;
+
+      sticker.className = 'absolute text-3xl cursor-pointer pointer-events-auto transform hover:scale-125 transition-transform active:scale-95 text-drop-shadow select-none';
+      sticker.style.left = `${randomX}px`;
+      sticker.style.top = `${randomY}px`;
+      sticker.innerText = emoji;
+
+      // Click sticker to remove
+      sticker.onclick = function () {
+        sticker.remove();
+        showToast('스티커가 삭제되었습니다.');
+      };
+
+      container.appendChild(sticker);
+      showToast('스티커가 추가되었습니다! (클릭하면 삭제)');
+    }
+
+    // Add Badge Sticker
+    function addBadgeSticker(text, colorClass) {
+      const container = document.getElementById('decor-stickers-container');
+      const badge = document.createElement('div');
+
+      const randomY = Math.floor(Math.random() * 180) + 40;
+
+      badge.className = `absolute px-2.5 py-1 rounded-full text-[10px] font-extrabold shadow-lg cursor-pointer pointer-events-auto transition-transform hover:scale-110 ${colorClass}`;
+      badge.style.left = '20px';
+      badge.style.top = `${randomY}px`;
+      badge.innerText = text;
+
+      badge.onclick = function () {
+        badge.remove();
+        showToast('배지 스티커가 삭제되었습니다.');
+      };
+
+      container.appendChild(badge);
+      showToast('배지 스티커 추가완료!');
+    }
+
+    // Apply Frame Overlay
+    function applyFrame(type) {
+      const frameOverlay = document.getElementById('card-frame-overlay');
+      if (type === 'pink-lace') {
+        frameOverlay.className = 'absolute inset-0 pointer-events-none border-[14px] border-pink-400/80 rounded-2xl shadow-inner';
+      } else if (type === 'holo-purple') {
+        frameOverlay.className = 'absolute inset-0 pointer-events-none border-[14px] border-purple-500/80 rounded-2xl shadow-[0_0_20px_rgba(168,85,247,0.8)]';
+      } else if (type === 'gold-shine') {
+        frameOverlay.className = 'absolute inset-0 pointer-events-none border-[14px] border-amber-400/80 rounded-2xl shadow-[0_0_20px_rgba(251,191,36,0.8)]';
+      } else {
+        frameOverlay.className = 'absolute inset-0 pointer-events-none border-[12px] border-transparent';
+      }
+      showToast('프레임 스타일 적용 완료!');
+    }
+
+    // Custom Text Sticker
+    function addCustomTextSticker() {
+      const input = document.getElementById('custom-fan-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const container = document.getElementById('decor-stickers-container');
+      const msgTag = document.createElement('div');
+      msgTag.className = 'absolute bg-black/70 backdrop-blur-md text-pink-300 border border-pink-500/50 px-3 py-1 rounded-xl text-xs font-bold shadow-2xl cursor-pointer pointer-events-auto';
+      msgTag.style.left = '15px';
+      msgTag.style.top = '150px';
+      msgTag.innerText = text;
+
+      msgTag.onclick = () => msgTag.remove();
+      container.appendChild(msgTag);
+
+      input.value = '';
+      showToast('응원 멘트 스티커 추가 완료!');
+    }
+
+    // Reset All Decorations
+    function resetDeco() {
+      document.getElementById('decor-stickers-container').innerHTML = '';
+      applyFrame('none');
+      showToast('모든 꾸미기 요소가 초기화되었습니다.');
+    }
+
+    // Lightstick Cheer Action
+    function cheerFanLight() {
+      cheerCount++;
+      document.getElementById('cheer-count').innerText = cheerCount.toLocaleString();
+
+      confetti({
+        particleCount: 25,
+        spread: 50,
+        origin: { y: 0.2 },
+        colors: ['#f43f5e', '#facc15', '#a855f7']
+      });
+
+      showToast('💖 응원봉을 흔들어 최애에게 사랑을 보냈습니다!!');
+    }
+
+    // Submit Fan Cheer Message
+    function submitFanCheer(e) {
+      e.preventDefault();
+      const input = document.getElementById('cheer-input');
+      const val = input.value.trim();
+      if (!val) return;
+
+      cheerMessages.unshift({
+        name: '최애덕후_나',
+        text: val,
+        time: '방금 전'
+      });
+
+      input.value = '';
+      renderCheerBoard();
+      showToast('응원글이 등록되었습니다! 🎉');
+    }
+
+    function renderCheerBoard() {
+      const list = document.getElementById('fan-cheer-list');
+      list.innerHTML = cheerMessages.map(m => `
+        <div class="flex justify-between items-start border-b border-slate-900 pb-1.5">
+          <div>
+            <span class="font-bold text-pink-400 mr-1.5">${m.name}:</span>
+            <span class="text-slate-200">${m.text}</span>
+          </div>
+          <span class="text-[9px] text-slate-500 whitespace-nowrap ml-2">${m.time}</span>
+        </div>
+      `).join('');
+    }
+
+    // App Initialization
+    window.onload = function () {
+      lucide.createIcons();
+      renderIdolCard(KPOP_IDOLS[0]);
+      renderCheerBoard();
+    };
+  </script>
+</body>
+</html>

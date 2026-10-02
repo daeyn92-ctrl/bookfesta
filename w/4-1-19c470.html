@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>우리 친구 보스 - 냥코 보스 군단 디펜스 🐱🔥</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@500;700;900&display=swap" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            black: ['"Black Han Sans"', 'sans-serif'],
+            sans: ['"Noto Sans KR"', 'sans-serif']
+          },
+          colors: {
+            boss: {
+              gold: '#f59e0b',
+              purple: '#8b5cf6',
+              cyan: '#06b6d4',
+              red: '#ef4444',
+              dark: '#0f172a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #1e1b4b 0%, #090d16 100%);
+      color: #f8fafc;
+      overflow: hidden;
+    }
+
+    /* Glow effect for main canvas frame */
+    .game-border {
+      box-shadow: 0 0 35px rgba(6, 182, 212, 0.4), inset 0 0 15px rgba(139, 92, 246, 0.3);
+    }
+
+    /* Pulse animation for ready status */
+    @keyframes pulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.8)); }
+      50% { filter: drop-shadow(0 0 18px rgba(245, 158, 11, 1)); }
+    }
+
+    .pulse-glow {
+      animation: pulseGlow 1.5s infinite;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #f59e0b;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between items-center font-sans overflow-hidden">
+
+  <!-- TOP HEADER HUD -->
+  <header class="w-full max-w-5xl px-4 py-2 mt-2 flex items-center justify-between bg-slate-900/90 border border-cyan-500/30 rounded-2xl backdrop-blur-md z-20 shadow-xl">
+    <!-- Game Title Logo -->
+    <div class="flex items-center space-x-2">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-purple-600 p-0.5 shadow-lg flex items-center justify-center">
+        <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center text-yellow-400 text-lg font-black">
+          👹
+        </div>
+      </div>
+      <div>
+        <h1 class="text-base sm:text-xl font-black font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-cyan-300 to-purple-400">
+          우리 친구 보스
+        </h1>
+        <p class="text-[10px] text-cyan-300/80 font-bold">최강 냥코 보스 군단 x 악당 소탕 대작전!</p>
+      </div>
+    </div>
+
+    <!-- Stats & Currency HUD -->
+    <div class="flex items-center space-x-3 sm:space-x-6">
+      <!-- Player Gold / Wallet -->
+      <div class="flex items-center space-x-2 bg-slate-950/80 border border-yellow-500/50 px-3 py-1.5 rounded-xl shadow-inner">
+        <i class="fa-solid fa-coins text-yellow-400 text-sm animate-bounce"></i>
+        <div class="flex flex-col">
+          <span class="text-[9px] text-slate-400 font-bold uppercase">소환 자금</span>
+          <span id="hud-money" class="text-xs sm:text-sm font-black text-yellow-300 font-mono">0 / 2000</span>
+        </div>
+      </div>
+
+      <!-- User Gems/Coins for Upgrades -->
+      <div class="flex items-center space-x-2 bg-slate-950/80 border border-cyan-500/50 px-3 py-1.5 rounded-xl shadow-inner">
+        <i class="fa-solid fa-gem text-cyan-400 text-sm"></i>
+        <div class="flex flex-col">
+          <span class="text-[9px] text-slate-400 font-bold uppercase">보스 보석</span>
+          <span id="hud-gems" class="text-xs sm:text-sm font-black text-cyan-300 font-mono">1,500</span>
+        </div>
+      </div>
+
+      <!-- Boss Lab Upgrade Button -->
+      <button onclick="toggleLabModal()" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-3 py-1.5 rounded-xl font-extrabold text-xs shadow-lg flex items-center space-x-1.5 active:scale-95 transition-all">
+        <i class="fa-solid fa-flask text-yellow-300"></i>
+        <span class="hidden sm:inline">보스 연구소</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN GAME CANVAS CONTAINER -->
+  <main class="relative w-full max-w-5xl flex-1 my-2 flex flex-col justify-center items-center px-2">
+    <div class="relative w-full h-full max-h-[520px] rounded-3xl overflow-hidden border-2 border-cyan-500/40 game-border bg-slate-950 shadow-2xl flex items-center justify-center">
+      
+      <!-- Canvas Element -->
+      <canvas id="gameCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+      <!-- BASE HP OVERLAY BARS -->
+      <!-- Player Castle HP -->
+      <div class="absolute top-3 left-3 bg-slate-900/90 border border-cyan-500/60 rounded-2xl p-2 px-3 backdrop-blur-md flex items-center space-x-2 shadow-lg">
+        <div class="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center font-black text-sm">
+          🏰
+        </div>
+        <div>
+          <div class="flex justify-between text-[10px] font-bold text-cyan-300">
+            <span>아군 보스 요새</span>
+            <span id="player-base-hp-text">10000 / 10000</span>
+          </div>
+          <div class="w-28 sm:w-36 h-2.5 bg-slate-950 rounded-full overflow-hidden border border-cyan-500/30 mt-0.5">
+            <div id="player-base-hp-bar" class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 w-full transition-all duration-300"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enemy Castle HP -->
+      <div class="absolute top-3 right-3 bg-slate-900/90 border border-red-500/60 rounded-2xl p-2 px-3 backdrop-blur-md flex items-center space-x-2 shadow-lg">
+        <div>
+          <div class="flex justify-between text-[10px] font-bold text-red-300">
+            <span id="enemy-base-hp-text">15000 / 15000</span>
+            <span>악당 보스 성</span>
+          </div>
+          <div class="w-28 sm:w-36 h-2.5 bg-slate-950 rounded-full overflow-hidden border border-red-500/30 mt-0.5">
+            <div id="enemy-base-hp-bar" class="h-full bg-gradient-to-r from-red-600 to-pink-500 w-full transition-all duration-300"></div>
+          </div>
+        </div>
+        <div class="w-8 h-8 rounded-xl bg-red-500/20 text-red-400 border border-red-400/40 flex items-center justify-center font-black text-sm">
+          💀
+        </div>
+      </div>
+
+      <!-- Boss Cannon Ultimate Ability Button -->
+      <button id="btn-ultimate-cannon" onclick="fireUltimateCannon()" class="absolute bottom-3 right-3 bg-gradient-to-r from-yellow-500 via-amber-500 to-red-600 hover:brightness-110 text-slate-950 font-black px-4 py-2.5 rounded-2xl shadow-xl flex items-center space-x-2 border border-yellow-300/80 active:scale-95 transition-all pulse-glow">
+        <i class="fa-solid fa-wand-magic-sparkles text-lg animate-spin"></i>
+        <div class="flex flex-col text-left">
+          <span class="text-[9px] uppercase tracking-wider text-slate-900 font-extrabold">보스 필살기</span>
+          <span class="text-xs font-black">신성한 레이저 포!</span>
+        </div>
+      </button>
+
+    </div>
+  </main>
+
+  <!-- BOTTOM BOSS SUMMON & WORKER CAT CONTROL BAR -->
+  <footer class="w-full max-w-5xl px-3 py-2 mb-2 bg-slate-900/90 border border-purple-500/30 rounded-2xl backdrop-blur-md z-20 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shadow-2xl">
+    
+    <!-- Worker Wallet Upgrade Button -->
+    <button id="btn-wallet-upgrade" onclick="upgradeWallet()" class="w-full sm:w-auto bg-gradient-to-tr from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-slate-950 px-3 py-2 rounded-xl font-black text-xs shadow-md flex items-center justify-center space-x-2 active:scale-95 transition-all shrink-0">
+      <i class="fa-solid fa-vault text-base"></i>
+      <div class="flex flex-col text-left">
+        <span class="text-[9px] text-amber-950 font-extrabold">지갑 효율 강화</span>
+        <span id="wallet-cost-text" class="text-xs">Lv.1 ($100)</span>
+      </div>
+    </button>
+
+    <!-- Boss Unit Summon Buttons Grid -->
+    <div id="boss-summon-deck" class="flex-1 grid grid-cols-5 gap-1.5 sm:gap-2">
+      <!-- Dynamically generated via JavaScript -->
+    </div>
+  </footer>
+
+  <!-- BOSS LAB UPGRADE MODAL -->
+  <div id="lab-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-2xl bg-slate-900 border-2 border-purple-500/50 rounded-3xl p-5 shadow-2xl relative flex flex-col space-y-4 max-h-[90vh] overflow-y-auto">
+      
+      <!-- Close Button -->
+      <button onclick="toggleLabModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <!-- Modal Header -->
+      <div class="flex items-center space-x-3 pb-3 border-b border-slate-800">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-500 to-cyan-400 p-0.5 flex items-center justify-center">
+          <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-purple-400 text-xl font-black">
+            🧪
+          </div>
+        </div>
+        <div>
+          <h2 class="text-lg font-black text-slate-100">아군 보스 강화 연구소</h2>
+          <p class="text-xs text-slate-400">보석을 사용해 내 편이 된 최강 보스 캐릭터들을 능력치 UP 시키세요!</p>
+        </div>
+      </div>
+
+      <!-- Boss Upgrade Cards List -->
+      <div id="lab-boss-list" class="space-y-3">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ===================================================================
+       1. GAME DATA & BOSS CHARACTER DEFINITIONS (초강력 보스 스펙)
+       =================================================================== */
+    const BOSS_SPECS = [
+      {
+        id: 'bahamut',
+        name: '각성한 바하무트',
+        title: '초고속 멸망의 드래곤',
+        cost: 450,
+        cooldown: 5, // sec
+        hp: 4200,
+        atk: 850,
+        range: 45,
+        speed: 3.2,
+        attackSpeed: 45, // frames
+        color: '#ec4899', // Pink glow
+        auraColor: '#8b5cf6',
+        icon: '🐉',
+        level: 1,
+        upgradeCost: 200,
+        description: '압도적인 이동 속도로 적진을 단숨에 초토화하는 근접 대미지 폭격기!'
+      },
+      {
+        id: 'nyandam',
+        name: '파멸의 야옹마',
+        title: '초장거리 레이저 황제',
+        cost: 650,
+        cooldown: 8,
+        hp: 6800,
+        atk: 1200,
+        range: 220,
+        speed: 1.2,
+        attackSpeed: 90,
+        color: '#ef4444',
+        auraColor: '#dc2626',
+        icon: '👑',
+        level: 1,
+        upgradeCost: 300,
+        description: '후방에서 묵직한 마왕 메테오 레이저를 발사하는 초장거리 딜러.'
+      },
+      {
+        id: 'bunbun',
+        name: '전설의 맴매 선생',
+        title: '연속 펀치 연속 타격가',
+        cost: 350,
+        cooldown: 4,
+        hp: 7500,
+        atk: 480,
+        range: 50,
+        speed: 2.1,
+        attackSpeed: 25,
+        color: '#f59e0b',
+        auraColor: '#d97706',
+        icon: '🥊',
+        level: 1,
+        upgradeCost: 150,
+        description: '쉴 새 없이 난타하는 펀치 폭풍으로 최전방을 든든하게 지켜줍니다!'
+      },
+      {
+        id: 'catgod',
+        name: '전지전능 고양이 신',
+        title: '신성한 광범위 천벌',
+        cost: 900,
+        cooldown: 12,
+        hp: 11000,
+        atk: 2200,
+        range: 280,
+        speed: 0.9,
+        attackSpeed: 110,
+        color: '#38bdf8',
+        auraColor: '#0ea5e9',
+        icon: '⚡',
+        level: 1,
+        upgradeCost: 500,
+        description: '전장을 덮치는 하이퍼 번개 블래스터로 수많은 악당을 일격 폐사!'
+      },
+      {
+        id: 'titan',
+        name: '기가 가시란',
+        title: '충격파 범위 밀치기 탱커',
+        cost: 550,
+        cooldown: 6,
+        hp: 12500,
+        atk: 650,
+        range: 70,
+        speed: 1.4,
+        attackSpeed: 60,
+        color: '#a855f7',
+        auraColor: '#7e22ce',
+        icon: '🗿',
+        level: 1,
+        upgradeCost: 250,
+        description: '강력한 충격파를 발동하여 악당 부대를 뒤로 넉백시키는 최강 탱크!'
+      }
+    ];
+
+    // Game Canvas Setup
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let canvasWidth = 800;
+    let canvasHeight = 400;
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvasWidth = container.clientWidth;
+      canvasHeight = container.clientHeight;
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Game State Variables
+    let money = 200;
+    let maxMoney = 1000;
+    let moneyRate = 1.2; // per frame
+    let walletLevel = 1;
+    let walletUpgradeCost = 100;
+    let gems = 1500;
+
+    let playerBaseHp = 10000;
+    let maxPlayerBaseHp = 10000;
+    let enemyBaseHp = 15000;
+    let maxEnemyBaseHp = 15000;
+
+    let friendlyUnits = [];
+    let enemyUnits = [];
+    let particles = [];
+    let floatingTexts = [];
+
+    let cooldownTimers = {
+      bahamut: 0,
+      nyandam: 0,
+      bunbun: 0,
+      catgod: 0,
+      titan: 0
+    };
+
+    let ultimateCooldown = 0;
+    let enemySpawnTimer = 0;
+    let isGameOver = false;
+
+    // Audio Synth Engine (Web Audio API for Hit Effects)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(freq, duration, type='sine') {
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch(e) {}
+    }
+
+    /* ===================================================================
+       2. UNIT CLASS DEFINITIONS (아군 보스 & 악당 단위)
+       =================================================================== */
+    class Unit {
+      constructor(spec, isFriendly, startX) {
+        this.id = spec.id;
+        this.name = spec.name;
+        this.isFriendly = isFriendly;
+        this.x = startX;
+        this.y = canvasHeight - 80;
+        
+        // Multiplier based on upgrades
+        const levelBonus = isFriendly ? (spec.level - 1) * 0.25 : 0;
+        this.maxHp = Math.round(spec.hp * (1 + levelBonus));
+        this.hp = this.maxHp;
+        this.atk = Math.round(spec.atk * (1 + levelBonus));
+        this.range = spec.range;
+        this.speed = isFriendly ? spec.speed : -spec.speed * 0.8;
+        this.attackSpeed = spec.attackSpeed;
+        this.attackTimer = 0;
+        
+        this.color = spec.color;
+        this.auraColor = spec.auraColor;
+        this.icon = spec.icon;
+        this.size = 32;
+
+        this.knockbackX = 0;
+      }
+
+      update() {
+        // Apply Knockback effect
+        if (Math.abs(this.knockbackX) > 0.1) {
+          this.x += this.knockbackX;
+          this.knockbackX *= 0.8;
+        }
+
+        // Find nearest target
+        let target = this.findTarget();
+
+        if (target) {
+          // Attack range check
+          const dist = Math.abs(this.x - target.x);
+          if (dist <= this.range) {
+            // Execute attack
+            this.attackTimer++;
+            if (this.attackTimer >= this.attackSpeed) {
+              this.attackTimer = 0;
+              this.executeAttack(target);
+            }
+          } else {
+            // Walk forward towards target
+            this.x += this.speed;
+          }
+        } else {
+          // No units ahead, target enemy/player castle base!
+          const baseTargetX = this.isFriendly ? canvasWidth - 60 : 60;
+          const distToBase = Math.abs(this.x - baseTargetX);
+          
+          if (distToBase <= this.range) {
+            this.attackTimer++;
+            if (this.attackTimer >= this.attackSpeed) {
+              this.attackTimer = 0;
+              this.damageBase();
+            }
+          } else {
+            this.x += this.speed;
+          }
+        }
+      }
+
+      findTarget() {
+        const targets = this.isFriendly ? enemyUnits : friendlyUnits;
+        let closest = null;
+        let minDistance = 99999;
+
+        for (let t of targets) {
+          const dist = Math.abs(this.x - t.x);
+          // Check correct forward direction
+          const isAhead = this.isFriendly ? (t.x > this.x) : (t.x < this.x);
+          if (isAhead && dist < minDistance) {
+            minDistance = dist;
+            closest = t;
+          }
+        }
+        return closest;
+      }
+
+      executeAttack(target) {
+        target.hp -= this.atk;
+        playSound(this.isFriendly ? 440 : 220, 0.1, 'sawtooth');
+
+        // Create particles and floating damage text
+        createSparks(target.x, target.y, this.color);
+        addFloatingText(`-${this.atk}`, target.x, target.y - 30, this.isFriendly ? '#f59e0b' : '#ef4444');
+
+        // Knockback for Titan shockwaves
+        if (this.id === 'titan') {
+          target.knockbackX = this.isFriendly ? 20 : -20;
+        }
+      }
+
+      damageBase() {
+        if (this.isFriendly) {
+          enemyBaseHp = Math.max(0, enemyBaseHp - this.atk);
+          addFloatingText(`-${this.atk}`, canvasWidth - 60, canvasHeight - 120, '#f59e0b');
+          createSparks(canvasWidth - 60, canvasHeight - 100, '#f59e0b');
+        } else {
+          playerBaseHp = Math.max(0, playerBaseHp - this.atk);
+          addFloatingText(`-${this.atk}`, 60, canvasHeight - 120, '#ef4444');
+          createSparks(60, canvasHeight - 100, '#ef4444');
+        }
+        playSound(150, 0.2, 'square');
+      }
+
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // Draw Boss Aura Glow
+        ctx.shadowColor = this.auraColor;
+        ctx.shadowBlur = 15;
+
+        // Draw Boss Body Circle
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        // Draw Boss Emoji Avatar Icon
+        ctx.shadowBlur = 0;
+        ctx.font = '22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.icon, 0, 0);
+
+        // Draw Unit HP Bar
+        const barWidth = 40;
+        const barHeight = 5;
+        const hpPercent = Math.max(0, this.hp / this.maxHp);
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(-barWidth / 2, -this.size - 12, barWidth, barHeight);
+
+        ctx.fillStyle = this.isFriendly ? '#10b981' : '#ef4444';
+        ctx.fillRect(-barWidth / 2, -this.size - 12, barWidth * hpPercent, barHeight);
+
+        ctx.restore();
+      }
+    }
+
+    /* ===================================================================
+       3. VISUAL EFFECTS ENGINE (파티클 & 플로팅 텍스트)
+       =================================================================== */
+    function createSparks(x, y, color) {
+      for (let i = 0; i < 8; i++) {
+        particles.push({
+          x: x,
+          y: y,
+          vx: (Math.random() - 0.5) * 6,
+          vy: (Math.random() - 0.5) * 6,
+          life: 20,
+          color: color
+        });
+      }
+    }
+
+    function addFloatingText(text, x, y, color) {
+      floatingTexts.push({
+        text: text,
+        x: x + (Math.random() - 0.5) * 10,
+        y: y,
+        life: 30,
+        color: color
+      });
+    }
+
+    function updateParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        let ft = floatingTexts[i];
+        ft.y -= 0.8;
+        ft.life--;
+        if (ft.life <= 0) floatingTexts.splice(i, 1);
+      }
+    }
+
+    function drawParticles() {
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      floatingTexts.forEach(ft => {
+        ctx.font = 'bold 14px "Black Han Sans", sans-serif';
+        ctx.fillStyle = ft.color;
+        ctx.textAlign = 'center';
+        ctx.fillText(ft.text, ft.x, ft.y);
+      });
+    }
+
+    /* ===================================================================
+       4. SCENERY & BASE DRAWING
+       =================================================================== */
+    function drawEnvironment() {
+      // Background Sky Gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+      skyGrad.addColorStop(0, '#020617');
+      skyGrad.addColorStop(0.7, '#0f172a');
+      skyGrad.addColorStop(1, '#1e1b4b');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // Battle Ground Floor
+      const groundY = canvasHeight - 50;
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, groundY, canvasWidth, 50);
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(canvasWidth, groundY);
+      ctx.stroke();
+
+      // PLAYER BASE (Left - Blue Crystal Citadel)
+      ctx.save();
+      ctx.shadowColor = '#06b6d4';
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(20, groundY - 120, 50, 120);
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(45, groundY - 130, 25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '24px sans-serif';
+      ctx.fillText('🏰', 33, groundY - 60);
+      ctx.restore();
+
+      // ENEMY BASE (Right - Red Skull Citadel)
+      ctx.save();
+      ctx.shadowColor = '#ef4444';
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = '#991b1b';
+      ctx.fillRect(canvasWidth - 70, groundY - 120, 50, 120);
+      ctx.fillStyle = '#f87171';
+      ctx.beginPath();
+      ctx.arc(canvasWidth - 45, groundY - 130, 25, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '24px sans-serif';
+      ctx.fillText('💀', canvasWidth - 58, groundY - 60);
+      ctx.restore();
+    }
+
+    /* ===================================================================
+       5. ENEMY WAVE SPAWN LOGIC (나쁜 놈 보스 군단)
+       =================================================================== */
+    const EVIL_SPECS = [
+      { id: 'e_goblin', name: '악당 졸개', hp: 800, atk: 120, range: 40, speed: 1.5, attackSpeed: 40, color: '#dc2626', auraColor: '#991b1b', icon: '👿' },
+      { id: 'e_bunbun', name: '타락한 맴매', hp: 5500, atk: 350, range: 50, speed: 1.8, attackSpeed: 30, color: '#b91c1c', auraColor: '#7f1d1d', icon: '👺' },
+      { id: 'e_dragon', name: '암흑 드래곤 보스', hp: 9000, atk: 750, range: 180, speed: 1.0, attackSpeed: 70, color: '#581c87', auraColor: '#3b0764', icon: '👾' }
+    ];
+
+    function spawnEnemyWave() {
+      enemySpawnTimer++;
+      if (enemySpawnTimer >= 180) { // Spawn every 3 sec
+        enemySpawnTimer = 0;
+        const randIdx = Math.floor(Math.random() * EVIL_SPECS.length);
+        const spec = EVIL_SPECS[randIdx];
+        const enemy = new Unit(spec, false, canvasWidth - 70);
+        enemyUnits.push(enemy);
+      }
+    }
+
+    /* ===================================================================
+       6. SUMMON & UI CONTROL HANDLERS
+       =================================================================== */
+    function renderSummonButtons() {
+      const deckContainer = document.getElementById('boss-summon-deck');
+      deckContainer.innerHTML = '';
+
+      BOSS_SPECS.forEach(boss => {
+        const btn = document.createElement('button');
+        const isCd = cooldownTimers[boss.id] > 0;
+        const canAfford = money >= boss.cost;
+
+        btn.className = `relative flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${
+          canAfford && !isCd 
+            ? 'bg-slate-800 border-cyan-400 text-white hover:bg-slate-700 active:scale-95 cursor-pointer shadow-lg' 
+            : 'bg-slate-950/80 border-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+        }`;
+
+        btn.onclick = () => summonBoss(boss.id);
+
+        btn.innerHTML = `
+          <span class="text-xl sm:text-2xl mb-0.5">${boss.icon}</span>
+          <span class="text-[10px] font-black truncate max-w-full">${boss.name}</span>
+          <span class="text-[9px] font-bold text-yellow-400">$${boss.cost}</span>
+          
+          ${isCd ? `<div class="absolute inset-0 bg-black/80 rounded-xl flex items-center justify-center font-black text-xs text-cyan-300">${cooldownTimers[boss.id]}s</div>` : ''}
+        `;
+
+        deckContainer.appendChild(btn);
+      });
+    }
+
+    function summonBoss(bossId) {
+      const boss = BOSS_SPECS.find(b => b.id === bossId);
+      if (!boss) return;
+
+      if (money >= boss.cost && cooldownTimers[bossId] === 0) {
+        money -= boss.cost;
+        cooldownTimers[bossId] = boss.cooldown;
+
+        const friendly = new Unit(boss, true, 70);
+        friendlyUnits.push(friendly);
+
+        playSound(600, 0.2, 'triangle');
+        addFloatingText(`${boss.name} 등장! 🔥`, 120, canvasHeight - 140, '#38bdf8');
+      }
+    }
+
+    function upgradeWallet() {
+      if (money >= walletUpgradeCost) {
+        money -= walletUpgradeCost;
+        walletLevel++;
+        maxMoney += 500;
+        moneyRate += 0.5;
+        walletUpgradeCost = Math.round(walletUpgradeCost * 1.5);
+
+        document.getElementById('wallet-cost-text').innerText = `Lv.${walletLevel} ($${walletUpgradeCost})`;
+        playSound(800, 0.25, 'sine');
+      }
+    }
+
+    function fireUltimateCannon() {
+      if (ultimateCooldown > 0) return;
+
+      ultimateCooldown = 15; // 15s cooldown
+      playSound(1000, 0.5, 'sawtooth');
+
+      // Full screen beam damage to all enemies
+      enemyUnits.forEach(enemy => {
+        enemy.hp -= 2500;
+        createSparks(enemy.x, enemy.y, '#f59e0b');
+        addFloatingText('-2500 ULTIMATE!', enemy.x, enemy.y - 40, '#f59e0b');
+      });
+
+      enemyBaseHp = Math.max(0, enemyBaseHp - 1500);
+
+      confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+    }
+
+    /* ===================================================================
+       7. BOSS LAB RESEARCH UPGRADES
+       =================================================================== */
+    function toggleLabModal() {
+      const modal = document.getElementById('lab-modal');
+      modal.classList.toggle('hidden');
+      if (!modal.classList.contains('hidden')) {
+        renderLabList();
+      }
+    }
+
+    function renderLabList() {
+      const listEl = document.getElementById('lab-boss-list');
+      listEl.innerHTML = '';
+
+      BOSS_SPECS.forEach(boss => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-950 p-3 rounded-2xl border border-slate-800 flex items-center justify-between";
+
+        card.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-2xl flex items-center justify-center shrink-0 border border-purple-500/40">
+              ${boss.icon}
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <span class="font-extrabold text-sm text-slate-100">${boss.name}</span>
+                <span class="bg-purple-500/30 text-purple-300 text-[10px] px-2 py-0.5 rounded-full font-bold">Lv.${boss.level}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 leading-tight mt-0.5">${boss.description}</p>
+            </div>
+          </div>
+
+          <button onclick="upgradeBossSpec('${boss.id}')" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black px-3 py-2 rounded-xl text-xs flex items-center space-x-1 shrink-0 active:scale-95 transition-all">
+            <i class="fa-solid fa-gem text-yellow-300"></i>
+            <span>강화 (${boss.upgradeCost})</span>
+          </button>
+        `;
+
+        listEl.appendChild(card);
+      });
+    }
+
+    function upgradeBossSpec(bossId) {
+      const boss = BOSS_SPECS.find(b => b.id === bossId);
+      if (boss && gems >= boss.upgradeCost) {
+        gems -= boss.upgradeCost;
+        boss.level++;
+        boss.upgradeCost = Math.round(boss.upgradeCost * 1.6);
+
+        document.getElementById('hud-gems').innerText = gems.toLocaleString();
+        renderLabList();
+        playSound(700, 0.3, 'sine');
+      }
+    }
+
+    /* ===================================================================
+       8. MAIN GAME LOOP
+       =================================================================== */
+    function gameLoop() {
+      if (isGameOver) return;
+
+      // 1. Update Money Resource
+      money = Math.min(maxMoney, money + moneyRate);
+      document.getElementById('hud-money').innerText = `${Math.floor(money)} / ${maxMoney}`;
+
+      // 2. Decrement Cooldown Timers
+      for (let key in cooldownTimers) {
+        if (cooldownTimers[key] > 0) {
+          cooldownTimers[key] = Math.max(0, cooldownTimers[key] - (1 / 60));
+          cooldownTimers[key] = Math.round(cooldownTimers[key] * 10) / 10;
+        }
+      }
+
+      if (ultimateCooldown > 0) {
+        ultimateCooldown = Math.max(0, ultimateCooldown - (1 / 60));
+      }
+
+      // 3. Render Canvas World
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      drawEnvironment();
+
+      // 4. Update & Draw Friendly Boss Units
+      for (let i = friendlyUnits.length - 1; i >= 0; i--) {
+        let u = friendlyUnits[i];
+        u.update();
+        u.draw();
+        if (u.hp <= 0) {
+          createSparks(u.x, u.y, u.color);
+          friendlyUnits.splice(i, 1);
+        }
+      }
+
+      // 5. Update & Draw Enemy Units
+      for (let i = enemyUnits.length - 1; i >= 0; i--) {
+        let u = enemyUnits[i];
+        u.update();
+        u.draw();
+        if (u.hp <= 0) {
+          createSparks(u.x, u.y, u.color);
+          gems += 50; // Earn gems for killing evil enemies!
+          document.getElementById('hud-gems').innerText = gems.toLocaleString();
+          enemyUnits.splice(i, 1);
+        }
+      }
+
+      // 6. Update Visual Particles
+      updateParticles();
+      drawParticles();
+
+      // 7. Spawn Enemy Waves
+      spawnEnemyWave();
+
+      // 8. Update HUD Base HP Bars
+      document.getElementById('player-base-hp-text').innerText = `${Math.floor(playerBaseHp)} / ${maxPlayerBaseHp}`;
+      document.getElementById('player-base-hp-bar').style.width = `${(playerBaseHp / maxPlayerBaseHp) * 100}%`;
+
+      document.getElementById('enemy-base-hp-text').innerText = `${Math.floor(enemyBaseHp)} / ${maxEnemyBaseHp}`;
+      document.getElementById('enemy-base-hp-bar').style.width = `${(enemyBaseHp / maxEnemyBaseHp) * 100}%`;
+
+      // 9. Render Summon Buttons Update
+      renderSummonButtons();
+
+      // 10. Check Win / Defeat Conditions
+      if (enemyBaseHp <= 0) {
+        isGameOver = true;
+        confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
+        setTimeout(() => {
+          alert("🎉 승리! 악당 보스 성을 파괴하고 정의를 구현했습니다!");
+          location.reload();
+        }, 500);
+      } else if (playerBaseHp <= 0) {
+        isGameOver = true;
+        setTimeout(() => {
+          alert("💀 패배! 아군 보스 요새가 파괴되었습니다. 다시 도전하세요!");
+          location.reload();
+        }, 500);
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    /* Start Game Loop on Load */
+    window.onload = function() {
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>좀비게임 - Zombie Survival Action</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .font-title {
+            font-family: 'Black Han Sans', sans-serif;
+        }
+        .font-num {
+            font-family: 'Orbitron', sans-serif;
+        }
+        body {
+            background-color: #050508;
+            color: #ffffff;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: crosshair;
+        }
+        /* Custom UI Styling */
+        .glass-panel {
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+        .glass-panel-green {
+            background: rgba(13, 23, 17, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+        }
+        .blood-glow {
+            text-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
+        }
+        .green-glow {
+            text-shadow: 0 0 15px rgba(34, 197, 94, 0.8);
+        }
+        .hud-btn:active {
+            transform: scale(0.92);
+        }
+        /* Health bar glow */
+        .hp-bar-fill {
+            transition: width 0.15s ease-out;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+        }
+        .exp-bar-fill {
+            transition: width 0.2s ease-out;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
+        }
+        /* Mobile Joystick */
+        .joystick-base {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+        }
+        .joystick-thumb {
+            background: rgba(239, 68, 68, 0.6);
+            border: 2px solid #ef4444;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #ef4444;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden bg-slate-950">
+
+    <!-- GAME CANVAS -->
+    <canvas id="gameCanvas" class="absolute inset-0 z-0"></canvas>
+
+    <!-- TOP HUD: PLAYER STATS, WAVE & SCORE -->
+    <div id="hudOverlay" class="absolute top-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        
+        <!-- PLAYER STATUS & LEVEL -->
+        <div class="glass-panel rounded-2xl px-4 py-2.5 flex items-center space-x-3 pointer-events-auto shadow-2xl">
+            <div class="relative w-12 h-12 rounded-xl bg-gradient-to-tr from-red-600 via-rose-500 to-amber-400 p-0.5 shadow-lg flex items-center justify-center">
+                <div class="w-full h-full bg-slate-950 rounded-[10px] flex flex-col items-center justify-center">
+                    <i class="fa-solid fa-crosshairs text-red-500 text-lg"></i>
+                    <span id="levelTxt" class="text-[9px] font-num font-black text-amber-400 -mt-1">LV.1</span>
+                </div>
+            </div>
+            <div class="flex flex-col space-y-1 w-36 sm:w-48">
+                <div class="flex justify-between items-center text-xs font-bold">
+                    <span class="text-red-400 font-title tracking-wider flex items-center gap-1">
+                        <i class="fa-solid fa-heart text-red-500 animate-pulse"></i> 체력
+                    </span>
+                    <span id="hpText" class="text-slate-200 font-num">100 / 100</span>
+                </div>
+                <!-- HP Bar -->
+                <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-red-900/50">
+                    <div id="hpBar" class="hp-bar-fill bg-gradient-to-r from-red-600 to-rose-400 h-full w-full"></div>
+                </div>
+                <!-- EXP Bar -->
+                <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-blue-900/50 mt-1">
+                    <div id="expBar" class="exp-bar-fill bg-gradient-to-r from-blue-600 to-cyan-400 h-full w-0"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WAVE & ZOMBIE COUNT -->
+        <div class="glass-panel rounded-2xl px-5 py-2 flex items-center space-x-6 pointer-events-auto shadow-2xl">
+            <div class="text-center">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">WAVE</div>
+                <div id="waveTxt" class="text-2xl font-num font-black text-red-500 blood-glow leading-none">1</div>
+            </div>
+            <div class="h-8 w-[1px] bg-slate-800"></div>
+            <div class="text-center">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">남은 좀비</div>
+                <div id="zombieCountTxt" class="text-xl font-num font-bold text-amber-400 leading-none">0</div>
+            </div>
+            <div class="h-8 w-[1px] bg-slate-800"></div>
+            <div class="text-center">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">점수</div>
+                <div id="scoreTxt" class="text-xl font-num font-bold text-cyan-400 leading-none">0</div>
+            </div>
+        </div>
+
+        <!-- WEAPON & AUDIO CONTROLS -->
+        <div class="flex items-center space-x-2 pointer-events-auto">
+            <button onclick="toggleAudio()" id="audioBtn" class="glass-panel hover:bg-slate-800 text-slate-200 p-3 rounded-2xl border border-slate-800 text-sm transition active:scale-95 shadow-lg">
+                <i class="fa-solid fa-volume-high" id="audioIcon"></i>
+            </button>
+            <button onclick="openWeaponShop()" class="glass-panel hover:bg-slate-800 text-amber-400 p-3 px-4 rounded-2xl border border-amber-500/40 font-bold text-xs flex items-center space-x-2 transition active:scale-95 shadow-lg">
+                <i class="fa-solid fa-gun text-amber-400"></i>
+                <span class="hidden sm:inline">무기 상점</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- WEAPON SELECTION HOTBAR (BOTTOM CENTER) -->
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 hidden sm:flex items-center space-x-2 pointer-events-auto glass-panel px-3 py-2 rounded-2xl border border-slate-800">
+        <button id="wep1" onclick="switchWeapon(0)" class="wep-btn px-3 py-1.5 rounded-xl border border-red-500/80 bg-red-950/50 text-red-300 text-xs font-bold flex items-center gap-2 transition">
+            <span class="bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded text-[10px]">1</span> 권총
+        </button>
+        <button id="wep2" onclick="switchWeapon(1)" class="wep-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-400 text-xs font-bold flex items-center gap-2 transition">
+            <span class="bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px]">2</span> 샷건
+        </button>
+        <button id="wep3" onclick="switchWeapon(2)" class="wep-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-400 text-xs font-bold flex items-center gap-2 transition">
+            <span class="bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px]">3</span> 소총
+        </button>
+        <button id="wep4" onclick="switchWeapon(3)" class="wep-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-400 text-xs font-bold flex items-center gap-2 transition">
+            <span class="bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px]">4</span> 플라즈마
+        </button>
+        <button id="wep5" onclick="switchWeapon(4)" class="wep-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-400 text-xs font-bold flex items-center gap-2 transition">
+            <span class="bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px]">5</span> 로켓
+        </button>
+    </div>
+
+    <!-- AMMO DISPLAY (BOTTOM RIGHT) -->
+    <div class="absolute bottom-4 right-4 z-10 glass-panel px-4 py-2.5 rounded-2xl border border-amber-500/30 flex items-center space-x-3 pointer-events-auto">
+        <i id="currentWepIcon" class="fa-solid fa-gun text-amber-400 text-2xl"></i>
+        <div>
+            <div id="currentWepName" class="text-[10px] font-bold text-slate-400 uppercase">권총</div>
+            <div class="text-xl font-num font-black text-amber-300 leading-none">
+                <span id="ammoTxt">∞</span> <span class="text-xs text-slate-500 font-normal">/ ∞</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBILE TOUCH JOYSTICK & SHOOT BUTTON (MOBILE ONLY) -->
+    <div id="mobileControls" class="sm:hidden absolute inset-0 z-10 pointer-events-none">
+        <!-- Movement Stick Area -->
+        <div id="moveTouchArea" class="absolute bottom-6 left-6 w-32 h-32 joystick-base pointer-events-auto flex items-center justify-center">
+            <div id="moveTouchThumb" class="w-12 h-12 joystick-thumb"></div>
+        </div>
+        <!-- Mobile Action Buttons -->
+        <div class="absolute bottom-6 right-6 flex flex-col items-end space-y-3 pointer-events-auto">
+            <button id="btnMobileDash" class="hud-btn w-14 h-14 rounded-2xl bg-cyan-600/80 border border-cyan-400 text-white flex items-center justify-center shadow-lg active:scale-90">
+                <i class="fa-solid fa-bolt text-lg"></i>
+            </button>
+            <button id="btnMobileWep" class="hud-btn w-14 h-14 rounded-2xl bg-amber-600/80 border border-amber-400 text-white flex items-center justify-center shadow-lg active:scale-90">
+                <i class="fa-solid fa-rotate text-lg"></i>
+            </button>
+            <button id="btnMobileShoot" class="hud-btn w-20 h-20 rounded-3xl bg-red-600 border-2 border-rose-300 text-white flex flex-col items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.6)] active:scale-90">
+                <i class="fa-solid fa-crosshairs text-2xl"></i>
+                <span class="text-[10px] font-black mt-0.5">사격</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- FLOATING WAVE ANNOUNCEMENT NOTIFIER -->
+    <div id="waveBanner" class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none opacity-0 transition-all duration-500 scale-75 text-center">
+        <h2 id="bannerTitle" class="text-4xl sm:text-6xl font-title text-red-500 blood-glow tracking-widest drop-shadow-[0_10px_10px_rgba(0,0,0,0.9)]">WAVE 1 START</h2>
+        <p id="bannerSub" class="text-slate-300 text-sm sm:text-base font-bold mt-2 bg-slate-950/80 px-4 py-1 rounded-full border border-red-500/40 inline-block">다양한 변종 좀비들이 밀려옵니다!</p>
+    </div>
+
+    <!-- WEAPON SHOP & UPGRADE MODAL -->
+    <div id="shopModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl hidden flex items-center justify-center p-4">
+        <div class="glass-panel border-2 border-red-500/50 rounded-3xl max-w-xl w-full p-6 shadow-[0_0_50px_rgba(239,68,68,0.3)] relative text-slate-100 max-h-[90vh] overflow-y-auto">
+            <button onclick="closeWeaponShop()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 border-b border-slate-800 pb-4 mb-4">
+                <div class="p-3 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-400 text-2xl">
+                    <i class="fa-solid fa-gun"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-title text-red-500 blood-glow">생존 무기 상점</h2>
+                    <p class="text-xs text-slate-400">좀비를 처치하여 획득한 골드로 무기를 해금하고 강화하세요!</p>
+                </div>
+            </div>
+
+            <!-- Gold Display -->
+            <div class="flex items-center justify-between bg-slate-900/80 p-3 rounded-2xl border border-amber-500/30 mb-4">
+                <span class="text-xs font-bold text-slate-300">보유 골드</span>
+                <span id="shopGoldTxt" class="text-xl font-num font-black text-amber-400">0 G</span>
+            </div>
+
+            <!-- Shop Items Grid -->
+            <div id="shopList" class="space-y-3">
+                <!-- Dynamically generated shop cards -->
+            </div>
+
+            <button onclick="closeWeaponShop()" class="w-full mt-5 bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white font-black py-3 rounded-xl border border-red-300 text-sm shadow-lg transition active:scale-95">
+                전장으로 복귀
+            </button>
+        </div>
+    </div>
+
+    <!-- LEVEL UP / SKILL UPGRADE MODAL -->
+    <div id="levelUpModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl hidden flex items-center justify-center p-4">
+        <div class="glass-panel border-2 border-cyan-500/50 rounded-3xl max-w-md w-full p-6 shadow-[0_0_50px_rgba(6,182,212,0.3)] text-center text-slate-100">
+            <div class="w-16 h-16 bg-cyan-500/20 border-2 border-cyan-400 rounded-2xl mx-auto flex items-center justify-center text-cyan-300 text-3xl mb-3 animate-bounce">
+                <i class="fa-solid fa-angles-up"></i>
+            </div>
+            <h2 class="text-3xl font-title text-cyan-400 green-glow mb-1">레벨 업!</h2>
+            <p class="text-xs text-slate-400 mb-5">원하는 강화 특성을 하나 선택하세요.</p>
+
+            <div id="skillOptionsList" class="space-y-3">
+                <!-- Skill choices dynamically inserted -->
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME OVER / RESTART MODAL -->
+    <div id="gameOverModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl hidden flex items-center justify-center p-4">
+        <div class="glass-panel border-2 border-red-600 rounded-3xl max-w-md w-full p-8 text-center text-slate-100 shadow-[0_0_80px_rgba(239,68,68,0.5)]">
+            <div class="w-20 h-20 bg-red-950 border-2 border-red-500 rounded-full mx-auto flex items-center justify-center text-red-500 text-4xl mb-4 blood-glow">
+                <i class="fa-solid fa-skull"></i>
+            </div>
+            <h2 class="text-4xl font-title text-red-600 blood-glow mb-2">작전 실패</h2>
+            <p class="text-xs text-slate-400 mb-6">좀비 무리에게 감염되었습니다.</p>
+
+            <div class="bg-slate-900/90 rounded-2xl p-4 border border-slate-800 space-y-2 mb-6">
+                <div class="flex justify-between text-xs font-bold text-slate-400">
+                    <span>최종 처치 좀비</span>
+                    <span id="finalKillsTxt" class="text-amber-400 font-num">0</span>
+                </div>
+                <div class="flex justify-between text-xs font-bold text-slate-400">
+                    <span>도달 웨이브</span>
+                    <span id="finalWaveTxt" class="text-red-400 font-num">Wave 1</span>
+                </div>
+                <div class="flex justify-between text-xs font-bold text-slate-400">
+                    <span>최종 점수</span>
+                    <span id="finalScoreTxt" class="text-cyan-400 font-num">0</span>
+                </div>
+            </div>
+
+            <button onclick="restartGame()" class="w-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-white font-black py-3.5 rounded-2xl text-base shadow-[0_0_25px_rgba(239,68,68,0.5)] border border-red-300 transition active:scale-95">
+                <i class="fa-solid fa-rotate-right mr-2"></i> 다시 도전하기
+            </button>
+        </div>
+    </div>
+
+    <!-- START GAME MENU OVERLAY -->
+    <div id="startMenuModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-4">
+        <div class="glass-panel border-2 border-red-500/60 rounded-3xl max-w-lg w-full p-8 text-center text-slate-100 shadow-[0_0_80px_rgba(239,68,68,0.4)] relative">
+            <div class="w-24 h-24 bg-gradient-to-tr from-red-700 via-rose-600 to-amber-500 rounded-3xl mx-auto flex items-center justify-center text-slate-950 text-5xl mb-4 shadow-[0_0_30px_rgba(239,68,68,0.8)] border-2 border-amber-200">
+                <i class="fa-solid fa-biohazard animate-pulse"></i>
+            </div>
+            
+            <h1 class="text-5xl font-title text-red-500 blood-glow tracking-wider mb-2">좀비게임</h1>
+            <p class="text-sm font-bold text-amber-400 mb-6">다양하게 변이하는 좀비 형태에 맞서 살아남아라!</p>
+
+            <!-- Zombie Types Preview Badges -->
+            <div class="p-3 bg-slate-900/80 rounded-2xl border border-slate-800 mb-6">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">출현하는 변종 좀비 형태</div>
+                <div class="grid grid-cols-3 gap-2 text-[11px] font-bold">
+                    <div class="p-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300">
+                        <i class="fa-solid fa-person-walking mr-1"></i> 일반 워커
+                    </div>
+                    <div class="p-1.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300">
+                        <i class="fa-solid fa-bolt mr-1"></i> 러너 (고속)
+                    </div>
+                    <div class="p-1.5 rounded-xl bg-purple-950/60 border border-purple-500/40 text-purple-300">
+                        <i class="fa-solid fa-shield-halved mr-1"></i> 거대 탱커
+                    </div>
+                    <div class="p-1.5 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-300">
+                        <i class="fa-solid fa-burst mr-1"></i> 폭발 자폭형
+                    </div>
+                    <div class="p-1.5 rounded-xl bg-lime-950/60 border border-lime-500/40 text-lime-300">
+                        <i class="fa-solid fa-vial mr-1"></i> 독성 침뱉기
+                    </div>
+                    <div class="p-1.5 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300">
+                        <i class="fa-solid fa-ghost mr-1"></i> 은신 고스트
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="w-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 text-slate-950 font-black py-4 rounded-2xl text-lg shadow-[0_0_30px_rgba(239,68,68,0.7)] border-2 border-amber-200 transition active:scale-95">
+                <i class="fa-solid fa-play mr-2"></i> 게임 시작
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // WEB AUDIO SYNTHESIZER FOR GUNSHOTS, EXPLOSIONS AND ZOMBIE SFX
+        let audioCtx = null;
+        let isMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudio() {
+            isMuted = !isMuted;
+            const icon = document.getElementById('audioIcon');
+            if (isMuted) {
+                icon.className = 'fa-solid fa-volume-xmark text-red-400';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-slate-200';
+            }
+        }
+
+        // SFX 1: Pistol / Rifle Shoot
+        function playShootSFX(type) {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = type === 'plasma' ? 'sawtooth' : 'sine';
+                const startFreq = type === 'shotgun' ? 180 : (type === 'plasma' ? 900 : 450);
+                const endFreq = type === 'plasma' ? 120 : 60;
+                
+                osc.frequency.setValueAtTime(startFreq, now);
+                osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.12);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } catch (e) {}
+        }
+
+        // SFX 2: Explosion Sound
+        function playExplosionSFX() {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const bufferSize = audioCtx.sampleRate * 0.4;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(800, now);
+                filter.frequency.linearRampToValueAtTime(50, now + 0.4);
+
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                noise.start(now);
+            } catch (e) {}
+        }
+
+        // SFX 3: Zombie Growl / Hit Sound
+        function playHitSFX() {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.08);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } catch (e) {}
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // GAME STATES & ENGINE VARIABLES
+        let gameRunning = false;
+        let isPaused = false;
+        let score = 0;
+        let gold = 100;
+        let kills = 0;
+        let currentWave = 1;
+        let zombiesRemainingInWave = 0;
+        let spawnTimer = 0;
+
+        // PLAYER OBJECT
+        const player = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+            radius: 18,
+            speed: 4.2,
+            maxHp: 100,
+            hp: 100,
+            level: 1,
+            exp: 0,
+            nextExp: 50,
+            angle: 0,
+            dashCooldown: 0,
+            isDashing: false,
+            dashTimer: 0,
+            selectedWepIndex: 0
+        };
+
+        // WEAPONS DEFINITIONS
+        const weapons = [
+            { name: '권총 (Pistol)', damage: 25, fireRate: 15, bulletSpeed: 14, spread: 0.05, count: 1, unlocked: true, price: 0, color: '#fef08a', icon: 'fa-gun' },
+            { name: '샷건 (Shotgun)', damage: 18, fireRate: 35, bulletSpeed: 12, spread: 0.25, count: 6, unlocked: false, price: 150, color: '#f97316', icon: 'fa-burst' },
+            { name: '돌격소총 (Assault Rifle)', damage: 20, fireRate: 7, bulletSpeed: 16, spread: 0.08, count: 1, unlocked: false, price: 300, color: '#38bdf8', icon: 'fa-crosshairs' },
+            { name: '플라즈마포 (Plasma Cannon)', damage: 60, fireRate: 25, bulletSpeed: 10, spread: 0.02, count: 1, unlocked: false, price: 500, color: '#a855f7', icon: 'fa-atom' },
+            { name: '로켓포 (Rocket Launcher)', damage: 150, fireRate: 50, bulletSpeed: 8, spread: 0.01, count: 1, explosive: true, unlocked: false, price: 800, color: '#ef4444', icon: 'fa-rocket' }
+        ];
+
+        let shootCooldown = 0;
+
+        // ENTITY ARRAYS
+        let zombies = [];
+        let bullets = [];
+        let particles = [];
+        let itemPickups = [];
+
+        // INPUT CONTROL STATES
+        const keys = {};
+        const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, down: false };
+
+        // MOBILE JOYSTICK ENGINE
+        const moveStick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, vx: 0, vy: 0 };
+
+        // MULTI-FORM ZOMBIE TYPES & MUTATIONS
+        const ZOMBIE_TYPES = [
+            {
+                name: 'Walker',
+                shape: 'circle',
+                radius: 16,
+                color: '#22c55e',
+                eyeColor: '#ef4444',
+                hp: 50,
+                speed: 1.8,
+                damage: 10,
+                exp: 10,
+                gold: 5,
+                draw: drawCircleZombie
+            },
+            {
+                name: 'Runner',
+                shape: 'triangle',
+                radius: 14,
+                color: '#f43f5e',
+                eyeColor: '#fef08a',
+                hp: 35,
+                speed: 3.6,
+                damage: 8,
+                exp: 15,
+                gold: 8,
+                draw: drawTriangleZombie
+            },
+            {
+                name: 'Tank',
+                shape: 'square',
+                radius: 28,
+                color: '#a855f7',
+                eyeColor: '#000000',
+                hp: 220,
+                speed: 1.1,
+                damage: 25,
+                exp: 35,
+                gold: 20,
+                draw: drawSquareZombie
+            },
+            {
+                name: 'Exploder',
+                shape: 'star',
+                radius: 18,
+                color: '#eab308',
+                eyeColor: '#ef4444',
+                hp: 40,
+                speed: 2.2,
+                damage: 40,
+                exp: 20,
+                gold: 12,
+                isExplosive: true,
+                draw: drawStarZombie
+            },
+            {
+                name: 'Acid Spitter',
+                shape: 'hexagon',
+                radius: 18,
+                color: '#84cc16',
+                eyeColor: '#000000',
+                hp: 60,
+                speed: 1.5,
+                damage: 15,
+                exp: 25,
+                gold: 15,
+                isSpitter: true,
+                draw: drawHexagonZombie
+            },
+            {
+                name: 'Ghost Phase',
+                shape: 'ghost',
+                radius: 16,
+                color: 'rgba(6, 182, 212, 0.5)',
+                eyeColor: '#67e8f9',
+                hp: 45,
+                speed: 2.5,
+                damage: 12,
+                exp: 20,
+                gold: 12,
+                draw: drawGhostZombie
+            }
+        ];
+
+        function drawCircleZombie(ctx, z) {
+            ctx.fillStyle = z.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, z.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#052e16';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Eyes
+            ctx.fillStyle = z.eyeColor;
+            ctx.beginPath();
+            ctx.arc(6, -5, 4, 0, Math.PI * 2);
+            ctx.arc(6, 5, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawTriangleZombie(ctx, z) {
+            ctx.fillStyle = z.color;
+            ctx.beginPath();
+            ctx.moveTo(z.radius + 4, 0);
+            ctx.lineTo(-z.radius, -z.radius + 2);
+            ctx.lineTo(-z.radius + 4, 0);
+            ctx.lineTo(-z.radius, z.radius - 2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#881337';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Glowing eye spike
+            ctx.fillStyle = z.eyeColor;
+            ctx.beginPath();
+            ctx.arc(2, 0, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawSquareZombie(ctx, z) {
+            ctx.fillStyle = z.color;
+            ctx.fillRect(-z.radius, -z.radius, z.radius * 2, z.radius * 2);
+            ctx.strokeStyle = '#3b0764';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-z.radius, -z.radius, z.radius * 2, z.radius * 2);
+
+            // Spikes on back
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(-z.radius, -6, 5, 0, Math.PI * 2);
+            ctx.arc(-z.radius, 6, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawStarZombie(ctx, z) {
+            ctx.fillStyle = z.color;
+            ctx.beginPath();
+            const spikes = 6;
+            const outerRadius = z.radius + Math.sin(Date.now() * 0.01) * 3;
+            const innerRadius = z.radius * 0.5;
+
+            for (let i = 0; i < spikes * 2; i++) {
+                const r = (i % 2 === 0) ? outerRadius : innerRadius;
+                const currAngle = (i * Math.PI) / spikes;
+                const x = Math.cos(currAngle) * r;
+                const y = Math.sin(currAngle) * r;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#713f12';
+            ctx.stroke();
+        }
+
+        function drawHexagonZombie(ctx, z) {
+            ctx.fillStyle = z.color;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI) / 3;
+                const x = Math.cos(angle) * z.radius;
+                const y = Math.sin(angle) * z.radius;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#1a2e05';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        function drawGhostZombie(ctx, z) {
+            ctx.save();
+            ctx.globalAlpha = 0.55 + Math.sin(Date.now() * 0.008) * 0.25;
+            ctx.fillStyle = z.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, z.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = z.eyeColor;
+            ctx.beginPath();
+            ctx.arc(4, -4, 3, 0, Math.PI * 2);
+            ctx.arc(4, 4, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // INPUT LISTENERS
+        window.addEventListener('keydown', (e) => {
+            initAudio();
+            keys[e.key.toLowerCase()] = true;
+
+            // Weapon Switch Hotkeys 1-5
+            if (['1', '2', '3', '4', '5'].includes(e.key)) {
+                switchWeapon(parseInt(e.key) - 1);
+            }
+            if (e.key === ' ' || e.key === 'Shift') {
+                triggerDash();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            initAudio();
+            if (e.button === 0) mouse.down = true;
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 0) mouse.down = false;
+        });
+
+        // TOUCH CONTROLS FOR MOBILE
+        const moveTouchArea = document.getElementById('moveTouchArea');
+        const moveTouchThumb = document.getElementById('moveTouchThumb');
+
+        moveTouchArea.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            initAudio();
+            const touch = e.touches[0];
+            const rect = moveTouchArea.getBoundingClientRect();
+            moveStick.active = true;
+            moveStick.startX = rect.left + rect.width / 2;
+            moveStick.startY = rect.top + rect.height / 2;
+            updateJoystick(touch.clientX, touch.clientY);
+        });
+
+        moveTouchArea.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (moveStick.active) {
+                const touch = e.touches[0];
+                updateJoystick(touch.clientX, touch.clientY);
+            }
+        });
+
+        const endStick = () => {
+            moveStick.active = false;
+            moveStick.vx = 0;
+            moveStick.vy = 0;
+            moveTouchThumb.style.transform = `translate(0px, 0px)`;
+        };
+
+        moveTouchArea.addEventListener('touchend', endStick);
+        moveTouchArea.addEventListener('touchcancel', endStick);
+
+        function updateJoystick(clientX, clientY) {
+            const dx = clientX - moveStick.startX;
+            const dy = clientY - moveStick.startY;
+            const dist = Math.hypot(dx, dy);
+            const maxRadius = 40;
+
+            const angle = Math.atan2(dy, dx);
+            const cappedDist = Math.min(dist, maxRadius);
+
+            const tx = Math.cos(angle) * cappedDist;
+            const ty = Math.sin(angle) * cappedDist;
+
+            moveTouchThumb.style.transform = `translate(${tx}px, ${ty}px)`;
+
+            moveStick.vx = (tx / maxRadius);
+            moveStick.vy = (ty / maxRadius);
+        }
+
+        document.getElementById('btnMobileShoot').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            initAudio();
+            mouse.down = true;
+        });
+        document.getElementById('btnMobileShoot').addEventListener('touchend', (e) => {
+            e.preventDefault();
+            mouse.down = false;
+        });
+        document.getElementById('btnMobileDash').addEventListener('click', () => {
+            initAudio();
+            triggerDash();
+        });
+        document.getElementById('btnMobileWep').addEventListener('click', () => {
+            initAudio();
+            let nextIndex = (player.selectedWepIndex + 1) % weapons.length;
+            while (!weapons[nextIndex].unlocked) {
+                nextIndex = (nextIndex + 1) % weapons.length;
+            }
+            switchWeapon(nextIndex);
+        });
+
+        function triggerDash() {
+            if (player.dashCooldown <= 0) {
+                player.isDashing = true;
+                player.dashTimer = 10;
+                player.dashCooldown = 90; // Frames
+                spawnSparks(player.x, player.y, 15, '#06b6d4');
+            }
+        }
+
+        function switchWeapon(index) {
+            if (weapons[index] && weapons[index].unlocked) {
+                player.selectedWepIndex = index;
+                updateWeaponHUD();
+            }
+        }
+
+        function updateWeaponHUD() {
+            const currentWep = weapons[player.selectedWepIndex];
+            document.getElementById('currentWepName').innerText = currentWep.name;
+            document.getElementById('currentWepIcon').className = `fa-solid ${currentWep.icon} text-amber-400 text-2xl`;
+
+            // Update Hotbar styling
+            for (let i = 0; i < 5; i++) {
+                const btn = document.getElementById(`wep${i+1}`);
+                if (!btn) continue;
+                if (!weapons[i].unlocked) {
+                    btn.className = "wep-btn px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950/40 text-slate-600 text-xs font-bold opacity-50 cursor-not-allowed flex items-center gap-2";
+                } else if (i === player.selectedWepIndex) {
+                    btn.className = "wep-btn px-3 py-1.5 rounded-xl border border-red-500 bg-red-950/80 text-red-300 text-xs font-bold flex items-center gap-2 shadow-lg shadow-red-900/50";
+                } else {
+                    btn.className = "wep-btn px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-900/60 text-slate-300 text-xs font-bold flex items-center gap-2 hover:border-slate-500";
+                }
+            }
+        }
+
+        function startNewWave() {
+            zombiesRemainingInWave = 12 + currentWave * 6;
+            document.getElementById('waveTxt').innerText = currentWave;
+            document.getElementById('zombieCountTxt').innerText = zombiesRemainingInWave;
+
+            showBanner(`WAVE ${currentWave} START`, `새로운 좀비들의 공격이 시작되었습니다!`);
+        }
+
+        function showBanner(title, sub) {
+            const banner = document.getElementById('waveBanner');
+            document.getElementById('bannerTitle').innerText = title;
+            document.getElementById('bannerSub').innerText = sub;
+
+            banner.classList.remove('opacity-0', 'scale-75');
+            banner.classList.add('opacity-100', 'scale-100');
+
+            setTimeout(() => {
+                banner.classList.remove('opacity-100', 'scale-100');
+                banner.classList.add('opacity-0', 'scale-75');
+            }, 2500);
+        }
+
+        function spawnZombie() {
+            if (zombiesRemainingInWave <= 0 && zombies.length === 0) {
+                currentWave++;
+                startNewWave();
+                return;
+            }
+
+            if (zombiesRemainingInWave > 0 && zombies.length < 35 + currentWave * 3) {
+                // Determine zombie spawn position off screen
+                let spawnX, spawnY;
+                if (Math.random() < 0.5) {
+                    spawnX = Math.random() < 0.5 ? -40 : canvas.width + 40;
+                    spawnY = Math.random() * canvas.height;
+                } else {
+                    spawnX = Math.random() * canvas.width;
+                    spawnY = Math.random() < 0.5 ? -40 : canvas.height + 40;
+                }
+
+                // Select Zombie Type based on wave probabilities
+                let availableTypes = [0]; // Walker
+                if (currentWave >= 2) availableTypes.push(1); // Runner
+                if (currentWave >= 3) availableTypes.push(2); // Tank
+                if (currentWave >= 4) availableTypes.push(3); // Exploder
+                if (currentWave >= 5) availableTypes.push(4, 5); // Acid Spitter & Ghost
+
+                const chosenIndex = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+                const baseType = ZOMBIE_TYPES[chosenIndex];
+
+                // Scale zombie stats with wave progress
+                const hpMultiplier = 1 + (currentWave - 1) * 0.18;
+
+                zombies.push({
+                    ...baseType,
+                    x: spawnX,
+                    y: spawnY,
+                    maxHp: Math.floor(baseType.hp * hpMultiplier),
+                    hp: Math.floor(baseType.hp * hpMultiplier),
+                    angle: 0,
+                    shootCooldown: Math.floor(Math.random() * 60)
+                });
+
+                zombiesRemainingInWave--;
+                document.getElementById('zombieCountTxt').innerText = zombiesRemainingInWave + zombies.length;
+            }
+        }
+
+        function fireWeapon() {
+            if (shootCooldown > 0) return;
+
+            const wep = weapons[player.selectedWepIndex];
+            shootCooldown = wep.fireRate;
+
+            playShootSFX(wep.explosive ? 'shotgun' : (wep.color === '#a855f7' ? 'plasma' : 'pistol'));
+
+            for (let i = 0; i < wep.count; i++) {
+                const spreadAngle = (Math.random() - 0.5) * wep.spread;
+                const finalAngle = player.angle + spreadAngle;
+
+                bullets.push({
+                    x: player.x + Math.cos(player.angle) * player.radius,
+                    y: player.y + Math.sin(player.angle) * player.radius,
+                    vx: Math.cos(finalAngle) * wep.bulletSpeed,
+                    vy: Math.sin(finalAngle) * wep.bulletSpeed,
+                    damage: wep.damage,
+                    color: wep.color,
+                    explosive: wep.explosive || false,
+                    radius: wep.explosive ? 7 : (wep.color === '#a855f7' ? 8 : 4),
+                    life: 120
+                });
+            }
+
+            // Muzzle flash particles
+            spawnSparks(player.x + Math.cos(player.angle) * 20, player.y + Math.sin(player.angle) * 20, 5, wep.color);
+        }
+
+        function spawnSparks(x, y, count = 8, color = '#f59e0b') {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 7,
+                    vy: (Math.random() - 0.5) * 7,
+                    life: 1.0,
+                    decay: 0.04 + Math.random() * 0.03,
+                    size: 2 + Math.random() * 4,
+                    color: color
+                });
+            }
+        }
+
+        function spawnBlood(x, y, count = 10, color = '#dc2626') {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    life: 1.0,
+                    decay: 0.02 + Math.random() * 0.02,
+                    size: 3 + Math.random() * 5,
+                    color: color
+                });
+            }
+        }
+
+        function updatePhysics() {
+            if (!gameRunning || isPaused) return;
+
+            // Player Movement
+            let moveX = 0;
+            let moveY = 0;
+
+            if (keys['w'] || keys['arrowup']) moveY -= 1;
+            if (keys['s'] || keys['arrowdown']) moveY += 1;
+            if (keys['a'] || keys['arrowleft']) moveX -= 1;
+            if (keys['d'] || keys['arrowright']) moveX += 1;
+
+            if (moveStick.active) {
+                moveX = moveStick.vx;
+                moveY = moveStick.vy;
+            }
+
+            // Normalize diagonal speed
+            const len = Math.hypot(moveX, moveY);
+            if (len > 0) {
+                const currentSpeed = player.isDashing ? player.speed * 2.8 : player.speed;
+                player.x += (moveX / (len > 1 ? len : 1)) * currentSpeed;
+                player.y += (moveY / (len > 1 ? len : 1)) * currentSpeed;
+            }
+
+            // Keep player inside canvas
+            player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+
+            // Player Aim Rotation
+            if (moveStick.active && Math.hypot(moveStick.vx, moveStick.vy) > 0.2) {
+                player.angle = Math.atan2(moveStick.vy, moveStick.vx);
+            } else {
+                player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+            }
+
+            // Handle Dashing
+            if (player.isDashing) {
+                player.dashTimer--;
+                spawnSparks(player.x, player.y, 2, '#38bdf8');
+                if (player.dashTimer <= 0) player.isDashing = false;
+            }
+            if (player.dashCooldown > 0) player.dashCooldown--;
+
+            // Handle Weapon Firing
+            if (shootCooldown > 0) shootCooldown--;
+            if (mouse.down) fireWeapon();
+
+            // Update Bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+                b.life--;
+
+                if (b.life <= 0 || b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // Bullet vs Zombie Collision
+                for (let j = zombies.length - 1; j >= 0; j--) {
+                    const z = zombies[j];
+                    const dist = Math.hypot(b.x - z.x, b.y - z.y);
+
+                    if (dist < b.radius + z.radius) {
+                        z.hp -= b.damage;
+                        playHitSFX();
+                        spawnBlood(z.x, z.y, 6, z.color);
+
+                        // Explosion AOE if Rocket
+                        if (b.explosive) {
+                            playExplosionSFX();
+                            spawnSparks(b.x, b.y, 30, '#ef4444');
+                            for (let k = zombies.length - 1; k >= 0; k--) {
+                                const nearZ = zombies[k];
+                                const explosionDist = Math.hypot(b.x - nearZ.x, b.y - nearZ.y);
+                                if (explosionDist < 90) {
+                                    nearZ.hp -= 100;
+                                }
+                            }
+                        }
+
+                        bullets.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+
+            // Update Zombies
+            spawnTimer++;
+            if (spawnTimer >= Math.max(25, 80 - currentWave * 5)) {
+                spawnZombie();
+                spawnTimer = 0;
+            }
+
+            for (let i = zombies.length - 1; i >= 0; i--) {
+                const z = zombies[i];
+
+                // Zombie Movement towards player
+                const angleToPlayer = Math.atan2(player.y - z.y, player.x - z.x);
+                z.angle = angleToPlayer;
+
+                z.x += Math.cos(angleToPlayer) * z.speed;
+                z.y += Math.sin(angleToPlayer) * z.speed;
+
+                // Acid Spitter ranged attack
+                if (z.isSpitter) {
+                    z.shootCooldown--;
+                    if (z.shootCooldown <= 0) {
+                        const distToPlayer = Math.hypot(player.x - z.x, player.y - z.y);
+                        if (distToPlayer < 350) {
+                            bullets.push({
+                                x: z.x,
+                                y: z.y,
+                                vx: Math.cos(angleToPlayer) * 6,
+                                vy: Math.sin(angleToPlayer) * 6,
+                                damage: 12,
+                                color: '#84cc16',
+                                isAcid: true,
+                                radius: 5,
+                                life: 100
+                            });
+                            z.shootCooldown = 120;
+                        }
+                    }
+                }
+
+                // Zombie vs Player Collision
+                const distToPlayer = Math.hypot(player.x - z.x, player.y - z.y);
+                if (distToPlayer < player.radius + z.radius) {
+                    if (!player.isDashing) {
+                        player.hp -= z.damage;
+                        playHitSFX();
+                        spawnBlood(player.x, player.y, 8, '#ef4444');
+                        updateHUD();
+
+                        if (player.hp <= 0) {
+                            gameOver();
+                            return;
+                        }
+                    }
+                }
+
+                // Zombie Death
+                if (z.hp <= 0) {
+                    kills++;
+                    score += z.exp * 10;
+                    gold += z.gold;
+                    addExp(z.exp);
+
+                    if (z.isExplosive) {
+                        playExplosionSFX();
+                        spawnSparks(z.x, z.y, 25, '#f59e0b');
+                        for (let k = zombies.length - 1; k >= 0; k--) {
+                            const nearZ = zombies[k];
+                            if (Math.hypot(z.x - nearZ.x, z.y - nearZ.y) < 80) {
+                                nearZ.hp -= 80;
+                            }
+                        }
+                    } else {
+                        spawnBlood(z.x, z.y, 15, z.color);
+                    }
+
+                    // Chance to drop Health or Speed Item
+                    if (Math.random() < 0.15) {
+                        itemPickups.push({
+                            x: z.x,
+                            y: z.y,
+                            type: Math.random() < 0.6 ? 'hp' : 'gold',
+                            life: 400
+                        });
+                    }
+
+                    zombies.splice(i, 1);
+                    document.getElementById('zombieCountTxt').innerText = zombiesRemainingInWave + zombies.length;
+                    updateHUD();
+                }
+            }
+
+            // Update Items Pickup Collision
+            for (let i = itemPickups.length - 1; i >= 0; i--) {
+                const item = itemPickups[i];
+                item.life--;
+                if (item.life <= 0) {
+                    itemPickups.splice(i, 1);
+                    continue;
+                }
+
+                if (Math.hypot(player.x - item.x, player.y - item.y) < player.radius + 15) {
+                    if (item.type === 'hp') {
+                        player.hp = Math.min(player.maxHp, player.hp + 25);
+                        spawnSparks(player.x, player.y, 10, '#22c55e');
+                    } else if (item.type === 'gold') {
+                        gold += 20;
+                        spawnSparks(player.x, player.y, 10, '#eab308');
+                    }
+                    updateHUD();
+                    itemPickups.splice(i, 1);
+                }
+            }
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= p.decay;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function addExp(amount) {
+            player.exp += amount;
+            if (player.exp >= player.nextExp) {
+                player.level++;
+                player.exp -= player.nextExp;
+                player.nextExp = Math.floor(player.nextExp * 1.5);
+                triggerLevelUp();
+            }
+            updateHUD();
+        }
+
+        function updateHUD() {
+            document.getElementById('hpText').innerText = `${Math.max(0, Math.floor(player.hp))} / ${player.maxHp}`;
+            document.getElementById('hpBar').style.width = `${Math.max(0, (player.hp / player.maxHp) * 100)}%`;
+            document.getElementById('expBar').style.width = `${Math.min(100, (player.exp / player.nextExp) * 100)}%`;
+            document.getElementById('levelTxt').innerText = `LV.${player.level}`;
+            document.getElementById('scoreTxt').innerText = score;
+        }
+
+        function render() {
+            // Dark Atmospheric Floor Grid
+            ctx.fillStyle = '#05050a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Subtle Floor Grid Lines
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.04)';
+            ctx.lineWidth = 1;
+            const gridSize = 50;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // DRAW ITEM PICKUPS
+            for (let item of itemPickups) {
+                ctx.fillStyle = item.type === 'hp' ? '#22c55e' : '#eab308';
+                ctx.beginPath();
+                ctx.arc(item.x, item.y, 8 + Math.sin(Date.now() * 0.01) * 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // DRAW BULLETS
+            for (let b of bullets) {
+                ctx.fillStyle = b.color;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // DRAW ZOMBIES WITH VARIED SHAPES
+            for (let z of zombies) {
+                ctx.save();
+                ctx.translate(z.x, z.y);
+                ctx.rotate(z.angle);
+                z.draw(ctx, z);
+                ctx.restore();
+
+                // Zombie Health Bar
+                if (z.hp < z.maxHp) {
+                    const hpRatio = z.hp / z.maxHp;
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.fillRect(z.x - 15, z.y - z.radius - 10, 30, 4);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(z.x - 15, z.y - z.radius - 10, 30 * hpRatio, 4);
+                }
+            }
+
+            // DRAW PARTICLES
+            for (let p of particles) {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // DRAW PLAYER CHARACTER
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+
+            // Weapon Barrel
+            const wep = weapons[player.selectedWepIndex];
+            ctx.fillStyle = wep.color;
+            ctx.fillRect(0, -4, 24, 8);
+
+            // Player Body Circle
+            ctx.fillStyle = player.isDashing ? '#06b6d4' : '#ef4444';
+            ctx.beginPath();
+            ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fef08a';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Tactical Goggles / Eyes
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(6, -5, 3, 0, Math.PI * 2);
+            ctx.arc(6, 5, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            updatePhysics();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function triggerLevelUp() {
+            isPaused = true;
+            const modal = document.getElementById('levelUpModal');
+            const choicesContainer = document.getElementById('skillOptionsList');
+
+            const skills = [
+                { name: '최대 체력 +30 & 회복', desc: '체력을 30 올리고 즉시 전체 회복합니다.', apply: () => { player.maxHp += 30; player.hp = player.maxHp; } },
+                { name: '이동 속도 +15%', desc: '전술 이동 속도가 빨라집니다.', apply: () => { player.speed *= 1.15; } },
+                { name: '무기 데미지 +20%', desc: '모든 무기의 위력이 상승합니다.', apply: () => { weapons.forEach(w => w.damage = Math.floor(w.damage * 1.2)); } },
+                { name: '대시 쿨타임 -25%', desc: '회피 대시를 더 자주 사용할 수 있습니다.', apply: () => { player.dashCooldown = 0; } }
+            ];
+
+            // Shuffle & Pick 3 skills
+            const shuffled = skills.sort(() => 0.5 - Math.random()).slice(0, 3);
+            choicesContainer.innerHTML = '';
+
+            shuffled.forEach(s => {
+                const btn = document.createElement('button');
+                btn.className = "w-full p-3.5 bg-slate-900/80 hover:bg-slate-800 border border-cyan-500/40 rounded-2xl text-left transition active:scale-95";
+                btn.innerHTML = `<div class="font-bold text-cyan-300 text-sm">${s.name}</div><div class="text-xs text-slate-400 mt-0.5">${s.desc}</div>`;
+                btn.onclick = () => {
+                    s.apply();
+                    updateHUD();
+                    modal.classList.add('hidden');
+                    isPaused = false;
+                };
+                choicesContainer.appendChild(btn);
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        function openWeaponShop() {
+            isPaused = true;
+            document.getElementById('shopGoldTxt').innerText = `${gold} G`;
+            const shopList = document.getElementById('shopList');
+            shopList.innerHTML = '';
+
+            weapons.forEach((w, index) => {
+                const card = document.createElement('div');
+                card.className = "p-3 bg-slate-900/90 rounded-2xl border border-slate-800 flex items-center justify-between";
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-amber-400 text-lg">
+                            <i class="fa-solid ${w.icon}"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-slate-200">${w.name}</div>
+                            <div class="text-[11px] text-slate-400">데미지: ${w.damage} | 발사속도: ${w.fireRate}</div>
+                        </div>
+                    </div>
+                `;
+
+                const btn = document.createElement('button');
+                if (w.unlocked) {
+                    btn.className = "px-3 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500 text-emerald-300 font-bold text-xs";
+                    btn.innerText = "보유중";
+                } else {
+                    btn.className = `px-3 py-1.5 rounded-xl font-bold text-xs transition ${gold >= w.price ? 'bg-amber-500 hover:bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`;
+                    btn.innerText = `${w.price} G 해금`;
+                    btn.onclick = () => {
+                        if (gold >= w.price) {
+                            gold -= w.price;
+                            w.unlocked = true;
+                            switchWeapon(index);
+                            openWeaponShop();
+                        }
+                    };
+                }
+                card.appendChild(btn);
+                shopList.appendChild(card);
+            });
+
+            document.getElementById('shopModal').classList.remove('hidden');
+        }
+
+        function closeWeaponShop() {
+            document.getElementById('shopModal').classList.add('hidden');
+            isPaused = false;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('finalKillsTxt').innerText = kills;
+            document.getElementById('finalWaveTxt').innerText = `Wave ${currentWave}`;
+            document.getElementById('finalScoreTxt').innerText = score;
+            document.getElementById('gameOverModal').classList.remove('hidden');
+        }
+
+        function startGame() {
+            document.getElementById('startMenuModal').classList.add('hidden');
+            resetGame();
+            gameRunning = true;
+            startNewWave();
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverModal').classList.add('hidden');
+            resetGame();
+            gameRunning = true;
+            startNewWave();
+        }
+
+        function resetGame() {
+            score = 0;
+            gold = 100;
+            kills = 0;
+            currentWave = 1;
+            player.hp = 100;
+            player.maxHp = 100;
+            player.level = 1;
+            player.exp = 0;
+            player.nextExp = 50;
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            zombies = [];
+            bullets = [];
+            particles = [];
+            itemPickups = [];
+            updateHUD();
+            updateWeaponHUD();
+        }
+
+        // START ENGINE LOOP
+        window.onload = function() {
+            gameLoop();
+        };
+    </script>
+</body>
+</html>

@@ -3,185 +3,264 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>도깨비 폰 앱 전시관 | 용인 이동초등학교</title>
-<meta name="description" content="『도깨비 폰을 개통하시겠습니까』를 읽고 이동초 어린이들이 직접 프롬프트를 써서 만든 앱을 모두 체험해 보세요.">
-<meta property="og:title" content="도깨비 폰 앱 전시관">
-<meta property="og:description" content="우리가 지우라면 어떤 앱을 만들까? 이동초 어린이들이 AI와 함께 만든 앱 전시관">
-<meta property="og:image" content="https://daeyn92-ctrl.github.io/bookfesta/qr/_site.png">
+<title>‘기가 팍팍!’ 나만의 앱 전시관 | 용인 이동초등학교</title>
+<meta name="description" content="『도깨비폰을 개통하시겠습니까?』를 읽고 이동초 4학년 어린이들이 직접 프롬프트를 써서 만든 ‘기가 팍팍!’ 앱을 체험해 보세요.">
+<meta property="og:title" content="‘기가 팍팍!’ 나만의 앱 전시관">
+<meta property="og:description" content="우리가 지우라면 어떤 앱을 만들까? 용인 이동초 4학년 어린이들이 AI와 함께 만든 앱 전시관">
+<meta property="og:image" content="https://daeyn92-ctrl.github.io/bookfesta/assets/cover.jpg">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gaegu:wght@700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --night:#1b1340; --night-2:#2a1f5c; --ink:#1f1a33; --muted:#6b6485;
-  --paper:#fff9ef; --card:#ffffff; --line:#ece3d3;
-  --gold:#ffc53d; --pink:#ff6fa3; --mint:#3fd0b0; --sky:#6aa8ff;
+  --ink:#1d2433; --muted:#5d6577; --paper:#fffbf1; --card:#fff; --line:#efe6d2;
+  --phone:#232a36; --phone-2:#2f3846;
+  --teal:#3aa0b4; --leaf:#7cc576; --lime:#a9cb3c; --lime-d:#7da21c; --lime-bg:#f4f8df;
+  --pink:#f2718a; --orange:#f59c4a; --sky:#5fb2e3; --yellow:#ffd23f; --violet:#8b6fd6;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;font-family:'Noto Sans KR',system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.6}
-a{color:inherit}
-.wrap{max-width:1180px;margin:0 auto;padding-inline:20px}
-.jua{font-family:'Jua','Noto Sans KR',sans-serif;font-weight:400}
+body{margin:0;font-family:'Noto Sans KR',system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.65;word-break:keep-all}
+img{max-width:100%}
+.wrap{max-width:1160px;margin:0 auto;padding-inline:20px}
+.display{font-family:'Black Han Sans','Noto Sans KR',sans-serif;font-weight:400;letter-spacing:-.5px}
+.hand{font-family:'Gaegu',cursive;font-weight:700}
 
-/* hero */
-.hero{position:relative;overflow:hidden;color:#fff;background:
-  radial-gradient(1200px 400px at 80% -10%,#5b3fd1 0%,transparent 60%),
-  radial-gradient(800px 300px at 0% 110%,#b0306f 0%,transparent 60%),
-  linear-gradient(160deg,var(--night) 0%,var(--night-2) 100%);}
-.hero .stars{position:absolute;inset:0;background-image:
-  radial-gradient(2px 2px at 20% 30%,#fff9 50%,transparent 51%),
-  radial-gradient(1.5px 1.5px at 70% 20%,#fff8 50%,transparent 51%),
-  radial-gradient(2px 2px at 85% 60%,#fff7 50%,transparent 51%),
-  radial-gradient(1.5px 1.5px at 40% 75%,#fff6 50%,transparent 51%),
-  radial-gradient(1px 1px at 55% 45%,#fff9 50%,transparent 51%),
-  radial-gradient(1.5px 1.5px at 10% 80%,#fff7 50%,transparent 51%);pointer-events:none}
-.hero-inner{position:relative;display:grid;grid-template-columns:1.4fr 1fr;gap:40px;align-items:center;padding-block:56px 64px}
-.badge{display:inline-flex;gap:8px;align-items:center;background:#ffffff1f;border:1px solid #ffffff33;padding:6px 14px;border-radius:999px;font-size:14px;font-weight:500}
-.hero h1{font-size:clamp(34px,5.4vw,60px);line-height:1.15;margin:18px 0 14px;letter-spacing:-.5px}
-.hero h1 em{font-style:normal;color:var(--gold)}
-.hero p.lead{font-size:clamp(16px,1.8vw,19px);opacity:.92;margin:0 0 26px;max-width:560px}
+/* ===== hero: cover burst ===== */
+.hero{position:relative;overflow:hidden;color:#fff;
+  background:
+    repeating-conic-gradient(from 0deg at 72% 46%, #ffffff10 0deg 3deg, transparent 3deg 12deg),
+    radial-gradient(60% 80% at 72% 46%, #f2718a 0%, #f59c4a 28%, #5fb2e3 60%, #3a5a8c 100%);}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#1d2433e6 0%,#1d2433b0 38%,transparent 70%);pointer-events:none}
+.spark{position:absolute;color:var(--yellow);font-size:22px;z-index:1;animation:tw 2.4s ease-in-out infinite}
+.spark:nth-child(2){animation-delay:.6s;color:#fff}.spark:nth-child(3){animation-delay:1.2s;color:var(--orange)}
+@keyframes tw{50%{transform:scale(.6) rotate(20deg);opacity:.5}}
+.hero-inner{position:relative;z-index:2;display:grid;grid-template-columns:1.25fr 1fr;gap:32px;align-items:center;padding-block:64px 76px}
+.pill{display:inline-flex;gap:8px;align-items:center;background:#ffffff22;border:1px solid #ffffff44;padding:6px 14px;border-radius:999px;font-size:14px;font-weight:700;backdrop-filter:blur(4px)}
+.hero h1{font-size:clamp(40px,6.2vw,74px);line-height:1.08;margin:18px 0 12px}
+.holo{background:linear-gradient(100deg,#fff 0%,#d9e9ff 20%,#ffe1f0 40%,#fff 55%,#e3ffd9 70%,#fff 100%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:holo 6s linear infinite;filter:drop-shadow(0 3px 0 #1d243388)}
+@keyframes holo{to{background-position:200% center}}
+.hero h1 .q{display:block;font-size:.5em;color:var(--yellow);-webkit-text-fill-color:var(--yellow);filter:none;margin-bottom:6px}
+.hero p.lead{font-size:clamp(16px,1.9vw,19px);margin:0 0 26px;max-width:540px;opacity:.95}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px}
+.stat{background:#ffffff1c;border:1px solid #ffffff33;border-radius:14px;padding:8px 14px;line-height:1.2}
+.stat b{font-family:'Black Han Sans';font-weight:400;font-size:26px;display:block;color:var(--yellow)}
+.stat span{font-size:13px;opacity:.9}
 .cta{display:flex;flex-wrap:wrap;gap:12px}
-.btn{display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;text-decoration:none;font:inherit;font-weight:700;border-radius:14px;padding:12px 20px;transition:transform .15s,box-shadow .15s}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;text-decoration:none;font:inherit;font-weight:700;border-radius:14px;padding:12px 20px;transition:transform .15s}
 .btn:hover{transform:translateY(-2px)}
-.btn-gold{background:var(--gold);color:var(--night);box-shadow:0 6px 0 #c9921a}
-.btn-ghost{background:#ffffff1a;color:#fff;border:1px solid #ffffff40}
-.phone{justify-self:center;width:230px;aspect-ratio:9/18;border-radius:36px;background:#0d0922;border:8px solid #3a2d7a;box-shadow:0 30px 60px #0008,inset 0 0 0 2px #ffffff22;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;transform:rotate(6deg)}
-.phone::before{content:"";position:absolute;top:10px;width:70px;height:18px;border-radius:10px;background:#3a2d7a}
-.phone .horn{font-size:74px;filter:drop-shadow(0 0 18px #ff6fa3aa);animation:bob 3s ease-in-out infinite}
-.phone .q{font-family:'Jua';font-size:20px;text-align:center;line-height:1.35}
-.phone .ok{display:flex;gap:8px}
-.phone .ok span{font-family:'Jua';padding:6px 14px;border-radius:10px;background:var(--pink);font-size:15px}
-.phone .ok span+span{background:#ffffff26}
-@keyframes bob{50%{transform:translateY(-8px) rotate(-4deg)}}
+.btn-lime{background:var(--lime);color:#1d2433;box-shadow:0 5px 0 var(--lime-d)}
+.btn-ghost{background:#ffffff1f;color:#fff;border:1px solid #ffffff55}
+.cover{justify-self:center;position:relative;width:min(330px,80%)}
+.cover img{display:block;width:100%;height:auto;border-radius:10px;box-shadow:0 26px 50px #0007, 0 0 0 6px #ffffff22;transform:rotate(4deg)}
+.cover .tag{position:absolute;left:-18px;bottom:26px;background:var(--yellow);color:var(--ink);font-family:'Gaegu';font-weight:700;font-size:21px;padding:4px 14px;border-radius:12px;transform:rotate(-6deg);box-shadow:0 6px 14px #0004}
 
-/* story */
-.story{padding-block:56px 20px}
-.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.step{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px}
-.step .n{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-family:'Jua';font-size:20px;color:#fff;margin-bottom:12px}
-.step h3{margin:0 0 6px;font-size:18px}
-.step p{margin:0;color:var(--muted);font-size:15px}
-.sec-title{font-size:clamp(26px,3.4vw,36px);margin:0 0 8px}
-.sec-sub{color:var(--muted);margin:0 0 26px}
-.prompt{margin-top:18px;background:var(--night);color:#fff;border-radius:20px;padding:22px 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.prompt div{background:#ffffff12;border-radius:14px;padding:14px 16px}
-.prompt b{font-family:'Jua';font-weight:400;font-size:18px;display:block;margin-bottom:2px}
-.prompt span{font-size:14px;opacity:.85}
+/* ===== sections ===== */
+section{padding-block:64px}
+.kicker{display:inline-block;background:var(--lime);color:#1d2433;font-weight:900;font-size:13px;padding:3px 12px;border-radius:999px;margin-bottom:10px}
+.sec-title{font-size:clamp(28px,3.6vw,40px);margin:0 0 10px;line-height:1.2}
+.sec-sub{color:var(--muted);margin:0 0 28px;max-width:760px}
+
+.book{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:26px}
+.panel h3{margin:0 0 4px;font-size:19px;color:var(--lime-d)}
+.panel h3.v{color:var(--violet)}
+.panel .sub{font-size:14px;color:var(--muted);margin:0 0 12px}
+.panel p{margin:0;font-size:15.5px}
+.apps{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.app-chip{display:inline-flex;align-items:center;gap:6px;background:var(--lime-bg);border:1px solid #dfe9b4;border-radius:12px;padding:6px 12px;font-size:14px;font-weight:700}
+.credit{font-size:13px;color:var(--muted);margin-top:14px}
+
+/* flow */
+.flow{background:linear-gradient(180deg,#f4f8df,#fffbf1)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.step{background:var(--card);border-radius:22px;padding:24px;border:1px solid var(--line);position:relative}
+.step .badge{position:absolute;top:-14px;left:22px;font-family:'Black Han Sans';font-size:17px;color:#fff;border-radius:10px;padding:2px 14px}
+.step ul{margin:12px 0 0;padding-left:18px;font-size:15px}
+.step li{margin:4px 0}
+.step li em{font-style:normal;color:var(--muted);font-size:14px}
+.make{margin-top:26px;background:var(--phone);color:#fff;border-radius:28px;padding:30px;display:grid;grid-template-columns:1.05fr 1fr;gap:26px;align-items:center}
+.make h3{font-family:'Gaegu';font-size:34px;line-height:1.15;margin:0 0 8px;color:var(--lime)}
+.make p{margin:0;opacity:.9;font-size:15.5px}
+.prompt{display:grid;gap:10px}
+.prompt div{background:#ffffff12;border:1px solid #ffffff1f;border-radius:16px;padding:12px 16px;display:grid;grid-template-columns:72px 1fr;gap:10px;align-items:center}
+.prompt b{font-family:'Black Han Sans';font-weight:400;font-size:20px}
+.prompt span{font-size:14.5px;opacity:.9}
+.prompt .r b{color:var(--pink)}.prompt .t b{color:var(--sky)}.prompt .c b{color:var(--yellow)}
 
 /* gallery */
-.gallery{padding-block:48px 70px}
-.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:22px;position:sticky;top:0;z-index:5;background:var(--paper);padding:12px 0;border-bottom:1px solid var(--line)}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:1px solid var(--line);background:var(--card);padding:7px 14px;border-radius:999px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--ink)}
-.chip[aria-pressed=true]{background:var(--night);color:#fff;border-color:var(--night)}
-.search{flex:1;min-width:200px;max-width:320px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 14px;font:inherit;color:var(--ink)}
-.count{color:var(--muted);font-size:14px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;transition:transform .18s,box-shadow .18s}
-.card:hover{transform:translateY(-4px);box-shadow:0 14px 30px #1b134022}
-.thumb{display:block;aspect-ratio:16/10;background:linear-gradient(135deg,#3a2d7a,#b0306f);position:relative;overflow:hidden}
-.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:1}
-.thumb .ph{position:absolute;inset:0;display:grid;place-items:center;font-size:54px}
-.card .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
-.card h3{margin:0;font-size:17px;line-height:1.35;word-break:keep-all}
-.who{font-size:14px;color:var(--muted);display:flex;gap:6px;align-items:center}
-.cls{background:#f1ecff;color:#4b36b5;font-weight:700;border-radius:8px;padding:1px 8px;font-size:13px}
-.actions{display:flex;gap:8px;margin-top:auto;padding-top:8px}
-.actions .btn{padding:9px 14px;font-size:14px;border-radius:12px}
-.btn-play{background:var(--night);color:#fff;flex:1;justify-content:center}
-.btn-qr{background:#f4efe6;color:var(--ink)}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px;position:sticky;top:0;z-index:5;background:var(--paper);padding:12px 0;border-bottom:1px solid var(--line)}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tab{border:2px solid var(--line);background:var(--card);padding:7px 14px;border-radius:999px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;color:var(--ink)}
+.tab small{font-weight:500;color:var(--muted);margin-left:2px}
+.tab[aria-pressed=true]{background:var(--phone);color:#fff;border-color:var(--phone)}
+.tab[aria-pressed=true] small{color:#cfd6e4}
+.search{flex:1;min-width:200px;max-width:320px;border:2px solid var(--line);background:var(--card);border-radius:14px;padding:10px 14px;font:inherit;color:var(--ink)}
+.search:focus{outline:none;border-color:var(--lime)}
+.count{color:var(--muted);font-size:14px;margin:0 0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px}
+.card{background:var(--phone);border-radius:26px;padding:10px 10px 0;display:flex;flex-direction:column;box-shadow:0 10px 24px #1d243322;transition:transform .18s}
+.card:hover{transform:translateY(-5px) rotate(-.5deg)}
+.screen{display:block;aspect-ratio:16/10;border-radius:18px;overflow:hidden;position:relative;background:linear-gradient(135deg,var(--teal),var(--leaf))}
+.screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.screen .ph{position:absolute;inset:0;display:grid;place-items:center;font-size:48px}
+.card .body{padding:12px 8px 14px;color:#fff;display:flex;flex-direction:column;gap:6px;flex:1}
+.card h3{margin:0;font-size:16.5px;line-height:1.35}
+.who{font-size:14px;color:#c9d1df;display:flex;gap:6px;align-items:center}
+.cls{color:#1d2433;font-weight:900;border-radius:8px;padding:0 8px;font-size:12.5px}
+.c1{background:var(--pink)}.c2{background:var(--sky)}.c3{background:var(--yellow)}.c4{background:var(--leaf)}
+.actions{display:flex;gap:8px;margin-top:auto;padding-top:6px}
+.actions .btn{padding:9px 12px;font-size:14px;border-radius:12px}
+.btn-play{background:var(--lime);color:#1d2433;flex:1}
+.btn-qr{background:var(--phone-2);color:#fff}
+.home{width:42px;height:5px;border-radius:5px;background:#ffffff33;margin:2px auto 9px}
 .empty{text-align:center;color:var(--muted);padding:40px 0}
 
-/* modal */
-dialog{border:0;border-radius:24px;padding:0;max-width:min(420px,92vw);width:100%;box-shadow:0 30px 80px #0006}
-dialog::backdrop{background:#1b1340b3}
-.qbox{padding:26px;text-align:center}
-.qbox img{width:100%;max-width:300px;image-rendering:pixelated}
-.qbox h3{margin:10px 0 2px;font-size:20px}
-.qbox .url{font-size:12px;color:var(--muted);word-break:break-all;margin:8px 0 16px}
-.qbox .row{display:flex;gap:8px;justify-content:center}
+dialog{border:0;border-radius:30px;padding:0;max-width:min(400px,92vw);width:100%;background:var(--phone);color:#fff;box-shadow:0 30px 80px #0007}
+dialog::backdrop{background:#1d2433b8}
+.qbox{padding:22px;text-align:center}
+.qbox .qr{background:#fff;border-radius:20px;padding:14px}
+.qbox img{width:100%;max-width:280px;display:block;margin:0 auto}
+.qbox h3{margin:14px 0 4px;font-size:20px}
+.qbox .who{justify-content:center}
+.qbox .url{font-size:12px;color:#aab3c4;word-break:break-all;margin:8px 0 16px}
+.qbox .row{display:flex;gap:8px}
 
-footer{background:var(--night);color:#fff;padding-block:36px;font-size:14px}
-footer .wrap{display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:center}
-footer img{width:96px;border-radius:10px;background:#fff;padding:6px}
-footer p{margin:0;opacity:.85}
+footer{background:var(--phone);color:#fff;padding-block:40px;font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:center}
+footer .qr{background:#fff;border-radius:14px;padding:8px;width:110px}
+footer p{margin:2px 0;opacity:.85}
+footer .t{font-family:'Black Han Sans';font-size:22px;opacity:1}
 
-@media (max-width:860px){
-  .hero-inner{grid-template-columns:1fr;padding-block:40px 48px}
-  .phone{display:none}
-  .steps{grid-template-columns:1fr 1fr}
-  .prompt{grid-template-columns:1fr}
+@media (max-width:900px){
+  .hero::after{background:linear-gradient(180deg,#1d2433d9 0%,#1d2433a6 60%,#1d243366 100%)}
+  .hero-inner{grid-template-columns:1fr;padding-block:44px 54px}
+  .cover{width:62%;max-width:260px;order:-1}
+  .book,.steps,.make{grid-template-columns:1fr}
+  .steps{gap:26px}
   .wrap{padding-inline:16px}
-  .story{padding-top:40px}
+  section{padding-block:48px}
 }
-@media (max-width:480px){.steps{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr;gap:12px}.card h3{font-size:15px}.actions{flex-direction:column}}
+@media (max-width:480px){
+  .grid{grid-template-columns:1fr 1fr;gap:12px}
+  .card{border-radius:20px;padding:7px 7px 0}.screen{border-radius:14px}
+  .card h3{font-size:14.5px}.actions{flex-direction:column}
+  .make{padding:22px}.prompt div{grid-template-columns:1fr;gap:2px}
+}
 </style>
 </head>
 <body>
 <header class="hero">
-  <div class="stars"></div>
+  <span class="spark" style="left:58%;top:12%">✦</span>
+  <span class="spark" style="left:92%;top:30%">✦</span>
+  <span class="spark" style="left:62%;top:82%">✦</span>
   <div class="wrap hero-inner">
     <div>
-      <span class="badge">📚 용인 북 페스티벌 · 용인 이동초등학교</span>
-      <h1 class="jua">우리가 <em>지우</em>라면?<br>도깨비 폰 앱 전시관</h1>
-      <p class="lead">『도깨비 폰을 개통하시겠습니까』를 읽은 이동초 어린이들이 직접 쓴 프롬프트로 AI와 함께 만든 앱 <b id="total"></b>개를 모두 체험해 보세요.</p>
+      <span class="pill">📚 용인 북 페스티벌 · 용인 이동초등학교 4학년</span>
+      <h1 class="display holo"><span class="q">우리가 지우라면?</span>‘기가 팍팍!’<br>나만의 앱 전시관</h1>
+      <p class="lead">『도깨비폰을 개통하시겠습니까?』를 읽고, 사람의 ‘기’를 살려 주는 앱을 상상했어요. 어린이들이 직접 쓴 프롬프트로 AI와 함께 만든 앱을 지금 체험해 보세요!</p>
+      <div class="stats">
+        <div class="stat"><b id="s-works"></b><span>개의 앱</span></div>
+        <div class="stat"><b id="s-cls"></b><span>개 반이 참여</span></div>
+        <div class="stat"><b>1</b><span>권의 책에서 시작</span></div>
+      </div>
       <div class="cta">
-        <a class="btn btn-gold" href="#gallery">🎮 앱 구경하러 가기</a>
-        <a class="btn btn-ghost" href="#story">어떻게 만들었나요?</a>
+        <a class="btn btn-lime" href="#gallery">📱 앱 체험하러 가기</a>
+        <a class="btn btn-ghost" href="#book">어떤 책인가요?</a>
       </div>
     </div>
-    <div class="phone" aria-hidden="true">
-      <div class="horn">👹</div>
-      <div class="q">도깨비 폰을<br>개통하시겠습니까?</div>
-      <div class="ok"><span>예</span><span>아니요</span></div>
+    <div class="cover">
+      <img src="assets/cover.jpg" alt="『도깨비폰을 개통하시겠습니까?』 책 표지" width="600" height="880">
+      <span class="tag">한 권 읽기 도서!</span>
     </div>
   </div>
 </header>
 
-<section class="story wrap" id="story">
-  <h2 class="sec-title jua">책을 읽고, 앱을 만들었어요</h2>
-  <p class="sec-sub">쉴 틈 없던 지우에게 생긴 도깨비 폰. 원하는 건 무엇이든 이뤄 주지만, 대가는 지우의 ‘기운’이었어요. 지우는 거꾸로 기운을 지키는 앱을 만들어 위기를 벗어납니다.</p>
-  <div class="steps">
-    <div class="step"><div class="n" style="background:var(--pink)">1</div><h3>책 읽기</h3><p>『도깨비 폰을 개통하시겠습니까』를 함께 읽고 이야기 나누기</p></div>
-    <div class="step"><div class="n" style="background:var(--sky)">2</div><h3>상상하기</h3><p>“내가 지우라면 어떤 앱을 만들까?” 나만의 앱 아이디어 떠올리기</p></div>
-    <div class="step"><div class="n" style="background:var(--mint)">3</div><h3>프롬프트 쓰기</h3><p>역할·할 일·조건 세 가지로 AI에게 보낼 요청문을 직접 작성하기</p></div>
-    <div class="step"><div class="n" style="background:var(--gold);color:var(--night)">4</div><h3>앱 완성!</h3><p>제미나이 캔버스로 앱을 만들고 고치며 나만의 앱 완성하기</p></div>
-  </div>
-  <div class="prompt">
-    <div><b>🎭 역할</b><span>“너는 어린이를 위한 게임 개발자야.”처럼 AI가 맡을 역할</span></div>
-    <div><b>📝 할 일</b><span>“도깨비를 물리치는 게임을 만들어 줘.”처럼 만들고 싶은 것</span></div>
-    <div><b>✅ 조건</b><span>“휴대폰에서도 버튼으로 조작할 수 있게.”처럼 꼭 지켜야 할 규칙</span></div>
+<section id="book">
+  <div class="wrap">
+    <span class="kicker">함께 읽은 책</span>
+    <h2 class="sec-title display">소원을 말해 봐! 그런데 만능 도깨비폰, 계속 써도 괜찮을까?</h2>
+    <p class="sec-sub">박하익 장편동화 · 손지희 그림 · 창비(2018) · 3~6학년 길잡이</p>
+    <div class="book">
+      <div class="panel">
+        <h3>옛이야기를 변용한 판타지 동화</h3>
+        <p class="sub">설득력 있고 현실감 넘치는 이야기</p>
+        <p>학원과 학교를 오가며 쉴 틈 없던 지우에게 도깨비폰이 생겨요. 숙제를 대신 해 주고, 영어를 잘하게 해 주고, 더 예뻐 보이게 해 주는 앱까지! 그런데 도깨비폰을 쓸수록 지우의 ‘기’가 빠져나가요. 이대로 계속 쓰면 지우는 어떻게 될까요?</p>
+        <div class="apps">
+          <span class="app-chip">📝 술술술앱</span>
+          <span class="app-chip">🍬 꼬부랑 캔디앱</span>
+          <span class="app-chip">🌙 달빛 각시앱</span>
+          <span class="app-chip">🦊 감쪽가튼 앱</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3 class="v">마음껏 즐기면서도 건강하게 살 수 있을까?</h3>
+        <p class="sub">스스로 스마트폰과 함께 살아가는 법을 찾는 이야기</p>
+        <p>지우는 도깨비폰의 유혹에서 쉽게 벗어나지 못하지만, 결국 거꾸로 ‘기’를 지키는 방법을 찾아 나서요. 고민하고 갈등하는 지우를 따라가며, 어린이들은 자신의 스마트폰 사용 습관을 돌아보고 함께 이야기 나눴어요.</p>
+        <p class="credit">우리 반 질문: “만약 여러분이라면 ‘예’, ‘아니요’ 중 어느 것을 누를 건가요?”</p>
+      </div>
+    </div>
   </div>
 </section>
 
-<section class="gallery wrap" id="gallery">
-  <h2 class="sec-title jua">앱 전시관</h2>
-  <p class="sec-sub">카드를 누르면 앱이 열려요. QR 버튼을 누르면 휴대폰으로도 바로 해 볼 수 있어요.</p>
-  <div class="bar">
-    <div class="chips" id="chips" role="group" aria-label="반 선택"></div>
-    <input class="search" id="q" type="search" placeholder="앱 이름이나 이름으로 찾기" aria-label="검색">
+<section class="flow" id="flow">
+  <div class="wrap">
+    <span class="kicker">우리의 수업</span>
+    <h2 class="sec-title display">책을 읽고, 앱을 만들기까지</h2>
+    <p class="sec-sub">3~4학년 국어 성취기준에 맞춰 읽기 전·중·후 활동으로 책을 깊이 읽고, 마지막에 나만의 앱을 직접 만들었어요.</p>
+    <div class="steps">
+      <div class="step"><span class="badge" style="background:var(--pink)">읽기 전</span>
+        <ul><li>표지 살펴보며 이야기 짐작하기</li><li>스마트폰과 관련된 내 경험 나누기</li><li>작가와 차례, 작가의 말 살펴보기</li></ul></div>
+      <div class="step"><span class="badge" style="background:var(--sky)">읽는 중</span>
+        <ul><li>함께 읽으며 생각 나누기<br><em>지우가 사용한 앱에는 어떤 것들이 있나요?</em></li><li>윤 진사가 알려 준 ‘기’를 뺏기지 않는 방법 찾기</li><li>내가 지우라면 만들고 싶은 앱 구상하기</li></ul></div>
+      <div class="step"><span class="badge" style="background:var(--lime-d)">읽은 후</span>
+        <ul><li>도깨비 앱으로 가고 싶은 곳 이야기하기</li><li><b>‘기가 팍팍!’ 나만의 앱 만들기</b></li><li>나의 스마트폰 사용 습관 돌아보기</li></ul></div>
+    </div>
+    <div class="make">
+      <div>
+        <h3>‘기가 팍팍!’<br>나만의 앱 만들기</h3>
+        <p>지우처럼 사람의 기를 살릴 수 있는 앱을 상상하고 앱 이름, 기능, 캐릭터, 사용 설명서를 정했어요. 그리고 <b>역할·할 일·조건</b>에 맞춰 직접 프롬프트를 써서 제미나이 캔버스로 앱을 완성했어요.</p>
+      </div>
+      <div class="prompt">
+        <div class="r"><b>역할</b><span>“너는 어린이를 위한 게임 개발자야.”</span></div>
+        <div class="t"><b>할 일</b><span>“도깨비를 물리치는 게임을 만들어 줘.”</span></div>
+        <div class="c"><b>조건</b><span>“휴대폰에서도 버튼으로 조작할 수 있게.”</span></div>
+      </div>
+    </div>
   </div>
-  <p class="count" id="count"></p>
-  <div class="grid" id="grid"></div>
-  <p class="empty" id="empty" hidden>찾는 앱이 없어요.</p>
+</section>
+
+<section id="gallery">
+  <div class="wrap">
+    <span class="kicker">앱 전시관</span>
+    <h2 class="sec-title display">친구들의 앱을 눌러 보세요</h2>
+    <p class="sec-sub">카드를 누르면 앱이 열려요. QR 버튼을 누르면 휴대폰으로 찍어서 바로 해 볼 수 있어요.</p>
+    <div class="bar">
+      <div class="tabs" id="tabs" role="group" aria-label="반 선택"></div>
+      <input class="search" id="q" type="search" placeholder="앱 이름이나 이름으로 찾기" aria-label="검색">
+    </div>
+    <p class="count" id="count"></p>
+    <div class="grid" id="grid"></div>
+    <p class="empty" id="empty" hidden>찾는 앱이 없어요.</p>
+  </div>
 </section>
 
 <footer>
   <div class="wrap">
     <div>
-      <p class="jua" style="font-size:20px;opacity:1">용인 이동초등학교 × 용인 북 페스티벌</p>
+      <p class="t">용인 이동초등학교 4학년 × 용인 북 페스티벌</p>
       <p>모든 앱은 어린이들이 직접 쓴 프롬프트로 AI(제미나이 캔버스)와 함께 만들었어요.</p>
+      <p>함께 읽은 책: 『도깨비폰을 개통하시겠습니까?』 박하익 글 · 손지희 그림 · 창비</p>
     </div>
-    <img src="qr/_site.png" alt="전시관 주소 QR코드">
+    <img class="qr" src="qr/_site.svg" alt="전시관 주소 QR코드">
   </div>
 </footer>
 
 <dialog id="dlg">
   <div class="qbox">
-    <img id="dlg-qr" alt="">
+    <div class="qr"><img id="dlg-qr" alt=""></div>
     <h3 id="dlg-title"></h3>
-    <div class="who" style="justify-content:center" id="dlg-who"></div>
+    <div class="who" id="dlg-who"></div>
     <div class="url" id="dlg-url"></div>
     <div class="row">
       <a class="btn btn-play" id="dlg-open" target="_blank" rel="noopener">▶ 앱 열기</a>
@@ -191,39 +270,43 @@ footer p{margin:0;opacity:.85}
 </dialog>
 
 <script>
-const DATA = {"base": "https://daeyn92-ctrl.github.io/bookfesta/", "works": [{"id": "4-1-b01235", "cls": "4-1", "name": "김○온", "title": "도깨비 퇴치: 사자의 수호", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-b01235.html", "hash": "606b49bdd38cfdd62b842493274dc8774012c2ef"}, {"id": "4-1-6e6b38", "cls": "4-1", "name": "윤○우", "title": "스타 마린: 무한 어드벤처", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-6e6b38.html", "hash": "44b996337ece8dc9457ffee990a8dbcc423480f0"}, {"id": "4-1-e17441", "cls": "4-1", "name": "황○현", "title": "신비한 알 키우기: 밤의 연금술사 NPC", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-e17441.html", "hash": "c08f625774ad69ea7be658100c7af9a25b2caa72"}]};
+const DATA = {"base": "https://daeyn92-ctrl.github.io/bookfesta/", "works": [{"id": "4-1-d7cb78", "cls": "4-1", "name": "김○솔", "title": "오늘의 운세 알 깨기 🥚", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-d7cb78.html", "hash": "865748cf82f45703e661eb291a58b844d2232377"}, {"id": "4-1-b01235", "cls": "4-1", "name": "김○온", "title": "도깨비 퇴치: 사자의 수호", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-b01235.html", "hash": "606b49bdd38cfdd62b842493274dc8774012c2ef"}, {"id": "4-1-7438d9", "cls": "4-1", "name": "김○은", "title": "귀신의 눈을 주의하세요 👻👀", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-7438d9.html", "hash": "ba38a794d2c3238f90d5d876fde3cbdec2341c56"}, {"id": "4-1-c118ca", "cls": "4-1", "name": "김○지", "title": "말랑말랑 젤리 퍼즐 🍬✨", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-c118ca.html", "hash": "1577cda9d73b87b1a71fdf23f8768a5164fba49a"}, {"id": "4-1-9f7162", "cls": "4-1", "name": "문○영", "title": "MY튜브 - 도깨비 요술 비디오 👹⚡", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-9f7162.html", "hash": "f375011c6f0f4ac346fc12847c83b8479719ddb0"}, {"id": "4-1-e8daad", "cls": "4-1", "name": "문○현", "title": "나의 미래운 🔮 - 당신의 운명을 관측하고 기운을 발동하세요", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-e8daad.html", "hash": "ba4cf505f9fe09e21bdb82476081d1a6582b74d4"}, {"id": "4-1-22e7bb", "cls": "4-1", "name": "박○우", "title": "내 기 절대 지켜 🐺🛡️ - 도깨비 퇴치 마음의 방패", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-22e7bb.html", "hash": "9d6ff7281d672a30716bba1dae8a9cbe140054c8"}, {"id": "4-1-19c470", "cls": "4-1", "name": "서○수", "title": "우리 친구 보스 - 냥코 보스 군단 디펜스 🐱🔥", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-19c470.html", "hash": "fbaeb8d903bd75a1cd4a48bbc2703eb4d74eb704"}, {"id": "4-1-ea4c02", "cls": "4-1", "name": "송○경", "title": "얍! 변신앱 - 책 속 고양이의 신비한 마법", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-ea4c02.html", "hash": "8b0535a3e2dfbafb12c4758821a52ccc4907825b"}, {"id": "4-1-9b5700", "cls": "4-1", "name": "신○아", "title": "숏츠 톡 - Shorts Talk", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-9b5700.html", "hash": "1bb45eb13d4dc8df4e2500a003f8da2c6bb48619"}, {"id": "4-1-6e6b38", "cls": "4-1", "name": "윤○우", "title": "스타 마린: 무한 어드벤처", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-6e6b38.html", "hash": "44b996337ece8dc9457ffee990a8dbcc423480f0"}, {"id": "4-1-7d3e4f", "cls": "4-1", "name": "윤○인", "title": "똥말잇기 💩 - HARD MODE", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-7d3e4f.html", "hash": "4899aec8628772dead31d7e261adc0d0b010df97"}, {"id": "4-1-fecbef", "cls": "4-1", "name": "이○록", "title": "환상 RPG: 히든 직업과 공포의 PK", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-fecbef.html", "hash": "32dd36347921dde7530eac7978acdeb99cd03b76"}, {"id": "4-1-c9cb70", "cls": "4-1", "name": "이○아", "title": "기가 다시 생겨나는 블루블라스트 ⚡", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-c9cb70.html", "hash": "da79f0cb7dd46992b5a79d6c91ba4b9f1b9cdeea"}, {"id": "4-1-4fdf8e", "cls": "4-1", "name": "이○영", "title": "K-POP 아이돌 포카 꾸미기 - Fan Love Studio", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-4fdf8e.html", "hash": "7575a3eb2821b9dd1690b076fabec97eebd40c3e"}, {"id": "4-1-39ddb4", "cls": "4-1", "name": "이○우", "title": "슈퍼 울트라 짱짱 계란 훔치기 🥚⚡", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-39ddb4.html", "hash": "1fcdddc9c64e9c723dd7c7397d7a4d59a678f92f"}, {"id": "4-1-9a150c", "cls": "4-1", "name": "이○진", "title": "타격의 전설: 사이버 슈팅", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-9a150c.html", "hash": "65738a6eeb26a6611a894fd4062ab8ce8eccca59"}, {"id": "4-1-55a50a", "cls": "4-1", "name": "이○현", "title": "기를 쌓는 어플 : 도깨비 퇴치전 👹⚡", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-55a50a.html", "hash": "4bff07f400142e91a1cdb1ef94d7f8cca61fec58"}, {"id": "4-1-8e1919", "cls": "4-1", "name": "자○", "title": "다 부셔 3D - SMASH & DESTROY", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-8e1919.html", "hash": "2a721ab427606d8194c83bfdf72b27f9c713b4c9"}, {"id": "4-1-4edb04", "cls": "4-1", "name": "정○인", "title": "천사 vs 악마: 혼돈의 냥터치 🐾👼😈", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-4edb04.html", "hash": "387616a0a440ee03a765810c9a9ced58a8726794"}, {"id": "4-1-af28b7", "cls": "4-1", "name": "조○진", "title": "스터디 퀘스트: 지혜의 영웅들", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-af28b7.html", "hash": "a52b38b999c8ab1c4621fa7d37c84e3ec33d4aed"}, {"id": "4-1-77aa36", "cls": "4-1", "name": "최○랑", "title": "슬랑이 나라의 왕: 슬랑이 창조 왕국", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-77aa36.html", "hash": "4a1827efab7c57aac2bf28ac1f9b357dc8bd84be"}, {"id": "4-1-e5d3de", "cls": "4-1", "name": "최○준", "title": "MTB 파크: 익스트림 풀샥 다운힐", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-e5d3de.html", "hash": "eecd900078be05b782caefe4867e2ed670cfd3b8"}, {"id": "4-1-6223a1", "cls": "4-1", "name": "허○슬", "title": "슈퍼 울트라 마법진 🔮🔥", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-6223a1.html", "hash": "0940976ec22e1acc88876567720c1a38832e40c8"}, {"id": "4-1-e17441", "cls": "4-1", "name": "황○현", "title": "신비한 알 키우기: 밤의 연금술사 NPC", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-1-e17441.html", "hash": "c08f625774ad69ea7be658100c7af9a25b2caa72"}, {"id": "4-2-a3cb68", "cls": "4-2", "name": "강○아", "title": "돈비가 내리는 앱 - 억만장자의 돈벼락 게임", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-a3cb68.html", "hash": "334cac58c6585a5bc0dde30311358118710fcc95"}, {"id": "4-2-c662aa", "cls": "4-2", "name": "강○호", "title": "버려진 숲 - 3분의 생존", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-c662aa.html", "hash": "8c27234bd2d6e84eae71d67649596e17142a7be0"}, {"id": "4-2-62617c", "cls": "4-2", "name": "고○희", "title": "탕후루의 대탈출 - 바삭한 설탕옷을 지켜라!", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-62617c.html", "hash": "38e1bb25e3c18bd96604ec23e356a309c72339cb"}, {"id": "4-2-366791", "cls": "4-2", "name": "권○율", "title": "지우를 지켜라 - 도깨비 폰 방어 대작전", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-366791.html", "hash": "c0874cf5063b63151c6089af97fab91bf92833e3"}, {"id": "4-2-f3ed50", "cls": "4-2", "name": "김○성", "title": "천적 피하기 (Avoid Predators) - 3D 토토 모험", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-f3ed50.html", "hash": "c6713f339532e5236395cfbaf886b69dcef6dc89"}, {"id": "4-2-874125", "cls": "4-2", "name": "김○온", "title": "냥이 키우기 - 나만의 솜방망이 반려묘 어플", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-874125.html", "hash": "2a925009963730905147f26da54b6aa57630690e"}, {"id": "4-2-8040e7", "cls": "4-2", "name": "김○울", "title": "나의 보호막 - 도깨비 방어 수호 결계", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-8040e7.html", "hash": "18cda8866e550855c4f719bcdd1ed5e6d95f1c59"}, {"id": "4-2-180761", "cls": "4-2", "name": "김○이", "title": "일론머스크 통장", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-180761.html", "hash": "0de3317d152964f3b8b0e3eea205815f22050566"}, {"id": "4-2-bc8715", "cls": "4-2", "name": "김○중", "title": "마왕의 독 포션 공방 - 기사를 처단하라!", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-bc8715.html", "hash": "183278e4d31b1803f4cd4fe3d1fb5e3ac346be6d"}, {"id": "4-2-2affec", "cls": "4-2", "name": "김○현", "title": "우현 피크 풀샥 (Woohyeon Peak Full-Suspension)", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-2affec.html", "hash": "b431a6338c60b27172d69d5049a97d9a429e70fb"}, {"id": "4-2-056bb4", "cls": "4-2", "name": "남○영", "title": "태권도 겨루기 대회", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-056bb4.html", "hash": "d14df5c67da1e1886ad74c59800708129e35d3f7"}, {"id": "4-2-c187a4", "cls": "4-2", "name": "문○후", "title": "좀비게임 - Zombie Survival Action", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-c187a4.html", "hash": "6d2314fd8611e13f1fff8e7d4e61decd541f6433"}, {"id": "4-2-820a3f", "cls": "4-2", "name": "박○", "title": "다시 GO! GO! GO! - 시간 역행 시계", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-820a3f.html", "hash": "c06a41f14e99a91dc508b02657424c6c87ab527b"}, {"id": "4-2-4e7f68", "cls": "4-2", "name": "박○건", "title": "복사 복사 - 신의 걸작 복사기", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-4e7f68.html", "hash": "77b5bfffe822be67a1956ccf040b1466c7d0feec"}, {"id": "4-2-9d7442", "cls": "4-2", "name": "박○윤", "title": "토토 (Toto) - 3D 로블록스 모험 게임", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-9d7442.html", "hash": "0d908b7419d4ce218381c79b1f1903a208ecb457"}, {"id": "4-2-5fc00f", "cls": "4-2", "name": "송○준", "title": "쫀득 말랑이야 - 3D 쫀득쫀득 촉감 스퀴시", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-5fc00f.html", "hash": "2c0078f11ca8720a8e4d390b48ec722143c4dd0c"}, {"id": "4-2-347620", "cls": "4-2", "name": "윤○율", "title": "쉿! - 자전거 손흥민의 계단 질주", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-347620.html", "hash": "13a2232f9a880be7e28f69ebc54950e2563d35f5"}, {"id": "4-2-bee432", "cls": "4-2", "name": "이○연", "title": "마라탕 게임 - 얼얼하고 맛있는 나만의 마라탕!", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-bee432.html", "hash": "a74383244230bb2fd732a18b2cc0ff2e9083ecc9"}, {"id": "4-2-fb7081", "cls": "4-2", "name": "이○은", "title": "크런치 슬랑이 - 3D ASMR 촉감 놀이", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-fb7081.html", "hash": "a35dd8595820b32b451c16d896d949fd8f6147f6"}, {"id": "4-2-0c730a", "cls": "4-2", "name": "장○솔", "title": "토끼 힐링 어플", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-0c730a.html", "hash": "7c0446cc11c1bf7de3425866ac1a5248db86e188"}, {"id": "4-2-b23c95", "cls": "4-2", "name": "차○우", "title": "샥샥샥 - 차근차근 올라가는 수학 교실", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-b23c95.html", "hash": "79172afd12a8b7c79b14d2fa738ac00a2f691cd3"}, {"id": "4-2-2cce34", "cls": "4-2", "name": "최○호", "title": "2026 KBO 프로 야구게임", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-2cce34.html", "hash": "d89c76351f24c01661fdb9875e6eae2cd976808d"}, {"id": "4-2-95bacc", "cls": "4-2", "name": "황○혜", "title": "마라탕의 재료를 모아라!", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-2-95bacc.html", "hash": "3cbdcba16cb8e1a3acfbfb1b9200ce6c0ee8a1c8"}, {"id": "4-3-fc24a2", "cls": "4-3", "name": "강○은", "title": "마라탕이 계속 나오는 어플", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-fc24a2.html", "hash": "5868e102ee9966179b692c9e3a7b9de09fba93ea"}, {"id": "4-3-f1f18c", "cls": "4-3", "name": "김○경", "title": "악기 연주 - 나의 비밀 연주실", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-f1f18c.html", "hash": "56970c1fb768bef8ecaf0e24f026a784a3db4e67"}, {"id": "4-3-17fe68", "cls": "4-3", "name": "김○온", "title": "로블록스 오비 게임 웹 시뮬레이터 & Studio 스크립트 에디터", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-17fe68.html", "hash": "9acab4257e0a454458df81cbb4f5cd0760a01334"}, {"id": "4-3-b13e7a", "cls": "4-3", "name": "김○원", "title": "전설의 RPG", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-b13e7a.html", "hash": "d748c759fb0c4688a060e42997a0cb3a25c4b602"}, {"id": "4-3-502db2", "cls": "4-3", "name": "김○준", "title": "환장할 RPG - 세상을 구하러 온 미친 영웅들", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-502db2.html", "hash": "21dac2e8c9c287b0802a9528cde1ea37a1287303"}, {"id": "4-3-48256f", "cls": "4-3", "name": "박○서", "title": "라면이 계속 나오는 어플", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-48256f.html", "hash": "e997befaa27c44b663ff11cd709956991ce92ce0"}, {"id": "4-3-13e36a", "cls": "4-3", "name": "박○윤", "title": "무한 동물 세상 - Infinite Animal World", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-13e36a.html", "hash": "6bbe78beebd73e2733d764d256095624774d3011"}, {"id": "4-3-2458e6", "cls": "4-3", "name": "박○혁", "title": "무한의 계단 (Infinite Stairs)", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-2458e6.html", "hash": "b768ad3e43b699ed89da6f213709e11fcdd13f07"}, {"id": "4-3-782a66", "cls": "4-3", "name": "배○은", "title": "솜솜 인형 공방 - 나만의 핸드메이드 인형 만들기", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-782a66.html", "hash": "ff63bde9c8512e35bf6716b6e7e7e41da05b7166"}, {"id": "4-3-25ec1b", "cls": "4-3", "name": "심○현", "title": "과금의 신: 10억 RPG - God of Microtransactions", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-25ec1b.html", "hash": "cedfd831b4931a3211944e0bcdc884e978f3fd9b"}, {"id": "4-3-33ec56", "cls": "4-3", "name": "여○인", "title": "아이돌 콘서트 티켓 - K-POP Idol Concert Ticket", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-33ec56.html", "hash": "88a36a178b017350ab191c9760aa9ed59a055e31"}, {"id": "4-3-7c7da4", "cls": "4-3", "name": "유○원", "title": "말랑이 말랑해 - 귀여운 말랑이 만지기 & ASMR", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-7c7da4.html", "hash": "ed596e22fcb778d100026cd30252de93c7ffbc2b"}, {"id": "4-3-df945b", "cls": "4-3", "name": "유○후", "title": "도서관 타이쿤 : 나만의 힐링 북케어", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-df945b.html", "hash": "a038e6b5ac4b9ccb6d9e7629533f5f53e456faa7"}, {"id": "4-3-ccd2d6", "cls": "4-3", "name": "윤○우", "title": "보스를 이겨라 - Beat the Boss", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-ccd2d6.html", "hash": "3a62f9a0bcc292009945837eedd736c1f490aa84"}, {"id": "4-3-1e7ba9", "cls": "4-3", "name": "이○강", "title": "떡볶이 어플 - 대한민국 No.1 떡볶이 가이드", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-1e7ba9.html", "hash": "920921a3eda898e92a33aa4765cfed9b41b8f711"}, {"id": "4-3-899f8b", "cls": "4-3", "name": "이○원", "title": "공룡 먹방 (Dino Mukbang)", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-899f8b.html", "hash": "d41b1183840d41b33d82d82306bdb81257ad732d"}, {"id": "4-3-eff120", "cls": "4-3", "name": "이○재", "title": "Zenith OS - Next-Gen Web Operating System", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-eff120.html", "hash": "f64d25227d7ad5fe829f74ff35b143e13a64b9d8"}, {"id": "4-3-bb642b", "cls": "4-3", "name": "정○린", "title": "샤베트 슬라임 리얼 촉감 & ASMR 오디션", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-bb642b.html", "hash": "c3012aba43f48dda347d1c584cb0271e8a1849ec"}, {"id": "4-3-b32c29", "cls": "4-3", "name": "조○서", "title": "우리반 비밀 우체통", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-b32c29.html", "hash": "b4f114e1fc616feac7895c865340480410fd0c1a"}, {"id": "4-3-a9514a", "cls": "4-3", "name": "최○연", "title": "다이소 알바체험 - Daiso Part-Time Simulator", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-a9514a.html", "hash": "dafc7f096bd35a4e3e19a9e8b9c6a65f56353ae1"}, {"id": "4-3-3e17f0", "cls": "4-3", "name": "허○", "title": "키랩랩 - KeyCap Lab", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-3e17f0.html", "hash": "4e0fda7660d52186ed29b8b2adfd73fe762faa58"}, {"id": "4-3-5323a2", "cls": "4-3", "name": "허○채", "title": "도깨비 퇴치 어플 - Goblin Exorcist App", "url": "https://daeyn92-ctrl.github.io/bookfesta/w/4-3-5323a2.html", "hash": "55abe718b9df35afc28b324f9e5c35df5c2af292"}]};
 const works = DATA.works;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const emojis = ['👹','📱','⚡','🔮','🌙','🦁','🥚','🚀','✨','🎮'];
-$('#total').textContent = works.length;
-
+const emojis = ['👹','📱','⚡','🔮','🌙','🦊','🍬','✨','🎮','💪'];
 const classes = [...new Set(works.map(w => w.cls))];
+const clsColor = c => 'c' + ((classes.indexOf(c) % 4) + 1);
+const clsLabel = c => c.replace('-', '학년 ') + '반';
+$('#s-works').textContent = works.length;
+$('#s-cls').textContent = classes.length;
+
 let cls = 'all';
-try { cls = new URLSearchParams(location.search).get('반') || 'all'; } catch(e){}
-function chips(){
-  $('#chips').innerHTML = ['all', ...classes].map(c =>
-    `<button class="chip" data-c="${c}" aria-pressed="${c===cls}">${c==='all'?'전체':c.replace('-', '학년 ')+'반'}</button>`).join('');
+function tabs(){
+  const n = c => c==='all' ? works.length : works.filter(w => w.cls===c).length;
+  $('#tabs').innerHTML = ['all', ...classes].map(c =>
+    `<button class="tab" data-c="${c}" aria-pressed="${c===cls}">${c==='all'?'전체':clsLabel(c)}<small>${n(c)}</small></button>`).join('');
 }
-$('#chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if(!b) return; cls = b.dataset.c; chips(); render(); });
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if(!b) return; cls = b.dataset.c; tabs(); render(); });
 
 function render(){
   const q = $('#q').value.trim().toLowerCase();
   const list = works.filter(w => (cls==='all' || w.cls===cls) && (!q || (w.title+' '+w.name+' '+w.cls).toLowerCase().includes(q)));
   $('#grid').innerHTML = list.map((w,i) => `
     <article class="card">
-      <a class="thumb" href="w/${w.id}.html" target="_blank" rel="noopener" aria-label="${esc(w.title)} 열기">
+      <a class="screen" href="w/${w.id}.html" target="_blank" rel="noopener" aria-label="${esc(w.title)} 열기">
         <span class="ph">${emojis[i % emojis.length]}</span>
         <img src="thumbs/${w.id}.jpg" alt="" loading="lazy" onerror="this.remove()">
       </a>
       <div class="body">
         <h3>${esc(w.title)}</h3>
-        <div class="who"><span class="cls">${esc(w.cls)}</span>${esc(w.name)}</div>
+        <div class="who"><span class="cls ${clsColor(w.cls)}">${esc(w.cls)}</span>${esc(w.name)}</div>
         <div class="actions">
           <a class="btn btn-play" href="w/${w.id}.html" target="_blank" rel="noopener">▶ 열기</a>
           <button class="btn btn-qr" data-id="${w.id}">QR</button>
         </div>
       </div>
+      <div class="home"></div>
     </article>`).join('');
   $('#count').textContent = `${list.length}개의 앱`;
   $('#empty').hidden = list.length > 0;
@@ -236,13 +319,13 @@ $('#grid').addEventListener('click', e => {
   const w = works.find(x => x.id === b.dataset.id);
   $('#dlg-qr').src = `qr/${w.id}.svg`; $('#dlg-qr').alt = `${w.title} QR코드`;
   $('#dlg-title').textContent = w.title;
-  $('#dlg-who').innerHTML = `<span class="cls">${esc(w.cls)}</span>${esc(w.name)}`;
+  $('#dlg-who').innerHTML = `<span class="cls ${clsColor(w.cls)}">${esc(w.cls)}</span>${esc(w.name)}`;
   $('#dlg-url').textContent = w.url; $('#dlg-open').href = `w/${w.id}.html`;
   dlg.showModal();
 });
 $('#dlg-close').onclick = () => dlg.close();
 dlg.addEventListener('click', e => { if(e.target === dlg) dlg.close(); });
-chips(); render();
+tabs(); render();
 </script>
 </body>
 </html>

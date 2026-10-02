@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>과금의 신: 10억 RPG - God of Microtransactions</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti for big purchases -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #090d16;
+            color: #f1f5f9;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        .font-impact {
+            font-family: 'Black Han Sans', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        /* Glowing effects */
+        .glow-gold {
+            filter: drop-shadow(0 0 10px rgba(234, 179, 8, 0.6));
+        }
+        .glow-mythic {
+            filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.8));
+        }
+        .glow-cosmic {
+            filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.9));
+        }
+        /* Shake animation for big hits / big purchases */
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+        /* Rainbow animated gradient for 10억 package */
+        .rainbow-bg {
+            background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd1de8);
+            background-size: 800% 800%;
+            animation: rainbow 6s ease infinite;
+        }
+        @keyframes rainbow {
+            0%{background-position:0% 82%}
+            50%{background-position:100% 19%}
+            100%{background-position:0% 82%}
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-black pb-16 lg:pb-0">
+
+    <!-- Top Header: Stats & Currency -->
+    <header class="border-b border-amber-900/40 bg-slate-950/90 backdrop-blur-md sticky top-0 z-40 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+            
+            <!-- Game Logo & VIP Tag -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 via-red-600 to-purple-600 flex items-center justify-center shadow-lg shadow-amber-900/40 ring-1 ring-amber-400">
+                    <i class="fa-solid fa-crown text-yellow-300 text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-black tracking-wider bg-gradient-to-r from-yellow-300 via-amber-400 to-red-500 bg-clip-text text-transparent font-impact">
+                            과금의 신: 10억 RPG
+                        </h1>
+                        <span id="vip-badge" class="px-2 py-0.5 rounded text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700">
+                            VIP 0
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 flex items-center gap-1">
+                        <span>스테이지 <strong id="stage-num" class="text-amber-400 font-bold">1-1</strong></span>
+                        <span class="text-slate-600">|</span>
+                        <span>전투력 <strong id="total-power" class="text-cyan-400 font-mono font-bold">1,250</strong></span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Currencies & Billing Bar -->
+            <div class="flex items-center flex-wrap gap-2 text-xs">
+                <!-- Gold -->
+                <div class="flex items-center space-x-1.5 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
+                    <i class="fa-solid fa-coins text-yellow-400"></i>
+                    <span id="gold-val" class="font-bold font-mono text-yellow-300">10,000</span>
+                </div>
+
+                <!-- Gems -->
+                <div class="flex items-center space-x-1.5 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
+                    <i class="fa-solid fa-gem text-cyan-400"></i>
+                    <span id="gem-val" class="font-bold font-mono text-cyan-300">1,000</span>
+                </div>
+
+                <!-- Billing Cap (10억 원 상한선) Gauge -->
+                <div class="hidden sm:flex items-center space-x-2 bg-gradient-to-r from-slate-950 to-slate-900 border border-amber-900/60 px-3 py-1 rounded-xl">
+                    <div class="text-right">
+                        <div class="text-[10px] text-amber-400/80 font-bold">누적 과금액 (상한선: 10억 원)</div>
+                        <div class="font-mono text-xs font-black text-amber-300" id="spent-val">0 원 / 1,000,000,000 원</div>
+                    </div>
+                    <div class="w-20 bg-slate-800 h-2 rounded-full overflow-hidden border border-amber-900/40">
+                        <div id="spent-bar" class="bg-gradient-to-r from-amber-500 to-red-500 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Sound Toggle -->
+                <button id="sound-toggle" class="p-2 rounded-xl bg-slate-800 border border-slate-700 text-amber-400 hover:bg-slate-700 transition" title="음향 온/오프">
+                    <i class="fa-solid fa-volume-high" id="sound-icon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Navigation Tabs -->
+    <div class="bg-slate-950/80 border-b border-slate-800 sticky top-[57px] z-30">
+        <div class="max-w-7xl mx-auto flex justify-around sm:justify-start sm:space-x-2 px-2 py-1.5 text-xs font-bold">
+            <button class="nav-tab active flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center gap-1.5 transition" data-target="tab-combat">
+                <i class="fa-solid fa-swords"></i> <span>전투</span>
+            </button>
+            <button class="nav-tab flex-1 sm:flex-initial px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 flex items-center justify-center gap-1.5 transition" data-target="tab-heroes">
+                <i class="fa-solid fa-users"></i> <span>영웅 파티</span>
+            </button>
+            <button class="nav-tab flex-1 sm:flex-initial px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 flex items-center justify-center gap-1.5 transition" data-target="tab-summon">
+                <i class="fa-solid fa-wand-magic-sparkles text-purple-400"></i> <span>영웅 소환</span>
+            </button>
+            <button class="nav-tab flex-1 sm:flex-initial px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 flex items-center justify-center gap-1.5 transition relative" data-target="tab-shop">
+                <i class="fa-solid fa-store text-yellow-400"></i> 
+                <span>과금 상점</span>
+                <span class="animate-ping absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
+                <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
+            </button>
+            <button class="nav-tab flex-1 sm:flex-initial px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 flex items-center justify-center gap-1.5 transition" data-target="tab-dungeon">
+                <i class="fa-solid fa-skull-crossbones text-red-400"></i> <span>레이드 던전</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto w-full px-4 py-4 flex-grow">
+
+        <!-- TAB 1: COMBAT (Default) -->
+        <section id="tab-combat" class="tab-content grid grid-cols-1 lg:grid-cols-12 gap-4">
+            
+            <!-- Battle Canvas Screen (8 cols) -->
+            <div class="lg:col-span-8 flex flex-col space-y-3">
+                <div class="relative rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-900/40 p-4 shadow-2xl overflow-hidden min-h-[380px] flex flex-col justify-between">
+                    
+                    <!-- Stage Info Bar -->
+                    <div class="flex justify-between items-center z-10 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+                        <div>
+                            <span class="text-[10px] text-amber-400 uppercase tracking-widest font-bold">CURRENT STAGE</span>
+                            <h3 class="text-base font-black text-white flex items-center gap-2">
+                                <span id="stage-title">1-1. 심연의 들판</span>
+                                <span id="boss-warning" class="hidden text-xs bg-red-600 text-white px-2 py-0.5 rounded font-bold animate-pulse">BOSS WAVE</span>
+                            </h3>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-slate-400 block">자동 전투 중</span>
+                            <span class="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> AUTO BATTLE
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Combat Canvas -->
+                    <div class="relative w-full flex-grow flex items-center justify-center my-2">
+                        <canvas id="battle-canvas" width="700" height="320" class="w-full h-auto rounded-xl border border-slate-800/80 bg-slate-950 cursor-crosshair shadow-inner"></canvas>
+                    </div>
+
+                    <!-- Battle Controls & Ultimate Skills -->
+                    <div class="grid grid-cols-4 gap-2 z-10">
+                        <button id="btn-skill-1" class="bg-gradient-to-b from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-2.5 rounded-xl border border-amber-400/50 flex flex-col items-center justify-center transition active:scale-95 group">
+                            <i class="fa-solid fa-burst text-lg mb-1 group-hover:scale-125 transition"></i>
+                            <span class="text-[10px] font-bold">천벌 단죄</span>
+                        </button>
+                        <button id="btn-skill-2" class="bg-gradient-to-b from-cyan-600 to-cyan-800 hover:from-cyan-500 hover:to-cyan-700 text-white p-2.5 rounded-xl border border-cyan-400/50 flex flex-col items-center justify-center transition active:scale-95 group">
+                            <i class="fa-solid fa-snowflake text-lg mb-1 group-hover:scale-125 transition"></i>
+                            <span class="text-[10px] font-bold">절대 빙결</span>
+                        </button>
+                        <button id="btn-skill-3" class="bg-gradient-to-b from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-2.5 rounded-xl border border-purple-400/50 flex flex-col items-center justify-center transition active:scale-95 group">
+                            <i class="fa-solid fa-meteor text-lg mb-1 group-hover:scale-125 transition"></i>
+                            <span class="text-[10px] font-bold">메테오 스트라이크</span>
+                        </button>
+                        <button id="btn-whales-skill" class="bg-gradient-to-b from-yellow-500 via-red-600 to-purple-700 hover:opacity-90 text-white p-2.5 rounded-xl border border-yellow-300 flex flex-col items-center justify-center transition active:scale-95 group shadow-lg shadow-yellow-500/20">
+                            <i class="fa-solid fa-money-bill-wave text-lg text-yellow-300 mb-1 group-hover:rotate-12 transition"></i>
+                            <span class="text-[10px] font-black text-yellow-200">10억 과금빔</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Right Column: Combat Log & Quick Upgrade (4 cols) -->
+            <div class="lg:col-span-4 flex flex-col space-y-3">
+                
+                <!-- Quick Party Stats Card -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl">
+                    <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-shield-halved mr-1"></i> 현재 출전 영웅</span>
+                        <span id="party-count-text" class="text-slate-400 text-[11px]">3 / 4 명</span>
+                    </h4>
+                    
+                    <div id="quick-party-list" class="space-y-2">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Live Battle Logs -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex-grow flex flex-col min-h-[220px]">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span><i class="fa-solid fa-list-ul mr-1 text-amber-500"></i> 전투 및 과금 실시간 기록</span>
+                        <span class="text-[10px] text-emerald-400">● LIVE</span>
+                    </h4>
+                    <div id="battle-log" class="space-y-1.5 text-xs text-slate-300 flex-grow overflow-y-auto max-h-[180px] pr-1">
+                        <div class="text-slate-500 py-1 border-b border-slate-800/60">⚡ 게임이 시작되었습니다. 자동 전투 진행 중...</div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- TAB 2: HEROES (Hidden by default) -->
+        <section id="tab-heroes" class="tab-content hidden space-y-4">
+            <div class="flex justify-between items-center bg-slate-900/90 p-4 rounded-2xl border border-slate-800">
+                <div>
+                    <h3 class="text-lg font-extrabold text-white font-impact">영웅 보유 목록 & 파티 관리</h3>
+                    <p class="text-xs text-slate-400">보유한 영웅을 강화하고 출전 파티를 구성하세요.</p>
+                </div>
+                <button id="btn-auto-equip" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs rounded-xl transition shadow-lg">
+                    <i class="fa-solid fa-wand-magic"></i> 자동 최강 배치
+                </button>
+            </div>
+
+            <!-- Hero Roster Grid -->
+            <div id="hero-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Dynamic Hero Cards populated by JS -->
+            </div>
+        </section>
+
+        <!-- TAB 3: SUMMON (GACHA) -->
+        <section id="tab-summon" class="tab-content hidden space-y-4">
+            <div class="rounded-2xl bg-gradient-to-br from-purple-950/60 via-slate-900 to-slate-950 border border-purple-800/40 p-6 text-center relative overflow-hidden shadow-2xl">
+                <div class="absolute inset-0 bg-[radial-gradient(#a855f7_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none"></div>
+
+                <span class="px-3 py-1 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-full text-xs font-bold uppercase tracking-widest">
+                    신화 & 우주 창조신 픽업 소환
+                </span>
+                <h2 class="text-3xl font-black text-white font-impact my-2 bg-gradient-to-r from-purple-300 via-pink-300 to-yellow-300 bg-clip-text text-transparent">
+                    전설의 과금 영웅 소환
+                </h2>
+                <p class="text-xs text-slate-300 max-w-lg mx-auto mb-6">
+                    최대 '우주 창조신' 등급 영웅을 뽑으세요! 과금액이 높아질수록 신화 등급 출현 확률이 대폭 상승합니다.
+                </p>
+
+                <!-- Summon Buttons -->
+                <div class="flex flex-wrap justify-center gap-4 max-w-md mx-auto">
+                    <button id="btn-summon-1" class="flex-1 min-w-[140px] px-5 py-3.5 bg-gradient-to-b from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white font-bold rounded-xl border border-purple-400/50 shadow-lg transition active:scale-95 flex flex-col items-center">
+                        <span class="text-sm">1회 소환</span>
+                        <span class="text-xs text-yellow-300 flex items-center gap-1 mt-0.5">
+                            <i class="fa-solid fa-gem"></i> 100 보석
+                        </span>
+                    </button>
+                    <button id="btn-summon-10" class="flex-1 min-w-[140px] px-5 py-3.5 bg-gradient-to-b from-amber-500 via-yellow-500 to-amber-600 hover:opacity-95 text-slate-950 font-black rounded-xl border border-yellow-300 shadow-xl transition active:scale-95 flex flex-col items-center">
+                        <span class="text-sm">10회 연쇄 소환</span>
+                        <span class="text-xs text-slate-900 flex items-center gap-1 mt-0.5">
+                            <i class="fa-solid fa-gem"></i> 1,000 보석
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Drop Rates Legend -->
+                <div class="mt-8 pt-4 border-t border-slate-800 text-left max-w-2xl mx-auto">
+                    <h5 class="text-xs font-bold text-slate-400 mb-2">소환 확률 안내</h5>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                        <div class="p-2 bg-slate-900/80 rounded border border-slate-800">
+                            <span class="text-slate-400 block">보통 (Common)</span>
+                            <span class="font-bold text-slate-300">50%</span>
+                        </div>
+                        <div class="p-2 bg-slate-900/80 rounded border border-slate-800">
+                            <span class="text-blue-400 block">희귀 (Rare)</span>
+                            <span class="font-bold text-blue-300">30%</span>
+                        </div>
+                        <div class="p-2 bg-slate-900/80 rounded border border-slate-800">
+                            <span class="text-purple-400 block">전설 (Legend)</span>
+                            <span class="font-bold text-purple-300">15%</span>
+                        </div>
+                        <div class="p-2 bg-slate-900/80 rounded border border-amber-900/40">
+                            <span class="text-amber-400 block">우주 창조신 (God)</span>
+                            <span class="font-bold text-yellow-300">5%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: SHOP (과금 상점 - 상한선 10억 원 패키지) -->
+        <section id="tab-shop" class="tab-content hidden space-y-4">
+            
+            <!-- Shop Header Banner -->
+            <div class="rounded-2xl bg-gradient-to-r from-yellow-950 via-slate-900 to-red-950 border border-yellow-500/50 p-5 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                    <span class="px-2.5 py-0.5 bg-yellow-500 text-black font-black text-[10px] rounded uppercase">ULTRA VIP SHOP</span>
+                    <h2 class="text-2xl font-black text-amber-300 font-impact mt-1">현질의 극의: VIP 과금 상점</h2>
+                    <p class="text-xs text-slate-300">
+                        소액 과금부터 **최고 상한선 10억 원(1,000,000,000 KRW)** 천상계 패키지까지 준비되어 있습니다!
+                    </p>
+                </div>
+                <div class="text-center md:text-right bg-slate-950/80 border border-amber-500/30 p-3 rounded-xl min-w-[200px]">
+                    <div class="text-[10px] text-amber-400 font-bold">현재 과금 등급</div>
+                    <div id="shop-vip-title" class="text-lg font-black text-yellow-300 font-impact">무과금 평민 (VIP 0)</div>
+                </div>
+            </div>
+
+            <!-- Packages Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                
+                <!-- Package 1: 1,000 KRW -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-700 transition shadow-lg">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold text-slate-400">초보자 패키지</span>
+                            <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded">1,000원</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white mb-1">커피 한 잔의 여유</h4>
+                        <p class="text-xs text-slate-400 mb-3">소소하게 시작하는 과금의 첫걸음입니다.</p>
+                        <ul class="text-xs text-amber-300 space-y-1 mb-4 font-mono">
+                            <li>• 1,000 보석</li>
+                            <li>• 50,000 골드</li>
+                        </ul>
+                    </div>
+                    <button onclick="purchasePackage(1000, '커피 한 잔의 여유', 1000, 50000)" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-slate-700 transition active:scale-95">
+                        ₩ 1,000 구매하기
+                    </button>
+                </div>
+
+                <!-- Package 2: 100,000 KRW -->
+                <div class="bg-slate-900 border border-amber-900/50 rounded-2xl p-4 flex flex-col justify-between hover:border-amber-500/50 transition shadow-lg">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold text-amber-400">중급 과금러</span>
+                            <span class="text-[10px] bg-amber-950 text-amber-300 px-2 py-0.5 rounded border border-amber-800">10만원</span>
+                        </div>
+                        <h4 class="text-base font-bold text-white mb-1">월급의 열매 패키지</h4>
+                        <p class="text-xs text-slate-400 mb-3">강력한 전투력을 즉시 체감할 수 있는 팩!</p>
+                        <ul class="text-xs text-amber-300 space-y-1 mb-4 font-mono">
+                            <li>• 120,000 보석</li>
+                            <li>• 10,000,000 골드</li>
+                            <li>• 전설 영웅 확정권 1장</li>
+                        </ul>
+                    </div>
+                    <button onclick="purchasePackage(100000, '월급의 열매 패키지', 120000, 10000000)" class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl transition active:scale-95 shadow-md">
+                        ₩ 100,000 구매하기
+                    </button>
+                </div>
+
+                <!-- Package 3: 10,000,000 KRW -->
+                <div class="bg-gradient-to-b from-purple-950/60 to-slate-900 border border-purple-500/50 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold text-purple-300">대기업 이사급</span>
+                            <span class="text-[10px] bg-purple-950 text-purple-200 px-2 py-0.5 rounded border border-purple-700">1천만원</span>
+                        </div>
+                        <h4 class="text-base font-extrabold text-purple-200 mb-1">소형 아파트 프리패스</h4>
+                        <p class="text-xs text-slate-300 mb-3">서버를 지배하는 핵과금러의 위엄.</p>
+                        <ul class="text-xs text-yellow-300 space-y-1 mb-4 font-mono">
+                            <li>• 15,000,000 보석</li>
+                            <li>• 1,000,000,000 골드</li>
+                            <li>• 우주 창조신 영웅 '현질의 신' 즉시 지급</li>
+                        </ul>
+                    </div>
+                    <button onclick="purchasePackage(10000000, '소형 아파트 프리패스', 15000000, 1000000000)" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white font-black text-xs rounded-xl shadow-lg transition active:scale-95">
+                        ₩ 10,000,000 구매하기
+                    </button>
+                </div>
+
+                <!-- Package 4: 100,000,000 KRW -->
+                <div class="bg-gradient-to-b from-red-950/80 to-slate-950 border border-red-500/80 rounded-2xl p-4 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 w-20 h-20 bg-red-600/20 rounded-full blur-xl pointer-events-none"></div>
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold text-red-400 animate-pulse">강남 빌딩 지분</span>
+                            <span class="text-[10px] bg-red-950 text-red-200 px-2 py-0.5 rounded border border-red-700">1억원</span>
+                        </div>
+                        <h4 class="text-lg font-black text-red-300 mb-1 font-impact">지구 파괴 주주 팩</h4>
+                        <p class="text-xs text-slate-300 mb-3">게임 개발사 대표가 직접 감사 인사를 하러 찾아옵니다.</p>
+                        <ul class="text-xs text-yellow-300 space-y-1 mb-4 font-mono">
+                            <li>• 200,000,000 보석</li>
+                            <li>• 무한 골드 수급권</li>
+                            <li>• 공격력 +5,000% 오라 버프</li>
+                        </ul>
+                    </div>
+                    <button onclick="purchasePackage(100000000, '지구 파괴 주주 팩', 200000000, 9999999999)" class="w-full py-3 bg-gradient-to-r from-red-600 via-orange-600 to-amber-600 hover:opacity-90 text-white font-black text-xs rounded-xl shadow-lg transition active:scale-95">
+                        ₩ 100,000,000 (1억 원) 구매하기
+                    </button>
+                </div>
+
+                <!-- Package 5: THE ULTIMATE 10억 KRW PACKAGE (상한선 극의) -->
+                <div class="md:col-span-2 lg:col-span-2 rainbow-bg p-1 rounded-2xl shadow-2xl glow-cosmic relative group">
+                    <div class="bg-slate-950 rounded-[14px] p-5 h-full flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="px-3 py-0.5 bg-yellow-400 text-black font-black text-[11px] rounded-full animate-bounce">
+                                    ★ 최종 과금 상한선 최고액 ★
+                                </span>
+                                <span class="text-xs font-mono font-black text-yellow-300 bg-yellow-950/80 px-2.5 py-1 rounded-lg border border-yellow-500/50">
+                                    1,000,000,000 원 (10억 원)
+                                </span>
+                            </div>
+                            
+                            <h3 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-red-400 font-impact mb-2">
+                                우주 창조주 멸망급 10억 패키지
+                            </h3>
+                            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+                                이 게임의 모든 법칙을 초월하는 전무후무한 10억 원 한도 최대 패키지입니다. 구매 즉시 전체 서버에 닉네임이 영구 각인되며 몬스터가 숨만 쉬어도 소멸합니다!
+                            </p>
+
+                            <div class="grid grid-cols-2 gap-2 text-xs text-amber-200 font-mono bg-slate-900/90 p-3 rounded-xl border border-amber-500/30 mb-4">
+                                <div>• 보석 +1,000,000,000 개</div>
+                                <div>• 골드 +999,999,999,999 개</div>
+                                <div>• 전용 스킬 '10억 과금빔' 무제한</div>
+                                <div>• VIP 10 '신재벌' 등급 즉시 승급</div>
+                            </div>
+                        </div>
+
+                        <button onclick="purchasePackage(1000000000, '우주 창조주 멸망급 10억 패키지', 1000000000, 999999999999)" class="w-full py-4 bg-gradient-to-r from-yellow-400 via-amber-500 to-red-600 hover:scale-[1.01] text-slate-950 font-black text-sm rounded-xl shadow-2xl transition active:scale-95 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-crown text-slate-950 text-lg"></i>
+                            <span>₩ 1,000,000,000 (10억 원) 구매하기</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- TAB 5: DUNGEON (DUNGEONS & RAIDS) -->
+        <section id="tab-dungeon" class="tab-content hidden space-y-4">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <h3 class="text-xl font-black text-red-400 font-impact mb-1">무한의 과금 던전 & 레이드 보스</h3>
+                <p class="text-xs text-slate-400 mb-4">강력한 보스를 물리치고 대량의 골드와 보석을 획득하세요.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Dungeon 1 -->
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-amber-400 font-bold block">일일 골드 던전</span>
+                            <h4 class="text-base font-bold text-white">황금 도깨비의 보물고</h4>
+                            <span class="text-[11px] text-slate-500">보상: 대량의 골드</span>
+                        </div>
+                        <button onclick="triggerDungeonChallenge('gold')" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-extrabold text-xs rounded-xl transition">
+                            입장하기
+                        </button>
+                    </div>
+
+                    <!-- Dungeon 2 -->
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-purple-400 font-bold block">월드 레이드</span>
+                            <h4 class="text-base font-bold text-white">10억의 마왕 파괴전</h4>
+                            <span class="text-[11px] text-slate-500">보상: 보석 + 전설 정수</span>
+                        </div>
+                        <button onclick="triggerDungeonChallenge('raid')" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl transition">
+                            도전하기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Purchase Success Modal -->
+    <div id="modal-purchase" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-amber-500/80 rounded-2xl p-6 max-w-md w-full text-center relative shadow-2xl shake">
+            <div class="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-slate-950 text-2xl shadow-lg glow-gold">
+                <i class="fa-solid fa-receipt"></i>
+            </div>
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-widest">결제 승인 완료</span>
+            <h3 id="modal-pkg-title" class="text-xl font-black text-white font-impact my-1">우주 창조주 10억 패키지</h3>
+            <p id="modal-pkg-desc" class="text-xs text-slate-300 mb-4">성공적으로 결제되었습니다! 누적 과금액이 업데이트되었습니다.</p>
+            
+            <div id="modal-rewards" class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-left text-xs font-mono space-y-1 mb-5">
+                <!-- Rewards list -->
+            </div>
+
+            <button onclick="closeModal('modal-purchase')" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition">
+                확인 및 게임 계속하기
+            </button>
+        </div>
+    </div>
+
+    <!-- Summon Drop Modal -->
+    <div id="modal-summon" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-purple-500/80 rounded-2xl p-6 max-w-lg w-full text-center relative shadow-2xl">
+            <h3 class="text-2xl font-black text-purple-300 font-impact mb-4">소환 결과</h3>
+            <div id="summon-result-grid" class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
+                <!-- Cards -->
+            </div>
+            <button onclick="closeModal('modal-summon')" class="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl transition">
+                확인
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // Sound Engine (Web Audio API Synthesizer)
+        // ==========================================
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+            }
+
+            playAttack() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+
+            playCoin() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, now); // B5
+                osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            playBigPurchase() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                
+                // Fanfare notes
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+
+                    gain.gain.setValueAtTime(0.3, now + idx * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now + idx * 0.1);
+                    osc.stop(now + idx * 0.1 + 0.3);
+                });
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        // ==========================================
+        // Game State
+        // ==========================================
+        const gameState = {
+            gold: 10000,
+            gems: 1000,
+            totalSpent: 0, // In KRW, max 1,000,000,000 (10억)
+            vipLevel: 0,
+            stage: 1,
+            subStage: 1,
+            bossMode: false,
+            godMode: false,
+            
+            // Player Roster
+            heroes: [
+                { id: 'h1', name: '기본 기사', rarity: 'Common', level: 5, power: 300, icon: 'fa-shield-halved', color: '#94a3b8', inParty: true },
+                { id: 'h2', name: '불꽃 마도사', rarity: 'Rare', level: 3, power: 450, icon: 'fa-wand-magic-sparkles', color: '#60a5fa', inParty: true },
+                { id: 'h3', name: '빛의 암살자', rarity: 'Legend', level: 1, power: 1200, icon: 'fa-bolt', color: '#c084fc', inParty: true }
+            ]
+        };
+
+        // Available Heroes Gacha Pool
+        const HERO_POOL = [
+            { name: '수련생 검사', rarity: 'Common', power: 150, icon: 'fa-user-ninja', color: '#94a3b8' },
+            { name: '숲의 궁수', rarity: 'Common', power: 180, icon: 'fa-crosshairs', color: '#94a3b8' },
+            { name: '성기사 자크', rarity: 'Rare', power: 500, icon: 'fa-shield-cat', color: '#60a5fa' },
+            { name: '빙설의 여왕', rarity: 'Rare', power: 650, icon: 'fa-snowflake', color: '#60a5fa' },
+            { name: '용기사 드라군', rarity: 'Legend', power: 2500, icon: 'fa-dragon', color: '#c084fc' },
+            { name: '우주 창조신 현질왕', rarity: 'God', power: 99999, icon: 'fa-crown', color: '#facc15' }
+        ];
+
+        // ==========================================
+        // Canvas Combat Simulator
+        // ==========================================
+        const canvas = document.getElementById('battle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let particles = [];
+        let damageTexts = [];
+        let monsterHp = 100;
+        let monsterMaxHp = 100;
+        let monsterName = '슬라임';
+
+        function updateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background Grid / Ambient Effect
+            ctx.strokeStyle = 'rgba(30, 41, 59, 0.4)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            // Draw Party Heroes on Left side
+            const party = gameState.heroes.filter(h => h.inParty);
+            party.forEach((hero, idx) => {
+                const x = 80 + (idx * 50);
+                const y = 180 + Math.sin(Date.now() * 0.005 + idx) * 5;
+
+                // Shadow
+                ctx.beginPath();
+                ctx.ellipse(x, 220, 18, 6, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.fill();
+
+                // Hero Circle
+                ctx.beginPath();
+                ctx.arc(x, y, 18, 0, Math.PI * 2);
+                ctx.fillStyle = hero.color;
+                ctx.shadowColor = hero.color;
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Hero Label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '10px Noto Sans KR';
+                ctx.textAlign = 'center';
+                ctx.fillText(hero.name.substring(0, 4), x, y + 32);
+            });
+
+            // Draw Monster on Right side
+            const mx = 520;
+            const my = 170 + Math.sin(Date.now() * 0.003) * 8;
+
+            // Monster Shadow
+            ctx.beginPath();
+            ctx.ellipse(mx, 225, gameState.bossMode ? 45 : 25, 10, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fill();
+
+            // Monster Body
+            ctx.beginPath();
+            ctx.arc(mx, my, gameState.bossMode ? 40 : 25, 0, Math.PI * 2);
+            ctx.fillStyle = gameState.bossMode ? '#ef4444' : '#10b981';
+            ctx.shadowColor = gameState.bossMode ? '#ef4444' : '#10b981';
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Monster Name & HP Bar
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px Noto Sans KR';
+            ctx.textAlign = 'center';
+            ctx.fillText(monsterName, mx, my - (gameState.bossMode ? 50 : 35));
+
+            // HP Bar container
+            const barW = gameState.bossMode ? 100 : 60;
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+            ctx.fillRect(mx - barW / 2, my - (gameState.bossMode ? 42 : 28), barW, 6);
+
+            // HP Fill
+            const hpRatio = Math.max(0, monsterHp / monsterMaxHp);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(mx - barW / 2, my - (gameState.bossMode ? 42 : 28), barW * hpRatio, 6);
+
+            // Update & Draw Particles
+            particles.forEach((p, index) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.02;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+
+                if (p.alpha <= 0) particles.splice(index, 1);
+            });
+
+            // Update & Draw Floating Damage Text
+            damageTexts.forEach((dt, index) => {
+                dt.y -= 1;
+                dt.alpha -= 0.02;
+
+                ctx.fillStyle = dt.color;
+                ctx.font = 'bold 16px Black Han Sans';
+                ctx.globalAlpha = Math.max(0, dt.alpha);
+                ctx.fillText(dt.text, dt.x, dt.y);
+                ctx.globalAlpha = 1.0;
+
+                if (dt.alpha <= 0) damageTexts.splice(index, 1);
+            });
+
+            requestAnimationFrame(updateCanvas);
+        }
+
+        // Spawn attack particles
+        function triggerAttackEffect(x, y, color = '#f59e0b') {
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    radius: Math.random() * 4 + 2,
+                    color: color,
+                    alpha: 1.0
+                });
+            }
+        }
+
+        function addDamageText(text, x, y, color = '#facc15') {
+            damageTexts.push({
+                text: text,
+                x: x,
+                y: y,
+                color: color,
+                alpha: 1.0
+            });
+        }
+
+        // Auto combat tick logic
+        setInterval(() => {
+            const party = gameState.heroes.filter(h => h.inParty);
+            if (party.length === 0) return;
+
+            let totalPower = party.reduce((sum, h) => sum + h.power, 0);
+            if (gameState.godMode) totalPower *= 100; // God mode buff
+
+            const dmg = Math.floor(totalPower * (0.8 + Math.random() * 0.4));
+            monsterHp -= dmg;
+
+            sound.playAttack();
+            triggerAttackEffect(520, 170, '#f59e0b');
+            addDamageText(`-${dmg.toLocaleString()}`, 520 + (Math.random() * 40 - 20), 150, '#ef4444');
+
+            // Monster defeated
+            if (monsterHp <= 0) {
+                const goldEarned = gameState.bossMode ? 5000 : 500;
+                const gemsEarned = gameState.bossMode ? 50 : 5;
+                gameState.gold += goldEarned;
+                gameState.gems += gemsEarned;
+
+                sound.playCoin();
+                addLog(`⚔️ [${monsterName}] 처치! +${goldEarned.toLocaleString()} 골드, +${gemsEarned} 보석`);
+
+                // Advance Stage
+                if (gameState.bossMode) {
+                    gameState.bossMode = false;
+                    gameState.stage += 1;
+                    gameState.subStage = 1;
+                    document.getElementById('boss-warning').classList.add('hidden');
+                } else {
+                    gameState.subStage += 1;
+                    if (gameState.subStage > 5) {
+                        gameState.bossMode = true;
+                        document.getElementById('boss-warning').classList.remove('hidden');
+                    }
+                }
+
+                // Reset Monster HP
+                monsterMaxHp = gameState.stage * 2000 * (gameState.bossMode ? 5 : 1);
+                monsterHp = monsterMaxHp;
+                monsterName = gameState.bossMode ? `[BOSS] 과금 붕괴자 Stage ${gameState.stage}` : `심연의 몬스터 Lv.${gameState.stage}`;
+
+                updateUI();
+            }
+        }, 1200);
+
+        // ==========================================
+        // Shop & Billing Engine (10억 원 Cap Limit)
+        // ==========================================
+        function purchasePackage(priceKRW, name, gemsAdded, goldAdded) {
+            const CAP_LIMIT = 1000000000; // 10억 원
+
+            if (gameState.totalSpent + priceKRW > CAP_LIMIT) {
+                alert(`[결제 실패] 법정 및 시스템 과금 상한선(10억 원)을 초과할 수 없습니다!`);
+                return;
+            }
+
+            gameState.totalSpent += priceKRW;
+            gameState.gems += gemsAdded;
+            gameState.gold += goldAdded;
+
+            // Update VIP Level based on spent
+            if (gameState.totalSpent >= 1000000000) {
+                gameState.vipLevel = 10;
+                gameState.godMode = true;
+            } else if (gameState.totalSpent >= 100000000) {
+                gameState.vipLevel = 8;
+            } else if (gameState.totalSpent >= 10000000) {
+                gameState.vipLevel = 5;
+            } else if (gameState.totalSpent >= 100000) {
+                gameState.vipLevel = 2;
+            } else if (gameState.totalSpent >= 1000) {
+                gameState.vipLevel = 1;
+            }
+
+            sound.playBigPurchase();
+
+            // Confetti for big spending
+            if (priceKRW >= 10000000) {
+                confetti({
+                    particleCount: 150,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            // Log
+            addLog(`💰 과금 결제 성공: <strong class="text-amber-300">[${name}]</strong> (₩${priceKRW.toLocaleString()}원)`);
+
+            // Show Modal
+            document.getElementById('modal-pkg-title').innerText = name;
+            document.getElementById('modal-pkg-desc').innerText = `₩ ${priceKRW.toLocaleString()} 원 결제가 정상 완료되었습니다.`;
+            document.getElementById('modal-rewards').innerHTML = `
+                <div class="text-emerald-400">• 보석 +${gemsAdded.toLocaleString()} 개</div>
+                <div class="text-yellow-400">• 골드 +${goldAdded.toLocaleString()} 개</div>
+                <div class="text-cyan-400">• 누적 과금액: ${gameState.totalSpent.toLocaleString()} / 1,000,000,000 원</div>
+                ${gameState.godMode ? '<div class="text-purple-400 font-bold">• [특전] 우주 창조신 God 모드 발동!</div>' : ''}
+            `;
+            document.getElementById('modal-purchase').classList.remove('hidden');
+
+            updateUI();
+        }
+
+        // ==========================================
+        // Gacha Summon Engine
+        // ==========================================
+        function performSummon(count, cost) {
+            if (gameState.gems < cost) {
+                addLog(`❌ 보석이 부족합니다! 과금 상점에서 보석을 충전하세요.`);
+                return;
+            }
+
+            gameState.gems -= cost;
+            const results = [];
+
+            for (let i = 0; i < count; i++) {
+                const picked = HERO_POOL[Math.floor(Math.random() * HERO_POOL.length)];
+                results.push(picked);
+
+                // Add to player roster
+                const newHero = {
+                    id: 'h_' + Date.now() + '_' + i,
+                    name: picked.name,
+                    rarity: picked.rarity,
+                    level: 1,
+                    power: picked.power,
+                    icon: picked.icon,
+                    color: picked.color,
+                    inParty: false
+                };
+                gameState.heroes.push(newHero);
+            }
+
+            sound.playBigPurchase();
+
+            // Display Results Modal
+            const grid = document.getElementById('summon-result-grid');
+            grid.innerHTML = results.map(r => `
+                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col items-center">
+                    <i class="fa-solid ${r.icon} text-2xl mb-1" style="color:${r.color}"></i>
+                    <span class="text-xs font-bold text-white">${r.name}</span>
+                    <span class="text-[10px]" style="color:${r.color}">${r.rarity}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('modal-summon').classList.remove('hidden');
+            addLog(`🔮 영웅 ${count}회 소환 완료! 영웅 파티 탭에서 확인하세요.`);
+            updateUI();
+        }
+
+        // UI Refresh Function
+        function updateUI() {
+            document.getElementById('gold-val').innerText = gameState.gold.toLocaleString();
+            document.getElementById('gem-val').innerText = gameState.gems.toLocaleString();
+            document.getElementById('stage-num').innerText = `${gameState.stage}-${gameState.subStage}`;
+            document.getElementById('stage-title').innerText = `${gameState.stage}-${gameState.subStage}. ${gameState.bossMode ? '보스 레이드 구역' : '심연의 필드'}`;
+
+            // Billing Cap Gauge
+            document.getElementById('spent-val').innerText = `${gameState.totalSpent.toLocaleString()} 원 / 1,000,000,000 원`;
+            const pct = Math.min(100, (gameState.totalSpent / 1000000000) * 100);
+            document.getElementById('spent-bar').style.width = `${pct}%`;
+
+            // VIP Badge
+            document.getElementById('vip-badge').innerText = `VIP ${gameState.vipLevel}`;
+            document.getElementById('shop-vip-title').innerText = gameState.vipLevel === 10 ? '우주 재벌 God (VIP 10)' : `과금 전사 (VIP ${gameState.vipLevel})`;
+
+            // Party Power
+            const party = gameState.heroes.filter(h => h.inParty);
+            const totalPower = party.reduce((sum, h) => sum + h.power, 0) * (gameState.godMode ? 100 : 1);
+            document.getElementById('total-power').innerText = totalPower.toLocaleString();
+
+            // Render Quick Party List
+            const partyContainer = document.getElementById('quick-party-list');
+            partyContainer.innerHTML = party.map(h => `
+                <div class="flex items-center justify-between p-2 bg-slate-950 rounded-xl border border-slate-800 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid ${h.icon}" style="color:${h.color}"></i>
+                        <span class="font-bold text-slate-200">${h.name} <span class="text-[10px] text-slate-500">Lv.${h.level}</span></span>
+                    </div>
+                    <span class="font-mono text-cyan-400 font-bold">${h.power.toLocaleString()}</span>
+                </div>
+            `).join('');
+
+            // Render Full Hero Grid in Heroes Tab
+            const heroGrid = document.getElementById('hero-grid');
+            heroGrid.innerHTML = gameState.heroes.map(h => `
+                <div class="bg-slate-900 border ${h.inParty ? 'border-amber-500' : 'border-slate-800'} rounded-2xl p-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid ${h.icon} text-xl" style="color:${h.color}"></i>
+                                <div>
+                                    <h4 class="text-sm font-bold text-white">${h.name}</h4>
+                                    <span class="text-[10px]" style="color:${h.color}">${h.rarity}</span>
+                                </div>
+                            </div>
+                            <span class="text-xs font-mono font-bold text-cyan-400">전투력 ${h.power}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button onclick="toggleParty('${h.id}')" class="flex-1 py-1.5 ${h.inParty ? 'bg-amber-600 text-slate-950' : 'bg-slate-800 text-slate-300'} font-bold text-xs rounded-xl transition">
+                            ${h.inParty ? '출전 중' : '파티 배치'}
+                        </button>
+                        <button onclick="upgradeHero('${h.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-yellow-400 text-xs font-bold rounded-xl border border-slate-700">
+                            강화 (100골드)
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleParty(id) {
+            const hero = gameState.heroes.find(h => h.id === id);
+            if (!hero) return;
+
+            const partyCount = gameState.heroes.filter(h => h.inParty).length;
+            if (!hero.inParty && partyCount >= 4) {
+                addLog(`⚠️ 파티는 최대 4명까지만 배치 가능합니다.`);
+                return;
+            }
+
+            hero.inParty = !hero.inParty;
+            updateUI();
+        }
+
+        function upgradeHero(id) {
+            const hero = gameState.heroes.find(h => h.id === id);
+            if (!hero) return;
+
+            if (gameState.gold < 100) {
+                addLog(`❌ 골드가 부족합니다!`);
+                return;
+            }
+
+            gameState.gold -= 100;
+            hero.level += 1;
+            hero.power = Math.floor(hero.power * 1.2);
+            sound.playCoin();
+            addLog(`✨ [${hero.name}] 레벨 업! -> Lv.${hero.level}`);
+            updateUI();
+        }
+
+        function addLog(msg) {
+            const container = document.getElementById('battle-log');
+            const item = document.createElement('div');
+            item.className = 'text-slate-300 py-1 border-b border-slate-800/60 flex justify-between items-center';
+            item.innerHTML = `<span>${msg}</span> <span class="text-[10px] text-slate-600">${new Date().toLocaleTimeString('ko-KR', {hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit'})}</span>`;
+            container.prepend(item);
+            if (container.children.length > 15) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function triggerDungeonChallenge(type) {
+            sound.playAttack();
+            if (type === 'gold') {
+                gameState.gold += 50000;
+                addLog(`🏰 황금 도깨비 보물고 소탕 완료! +50,000 골드`);
+            } else {
+                gameState.gems += 1000;
+                addLog(`🐉 10억 마왕 레이드 승리! +1,000 보석`);
+            }
+            updateUI();
+        }
+
+        // Navigation Tabs Toggle
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab').forEach(t => {
+                    t.classList.remove('active', 'bg-amber-500', 'text-slate-950');
+                    t.classList.add('text-slate-400');
+                });
+                tab.classList.add('active', 'bg-amber-500', 'text-slate-950');
+                tab.classList.remove('text-slate-400');
+
+                const target = tab.getAttribute('data-target');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                document.getElementById(target).classList.remove('hidden');
+            });
+        });
+
+        // Gacha Summon Buttons
+        document.getElementById('btn-summon-1').addEventListener('click', () => performSummon(1, 100));
+        document.getElementById('btn-summon-10').addEventListener('click', () => performSummon(10, 1000));
+
+        // Skill Buttons
+        document.getElementById('btn-skill-1').addEventListener('click', () => {
+            sound.playAttack();
+            monsterHp -= 3000;
+            triggerAttackEffect(520, 170, '#f59e0b');
+            addDamageText(`CRITICAL -3,000`, 520, 140, '#f59e0b');
+        });
+        document.getElementById('btn-skill-2').addEventListener('click', () => {
+            sound.playAttack();
+            monsterHp -= 5000;
+            triggerAttackEffect(520, 170, '#06b6d4');
+            addDamageText(`FREEZE -5,000`, 520, 140, '#06b6d4');
+        });
+        document.getElementById('btn-skill-3').addEventListener('click', () => {
+            sound.playAttack();
+            monsterHp -= 10000;
+            triggerAttackEffect(520, 170, '#a855f7');
+            addDamageText(`METEOR -10,000`, 520, 140, '#a855f7');
+        });
+        document.getElementById('btn-whales-skill').addEventListener('click', () => {
+            sound.playBigPurchase();
+            monsterHp -= 999999;
+            triggerAttackEffect(520, 170, '#ef4444');
+            addDamageText(`10억 과금빔 -999,999`, 520, 120, '#facc15');
+        });
+
+        // Sound Mute Toggle
+        document.getElementById('sound-toggle').addEventListener('click', () => {
+            sound.enabled = !sound.enabled;
+            const icon = document.getElementById('sound-icon');
+            icon.className = sound.enabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
+        });
+
+        // Auto Equip
+        document.getElementById('btn-auto-equip').addEventListener('click', () => {
+            gameState.heroes.forEach(h => h.inParty = false);
+            const sorted = [...gameState.heroes].sort((a,b) => b.power - a.power);
+            for (let i = 0; i < Math.min(4, sorted.length); i++) {
+                sorted[i].inParty = true;
+            }
+            addLog(`🛡️ 상위 전투력 영웅으로 파티 자동 배치가 완료되었습니다.`);
+            updateUI();
+        });
+
+        // App Init
+        window.addEventListener('load', () => {
+            updateUI();
+            updateCanvas();
+        });
+    </script>
+</body>
+</html>

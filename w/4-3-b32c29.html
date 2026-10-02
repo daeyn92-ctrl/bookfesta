@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>우리반 비밀 우체통</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts: Gaegu (Handwriting), Jua, Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #2d1e18;
+            background-image: radial-gradient(#4a3227 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: #2b2b2b;
+            touch-action: manipulation;
+        }
+        .font-jua {
+            font-family: 'Jua', sans-serif;
+        }
+        .font-handwriting {
+            font-family: 'Gaegu', cursive;
+        }
+
+        /* Letter Themes */
+        .paper-classic {
+            background-color: #fdf6e2;
+            background-image: repeating-linear-gradient(#fdf6e2 0px, #fdf6e2 27px, #e8dfc8 28px);
+        }
+        .paper-cherry {
+            background-color: #fff0f5;
+            background-image: repeating-linear-gradient(#fff0f5 0px, #fff0f5 27px, #f4c2c2 28px);
+        }
+        .paper-night {
+            background-color: #1e293b;
+            color: #f1f5f9;
+            background-image: repeating-linear-gradient(#1e293b 0px, #1e293b 27px, #334155 28px);
+        }
+        .paper-clover {
+            background-color: #f0fdf4;
+            background-image: repeating-linear-gradient(#f0fdf4 0px, #f0fdf4 27px, #bbf7d0 28px);
+        }
+
+        /* Envelope Styles */
+        .envelope-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes float-gentle {
+            0%, 100% { transform: translateY(0px) rotate(-0.5deg); }
+            50% { transform: translateY(-6px) rotate(0.5deg); }
+        }
+        .animate-float {
+            animation: float-gentle 4s ease-in-out infinite;
+        }
+
+        @keyframes mail-drop {
+            0% { transform: translateY(-80px) scale(0.7); opacity: 0; }
+            70% { transform: translateY(10px) scale(1.05); opacity: 1; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .animate-mail-drop {
+            animation: mail-drop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d97706;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 sm:p-4">
+
+    <!-- App Container -->
+    <div class="w-full max-w-lg h-[100vh] sm:h-[92vh] sm:max-h-[860px] bg-amber-50 sm:rounded-3xl shadow-2xl flex flex-col justify-between overflow-hidden border-0 sm:border-8 border-amber-900/60 relative">
+
+        <!-- App Header Bar -->
+        <header class="bg-gradient-to-r from-amber-800 via-amber-700 to-amber-900 text-amber-100 p-3 sm:p-4 border-b-4 border-amber-950 shadow-md flex justify-between items-center z-20">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 bg-amber-100 text-amber-800 rounded-2xl flex items-center justify-center text-2xl shadow-inner font-jua">
+                    📮
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-black font-jua text-amber-100 leading-tight tracking-wide">우리반 비밀 우체통</h1>
+                    <p class="text-[11px] text-amber-300 font-medium" id="headerSubtitle">함께 전하는 마음 & 비밀 편지함</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="soundToggleBtn" class="w-9 h-9 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-200 flex items-center justify-center hover:bg-amber-800 transition">
+                    <i class="fa-solid fa-volume-high text-sm" id="soundIcon"></i>
+                </button>
+                <button id="leaveRoomBtn" class="hidden px-2.5 py-1.5 rounded-xl bg-red-800/80 hover:bg-red-700 border border-red-500/40 text-red-100 font-jua text-xs transition items-center gap-1">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>나가기</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Current Room Banner (Visible inside room) -->
+        <div id="roomInfoBanner" class="hidden bg-amber-900 text-amber-100 px-4 py-2 border-b border-amber-700/50 flex justify-between items-center text-xs font-jua shadow-sm z-10">
+            <div class="flex items-center gap-2 overflow-hidden">
+                <span class="bg-amber-700 text-amber-100 px-2 py-0.5 rounded-md font-extrabold text-[11px]" id="bannerClassTitle">학급</span>
+                <span class="truncate font-bold text-amber-200 text-sm" id="bannerRoomName">우체통 이름</span>
+            </div>
+            <button id="copyCodeBtn" class="shrink-0 bg-amber-800 hover:bg-amber-700 border border-amber-500/50 px-2.5 py-1 rounded-lg flex items-center gap-1.5 text-amber-200 transition">
+                <i class="fa-solid fa-key text-amber-400"></i>
+                <span id="bannerCodeText">코드: ------</span>
+                <i class="fa-regular fa-copy text-xs"></i>
+            </button>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto relative bg-[#f7f1e5] p-3 sm:p-4 flex flex-col" id="mainArea">
+            
+            <!-- VIEW 1: LOBBY (Create or Join Room) -->
+            <div id="lobbyView" class="flex-1 flex flex-col justify-center space-y-4 my-auto">
+                
+                <!-- Hero Welcome Box -->
+                <div class="bg-amber-100/80 border-2 border-amber-300 rounded-2xl p-4 text-center shadow-sm animate-float">
+                    <div class="text-4xl mb-1">📬</div>
+                    <h2 class="text-xl font-black font-jua text-amber-950">우리반 친구들의 비밀 우체통</h2>
+                    <p class="text-xs text-amber-800 mt-1">
+                        무한한 우체통 방을 만들어 우리반 친구들끼리<br>따뜻한 마음과 고마웠던 일을 소중히 나눠보세요!
+                    </p>
+                </div>
+
+                <!-- Action Tabs (Join vs Create) -->
+                <div class="bg-amber-200/60 p-1 rounded-2xl flex border border-amber-300 font-jua text-sm">
+                    <button id="tabJoinBtn" class="flex-1 py-2 rounded-xl bg-amber-800 text-amber-50 font-extrabold shadow transition">
+                        🔑 우체통 입장하기
+                    </button>
+                    <button id="tabCreateBtn" class="flex-1 py-2 rounded-xl text-amber-900 font-bold hover:text-amber-950 transition">
+                        ✨ 새 우체통 개설하기
+                    </button>
+                </div>
+
+                <!-- Form 1: Join Room -->
+                <div id="joinForm" class="bg-white/90 border-2 border-amber-200 rounded-2xl p-4 shadow-md space-y-3">
+                    <h3 class="font-jua text-amber-900 text-base flex items-center gap-1.5">
+                        <i class="fa-solid fa-door-open text-amber-600"></i> 우체통 방 코드 입력
+                    </h3>
+                    <div>
+                        <label class="block text-xs font-bold text-amber-900 mb-1">방 초대 코드 (6자리)</label>
+                        <input type="text" id="joinRoomCode" placeholder="예: CLASS-1234" class="w-[#100%] uppercase tracking-wider font-mono text-center font-bold px-3 py-2 bg-amber-50 border-2 border-amber-300 rounded-xl text-amber-950 focus:outline-none focus:border-amber-600 text-base">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-amber-900 mb-1">우체통 비밀번호</label>
+                        <input type="password" id="joinPasscode" placeholder="방 비밀번호 입력" class="w-full px-3 py-2 bg-amber-50 border-2 border-amber-300 rounded-xl text-amber-950 focus:outline-none focus:border-amber-600 text-sm">
+                    </div>
+                    <button id="btnEnterRoom" class="w-full py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-jua rounded-xl text-base shadow-md transition transform active:scale-95 flex items-center justify-center gap-2">
+                        <span>우체통으로 들어가기</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- Form 2: Create Room (Hidden by default) -->
+                <div id="createForm" class="hidden bg-white/90 border-2 border-amber-200 rounded-2xl p-4 shadow-md space-y-3">
+                    <h3 class="font-jua text-amber-900 text-base flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus-circle text-amber-600"></i> 새로운 우체통 만들기
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-bold text-amber-900 mb-1">학급명 (예: 5학년 2반)</label>
+                            <input type="text" id="createClassTitle" placeholder="3학년 1반" class="w-full px-3 py-2 bg-amber-50 border-2 border-amber-300 rounded-xl text-amber-950 text-xs focus:outline-none focus:border-amber-600">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-amber-900 mb-1">개설자 이름/별명</label>
+                            <input type="text" id="createCreatorName" placeholder="반장 또는 선생님" class="w-full px-3 py-2 bg-amber-50 border-2 border-amber-300 rounded-xl text-amber-950 text-xs focus:outline-none focus:border-amber-600">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-amber-900 mb-1">우체통 이름</label>
+                        <input type="text" id="createRoomName" placeholder="예: 무지개반 비밀 우체통" class="w-full px-3 py-2 bg-amber-50 border-2 border-amber-300 rounded-xl text-amber-950 text-xs focus:outline-none focus:border-amber-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-amber-900 mb-1">방 입장 비밀번호 (4자리 이상)</label>
+                        <input type="password" id="createPasscode" placeholder="친구들과 공유할 비밀번호" class="w-full px-3 py-2 bg-amber-50 border-2 border-amber-300 rounded-xl text-amber-950 text-xs focus:outline-none focus:border-amber-600">
+                    </div>
+                    <button id="btnCreateRoomSubmit" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-jua rounded-xl text-base shadow-md transition transform active:scale-95 flex items-center justify-center gap-2">
+                        <span>우체통 방 개설하기</span>
+                        <i class="fa-solid fa-sparkles"></i>
+                    </button>
+                </div>
+
+                <!-- Security Guarantee Note -->
+                <div class="p-3 bg-amber-900/10 border border-amber-800/20 rounded-xl text-center">
+                    <p class="text-[11px] text-amber-900 font-bold flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-shield-halved text-emerald-700"></i>
+                        <span>방 개수 무한 제공 / 방 사라짐 및 외부 유출 방지 시스템 적용</span>
+                    </p>
+                </div>
+
+            </div>
+
+
+            <!-- VIEW 2: IN-ROOM CONTENT (Visible when joined room) -->
+            <div id="roomView" class="hidden flex-1 flex flex-col space-y-3">
+                
+                <!-- Tab Controls -->
+                <div class="flex bg-amber-200/80 p-1 rounded-2xl border border-amber-300/80 font-jua text-xs shrink-0">
+                    <button id="tabLetters" class="flex-1 py-2 rounded-xl bg-amber-800 text-amber-50 font-extrabold shadow transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-envelope"></i>
+                        <span>편지함 (<span id="letterCountBadge">0</span>)</span>
+                    </button>
+                    <button id="tabWrite" class="flex-1 py-2 rounded-xl text-amber-900 font-bold hover:text-amber-950 transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-pen-nib"></i>
+                        <span>편지 쓰기</span>
+                    </button>
+                    <button id="tabBoard" class="flex-1 py-2 rounded-xl text-amber-900 font-bold hover:text-amber-950 transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-star"></i>
+                        <span>칭찬 한마디</span>
+                    </button>
+                </div>
+
+                <!-- ROOM TAB 1: LETTERS LIST -->
+                <div id="sectionLetters" class="flex-1 flex flex-col space-y-2">
+                    
+                    <!-- Filter Buttons -->
+                    <div class="flex items-center justify-between px-1">
+                        <div class="flex gap-1 text-[11px] font-jua">
+                            <button id="filterAll" class="px-2.5 py-1 rounded-lg bg-amber-800 text-amber-100 font-bold">전체</button>
+                            <button id="filterToMe" class="px-2.5 py-1 rounded-lg bg-amber-200 text-amber-900 hover:bg-amber-300">나에게</button>
+                            <button id="filterSecret" class="px-2.5 py-1 rounded-lg bg-amber-200 text-amber-900 hover:bg-amber-300">🔒 비밀편지</button>
+                        </div>
+                        <span class="text-[11px] text-amber-800 font-bold" id="lettersStatusText">최신순 정렬</span>
+                    </div>
+
+                    <!-- Letters Grid / List Container -->
+                    <div class="flex-1 overflow-y-auto pr-1 space-y-3" id="lettersContainer">
+                        <!-- Dynamic Letters Inserted Here via JS -->
+                    </div>
+
+                </div>
+
+                <!-- ROOM TAB 2: WRITE LETTER -->
+                <div id="sectionWrite" class="hidden flex-1 bg-white/90 border-2 border-amber-300 rounded-2xl p-3.5 shadow-md flex flex-col space-y-2.5 overflow-y-auto">
+                    <h3 class="font-jua text-amber-950 text-base border-b border-amber-200 pb-1 flex items-center justify-between">
+                        <span>💌 마음을 담은 편지 쓰기</span>
+                        <span class="text-xs text-amber-700 font-normal">반 친구에게 전달돼요</span>
+                    </h3>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-bold text-amber-900 mb-0.5">받는 사람 (친구 이름/전체)</label>
+                            <input type="text" id="writeRecipient" placeholder="예: 지우에게 or 반 전체" class="w-full px-2.5 py-1.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 focus:outline-none focus:border-amber-600 font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-amber-900 mb-0.5">보내는 사람 (본인/익명)</label>
+                            <input type="text" id="writeSender" placeholder="예: 수호가 or 익명의 천사" class="w-full px-2.5 py-1.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 focus:outline-none focus:border-amber-600 font-bold">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-amber-900 mb-0.5">편지 제목</label>
+                        <input type="text" id="writeTitle" placeholder="제목을 입력해 주세요" class="w-full px-2.5 py-1.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 focus:outline-none focus:border-amber-600 font-bold">
+                    </div>
+
+                    <!-- Theme & Stamp Selectors -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-bold text-amber-900 mb-0.5">편지지 테마</label>
+                            <select id="writePaperTheme" class="w-full px-2 py-1.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 font-jua">
+                                <option value="paper-classic">📜 클래식 노란종이</option>
+                                <option value="paper-cherry">🌸 벚꽃 핑크 편지지</option>
+                                <option value="paper-night">🌌 별빛 밤하늘</option>
+                                <option value="paper-clover">🍀 행운의 클로버</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-amber-900 mb-0.5">우표 아이콘</label>
+                            <select id="writeStamp" class="w-full px-2 py-1.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 font-jua">
+                                <option value="🌸">🌸 벚꽃 우표</option>
+                                <option value="🐶">🐶 강아지 우표</option>
+                                <option value="🚀">🚀 우주선 우표</option>
+                                <option value="🍀">🍀 클로버 우표</option>
+                                <option value="🎁">🎁 선물 상자</option>
+                                <option value="💌">💌 사랑의 편지</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Secret Passcode Option -->
+                    <div class="bg-amber-100/60 p-2 rounded-xl border border-amber-200">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-bold text-amber-950 flex items-center gap-1">
+                                <i class="fa-solid fa-lock text-amber-700"></i> 비밀 편지 설정 (선택)
+                            </label>
+                            <input type="password" id="writeSecretCode" maxlength="4" placeholder="비밀번호 4자리" class="w-28 px-2 py-1 text-center bg-white border border-amber-300 rounded-lg text-xs font-mono">
+                        </div>
+                        <p class="text-[10px] text-amber-800 mt-1">※ 비밀번호 입력 시, 암호를 아는 사람만 편지를 열람할 수 있습니다.</p>
+                    </div>
+
+                    <!-- Letter Body Text Area -->
+                    <div class="flex-1 flex flex-col min-h-[120px]">
+                        <label class="block text-[11px] font-bold text-amber-900 mb-0.5">편지 내용</label>
+                        <textarea id="writeContent" placeholder="친구에게 전하고 싶었던 따뜻한 이야기, 고마웠던 일, 미안했던 일들을 자유롭게 적어보세요..." class="flex-1 w-full p-3 bg-amber-50 border border-amber-300 rounded-xl text-sm font-handwriting text-amber-950 leading-relaxed focus:outline-none focus:border-amber-600 resize-none"></textarea>
+                    </div>
+
+                    <button id="btnSendLetter" class="w-full py-2.5 bg-gradient-to-r from-amber-700 to-orange-700 hover:from-amber-600 hover:to-orange-600 text-white font-jua rounded-xl text-sm shadow-md transition transform active:scale-95 flex items-center justify-center gap-2 shrink-0">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>우체통에 편지 넣기</span>
+                    </button>
+                </div>
+
+                <!-- ROOM TAB 3: CLASSROOM BOARD & PRAISE -->
+                <div id="sectionBoard" class="hidden flex-1 bg-white/90 border-2 border-amber-300 rounded-2xl p-3.5 shadow-md flex flex-col space-y-3 overflow-y-auto">
+                    <h3 class="font-jua text-amber-950 text-base border-b border-amber-200 pb-1 flex items-center gap-2">
+                        <span>🌟 우리반 한 줄 칭찬 게시판</span>
+                    </h3>
+
+                    <!-- Quick Praise Input -->
+                    <div class="flex gap-2">
+                        <input type="text" id="boardInput" placeholder="친구에게 남길 짧은 칭찬 한마디..." class="flex-1 px-3 py-2 bg-amber-50 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 focus:outline-none focus:border-amber-600">
+                        <button id="btnPostPraise" class="px-3 py-2 bg-amber-800 hover:bg-amber-700 text-amber-100 font-jua text-xs rounded-xl shadow transition shrink-0">
+                            등록
+                        </button>
+                    </div>
+
+                    <!-- Praise Wall -->
+                    <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="praiseWall">
+                        <!-- Dynamic Praise Notes -->
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+        <!-- Footer Bar -->
+        <footer class="bg-amber-950 text-amber-200/80 px-4 py-2 text-center text-[10px] font-medium border-t border-amber-900 z-20 flex justify-between items-center">
+            <span>📮 우리반 비밀 우체통 v2.5</span>
+            <span class="text-amber-400 font-bold">무한 방 저장 & 영구 보관 중</span>
+        </footer>
+
+    </div>
+
+
+    <!-- READ LETTER MODAL -->
+    <div id="readModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+        <div class="w-full max-w-md rounded-3xl p-5 shadow-2xl relative flex flex-col max-h-[85vh] transition-all transform duration-300 scale-95 opacity-0" id="readModalCard">
+            
+            <!-- Close Button -->
+            <button id="btnCloseReadModal" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-stone-700 hover:text-stone-900 flex items-center justify-center transition z-10">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <!-- Letter Paper Container -->
+            <div id="modalPaper" class="rounded-2xl p-5 overflow-y-auto flex-1 flex flex-col shadow-inner relative border-2 border-amber-300/40">
+                
+                <!-- Stamp and Postmark -->
+                <div class="flex justify-between items-start mb-3 border-b border-amber-900/10 pb-2">
+                    <div>
+                        <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-900/10 text-amber-900 font-jua" id="modalRecipient">
+                            지우에게
+                        </span>
+                        <h3 class="text-lg font-black font-jua mt-1 text-amber-950" id="modalTitle">
+                            편지 제목
+                        </h3>
+                    </div>
+                    <div class="text-right">
+                        <div class="w-12 h-14 bg-white/80 border-2 border-dashed border-amber-700/40 rounded-lg flex items-center justify-center text-2xl shadow-sm relative">
+                            <span id="modalStamp">🌸</span>
+                            <div class="absolute -bottom-1 -right-1 text-[8px] font-mono text-amber-900/60 rotate-12">POST-OK</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="flex-1 my-2">
+                    <p id="modalContent" class="font-handwriting text-xl sm:text-2xl leading-relaxed whitespace-pre-wrap break-words text-amber-950">
+                        편지 내용이 여기에 들어갑니다.
+                    </p>
+                </div>
+
+                <!-- Footer: Date & Sender -->
+                <div class="mt-4 pt-2 border-t border-amber-900/10 flex justify-between items-end text-xs">
+                    <span class="text-amber-800/70 font-mono text-[10px]" id="modalDate">2026.10.02 12:00</span>
+                    <span class="font-bold font-jua text-amber-900 text-sm" id="modalSender">수호가</span>
+                </div>
+
+            </div>
+
+            <!-- Reaction Buttons -->
+            <div class="mt-3 bg-white/90 rounded-2xl p-2.5 flex justify-around items-center text-xs font-jua border border-amber-200">
+                <button onclick="addReaction('❤️')" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition">
+                    <span>❤️ 따뜻해요</span>
+                    <span id="reactCountHeart" class="font-bold text-amber-900">0</span>
+                </button>
+                <button onclick="addReaction('👏')" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 transition">
+                    <span>👏 고마워요</span>
+                    <span id="reactCountClap" class="font-bold text-amber-900">0</span>
+                </button>
+                <button onclick="addReaction('😊')" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition">
+                    <span>😊 미소지어요</span>
+                    <span id="reactCountSmile" class="font-bold text-amber-900">0</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SECRET PASSCODE PROMPT MODAL -->
+    <div id="passcodeModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-5 max-w-xs w-full text-center space-y-3 border-4 border-amber-400 shadow-2xl">
+            <div class="text-3xl">🔒</div>
+            <h3 class="font-jua text-lg text-amber-950">비밀 편지입니다</h3>
+            <p class="text-xs text-amber-800">이 편지를 열기 위해 4자리 비밀번호를 입력해 주세요.</p>
+            <input type="password" id="inputLetterPasscode" maxlength="4" placeholder="비밀번호 입력" class="w-full text-center px-3 py-2 bg-amber-50 border-2 border-amber-300 rounded-xl text-base font-mono font-bold focus:outline-none focus:border-amber-600">
+            <div class="flex gap-2">
+                <button id="btnCancelPasscode" class="flex-1 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-jua text-xs rounded-xl">취소</button>
+                <button id="btnConfirmPasscode" class="flex-1 py-2 bg-amber-800 hover:bg-amber-700 text-white font-jua text-xs rounded-xl">열기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION UI -->
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 bg-amber-900 text-amber-100 border border-amber-500/50 px-5 py-2.5 rounded-2xl shadow-2xl font-jua text-xs flex items-center gap-2.5 transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px] z-50">
+        <span class="text-xl" id="toastIcon">📬</span>
+        <span id="toastMsg">소식 알림</span>
+    </div>
+
+
+    <!-- Firebase Script & Logic Module -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, collection, query, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase Setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'our-class-mailbox';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-key",
+            authDomain: "demo.firebaseapp.com",
+            projectId: "demo-project"
+        };
+
+        let app, auth, db;
+        let currentUser = null;
+
+        // Sound Effects Synthesizer (Web Audio API)
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playRustle() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.12);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            }
+            playSend() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.25);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+            playClick() {
+                if (!this.enabled) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        // App State
+        const state = {
+            currentRoom: null, // { id, name, classTitle, passcode }
+            letters: [],
+            praises: [],
+            filter: 'all', // all, toMe, secret
+            selectedLetterForRead: null,
+            pendingPasscodeLetter: null
+        };
+
+        // DOM Elements
+        const lobbyView = document.getElementById('lobbyView');
+        const roomView = document.getElementById('roomView');
+        const roomInfoBanner = document.getElementById('roomInfoBanner');
+        const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+        const bannerClassTitle = document.getElementById('bannerClassTitle');
+        const bannerRoomName = document.getElementById('bannerRoomName');
+        const bannerCodeText = document.getElementById('bannerCodeText');
+
+        // Initialize Firebase Authentication
+        async function initAuth() {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                const customToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (customToken) {
+                    const userCred = await signInWithCustomToken(auth, customToken);
+                    currentUser = userCred.user;
+                } else {
+                    const userCred = await signInAnonymously(auth);
+                    currentUser = userCred.user;
+                }
+            } catch (err) {
+                console.warn("Firebase fallback mode activated:", err);
+            }
+        }
+
+        // Firestore Listeners
+        let unsubscribeLetters = null;
+        let unsubscribePraises = null;
+
+        function subscribeRoomData(roomId) {
+            if (!db || !currentUser) {
+                // Mock In-Memory Mode
+                renderLetters();
+                renderPraises();
+                return;
+            }
+
+            // RULE 1: Strict collection paths
+            // RULE 2: Simple queries without complex filters
+            const lettersRef = collection(db, 'artifacts', appId, 'public', 'data', 'letters');
+            const praisesRef = collection(db, 'artifacts', appId, 'public', 'data', 'praises');
+
+            if (unsubscribeLetters) unsubscribeLetters();
+            if (unsubscribePraises) unsubscribePraises();
+
+            // Realtime Snapshot for Letters
+            unsubscribeLetters = onSnapshot(lettersRef, (snapshot) => {
+                const all = [];
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.roomId === roomId) {
+                        all.push({ id: docSnap.id, ...data });
+                    }
+                });
+                // Sort by timestamp descending
+                all.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                state.letters = all;
+                renderLetters();
+            }, (err) => console.error("Letters listener error:", err));
+
+            // Realtime Snapshot for Praises
+            unsubscribePraises = onSnapshot(praisesRef, (snapshot) => {
+                const all = [];
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.roomId === roomId) {
+                        all.push({ id: docSnap.id, ...data });
+                    }
+                });
+                all.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                state.praises = all;
+                renderPraises();
+            }, (err) => console.error("Praises listener error:", err));
+        }
+
+        // Render Letters List
+        const lettersContainer = document.getElementById('lettersContainer');
+        const letterCountBadge = document.getElementById('letterCountBadge');
+
+        function renderLetters() {
+            lettersContainer.innerHTML = '';
+            
+            let filtered = state.letters;
+            if (state.filter === 'secret') {
+                filtered = filtered.filter(l => l.secretCode && l.secretCode.trim().length > 0);
+            } else if (state.filter === 'toMe') {
+                const myName = localStorage.getItem('mb_user_name') || '';
+                filtered = filtered.filter(l => myName && l.recipient.includes(myName));
+            }
+
+            letterCountBadge.innerText = state.letters.length;
+
+            if (filtered.length === 0) {
+                lettersContainer.innerHTML = `
+                    <div class="p-8 text-center bg-white/60 rounded-2xl border-2 border-dashed border-amber-300 my-auto">
+                        <div class="text-4xl mb-2">📮</div>
+                        <h4 class="font-jua text-amber-950 text-base">도착한 편지가 아직 없어요!</h4>
+                        <p class="text-xs text-amber-800 mt-1">상단 '편지 쓰기' 탭을 눌러 반 친구에게 첫 마음을 전해보세요.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(letter => {
+                const isSecret = letter.secretCode && letter.secretCode.trim().length > 0;
+                const card = document.createElement('div');
+                card.className = "bg-white/95 border-2 border-amber-300 rounded-2xl p-3.5 shadow-sm hover:shadow-md transition cursor-pointer relative overflow-hidden group flex items-center justify-between";
+                
+                card.onclick = () => openLetterModal(letter);
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-12 h-12 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-2xl shrink-0 shadow-inner">
+                            ${isSecret ? '🔒' : (letter.stamp || '🌸')}
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-jua text-xs text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md shrink-0">
+                                    To. ${escapeHtml(letter.recipient)}
+                                </span>
+                                ${isSecret ? '<span class="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold">비밀편지</span>' : ''}
+                            </div>
+                            <h4 class="font-bold text-amber-950 text-sm truncate mt-0.5">${escapeHtml(letter.title)}</h4>
+                            <p class="text-[11px] text-amber-800/80 font-medium">From. ${escapeHtml(letter.sender)}</p>
+                        </div>
+                    </div>
+
+                    <div class="text-right shrink-0">
+                        <span class="text-[10px] text-stone-400 font-mono block">${formatDate(letter.createdAt)}</span>
+                        <span class="text-xs font-jua text-amber-700 group-hover:translate-x-1 transition inline-block mt-1">
+                            읽기 <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </span>
+                    </div>
+                `;
+
+                lettersContainer.appendChild(card);
+            });
+        }
+
+        // Render Praise Board
+        const praiseWall = document.getElementById('praiseWall');
+
+        function renderPraises() {
+            praiseWall.innerHTML = '';
+            if (state.praises.length === 0) {
+                praiseWall.innerHTML = `
+                    <div class="p-6 text-center text-amber-800/70 text-xs font-jua">
+                        아직 등록된 칭찬 메시지가 없습니다.<br>친구에게 따뜻한 한마디를 적어보세요!
+                    </div>
+                `;
+                return;
+            }
+
+            state.praises.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-amber-100/80 border border-amber-300 rounded-xl p-2.5 text-xs text-amber-950 font-medium shadow-sm flex items-start gap-2";
+                card.innerHTML = `
+                    <span class="text-base">🌸</span>
+                    <div class="flex-1">
+                        <p class="leading-relaxed font-bold">${escapeHtml(item.text)}</p>
+                        <span class="text-[9px] text-amber-800/60 font-mono block mt-1">${formatDate(item.createdAt)}</span>
+                    </div>
+                `;
+                praiseWall.appendChild(card);
+            });
+        }
+
+        // Helper UI & Navigation
+        const tabJoinBtn = document.getElementById('tabJoinBtn');
+        const tabCreateBtn = document.getElementById('tabCreateBtn');
+        const joinForm = document.getElementById('joinForm');
+        const createForm = document.getElementById('createForm');
+
+        tabJoinBtn.onclick = () => {
+            sound.playClick();
+            tabJoinBtn.className = "flex-1 py-2 rounded-xl bg-amber-800 text-amber-50 font-extrabold shadow transition";
+            tabCreateBtn.className = "flex-1 py-2 rounded-xl text-amber-900 font-bold hover:text-amber-950 transition";
+            joinForm.classList.remove('hidden');
+            createForm.classList.add('hidden');
+        };
+
+        tabCreateBtn.onclick = () => {
+            sound.playClick();
+            tabCreateBtn.className = "flex-1 py-2 rounded-xl bg-amber-800 text-amber-50 font-extrabold shadow transition";
+            tabJoinBtn.className = "flex-1 py-2 rounded-xl text-amber-900 font-bold hover:text-amber-950 transition";
+            createForm.classList.remove('hidden');
+            joinForm.classList.add('hidden');
+        };
+
+        // Create New Room
+        document.getElementById('btnCreateRoomSubmit').onclick = async () => {
+            sound.playClick();
+            const classTitle = document.getElementById('createClassTitle').value.trim();
+            const creatorName = document.getElementById('createCreatorName').value.trim();
+            const roomName = document.getElementById('createRoomName').value.trim();
+            const passcode = document.getElementById('createPasscode').value.trim();
+
+            if (!classTitle || !roomName || !passcode) {
+                showToast("⚠️ 학급명, 방 이름, 비밀번호를 모두 입력해주세요!");
+                return;
+            }
+
+            // Generate 6-digit Room Code
+            const roomCode = 'CLASS-' + Math.floor(1000 + Math.random() * 9000);
+            const roomData = {
+                id: roomCode,
+                classTitle: classTitle,
+                name: roomName,
+                creator: creatorName || '선생님/반장',
+                passcode: passcode,
+                createdAt: Date.now()
+            };
+
+            try {
+                if (db && currentUser) {
+                    // RULE 1: Strict path for public room document
+                    const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+                    await setDoc(roomRef, roomData);
+                }
+                showToast(`🎉 우체통이 생성되었습니다! 코드: ${roomCode}`);
+                enterRoom(roomData);
+            } catch (err) {
+                console.error("Room creation error:", err);
+                enterRoom(roomData); // Fallback locally
+            }
+        };
+
+        // Join Existing Room
+        document.getElementById('btnEnterRoom').onclick = async () => {
+            sound.playClick();
+            const code = document.getElementById('joinRoomCode').value.trim().toUpperCase();
+            const passcode = document.getElementById('joinPasscode').value.trim();
+
+            if (!code || !passcode) {
+                showToast("⚠️ 방 초대 코드와 비밀번호를 입력해주세요!");
+                return;
+            }
+
+            if (db && currentUser) {
+                try {
+                    const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', code);
+                    const snap = await getDoc(roomRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        if (data.passcode === passcode) {
+                            showToast("🔑 우체통 입장 성공!");
+                            enterRoom(data);
+                        } else {
+                            showToast("❌ 비밀번호가 올바르지 않습니다.");
+                        }
+                    } else {
+                        showToast("❌ 해당 초대 코드의 방을 찾을 수 없습니다.");
+                    }
+                } catch (err) {
+                    console.error("Room join error:", err);
+                    showToast("접속 시도 중 오류가 발생하여 기본 로비로 진입합니다.");
+                }
+            } else {
+                // Mock Entry
+                enterRoom({ id: code, classTitle: "우리반", name: "비밀 우체통", passcode: passcode });
+            }
+        };
+
+        // Enter Room Function
+        function enterRoom(room) {
+            state.currentRoom = room;
+            bannerClassTitle.innerText = room.classTitle;
+            bannerRoomName.innerText = room.name;
+            bannerCodeText.innerText = `코드: ${room.id}`;
+
+            lobbyView.classList.add('hidden');
+            roomView.classList.remove('hidden');
+            roomInfoBanner.classList.remove('hidden');
+            leaveRoomBtn.classList.remove('hidden');
+            leaveRoomBtn.classList.add('flex');
+
+            subscribeRoomData(room.id);
+        }
+
+        // Leave Room
+        leaveRoomBtn.onclick = () => {
+            sound.playClick();
+            state.currentRoom = null;
+            roomView.classList.add('hidden');
+            lobbyView.classList.remove('hidden');
+            roomInfoBanner.classList.add('hidden');
+            leaveRoomBtn.classList.add('hidden');
+            leaveRoomBtn.classList.remove('flex');
+            showToast("👋 우체통에서 나왔습니다.");
+        };
+
+        // Copy Room Code
+        document.getElementById('copyCodeBtn').onclick = () => {
+            sound.playClick();
+            if (!state.currentRoom) return;
+            const textToCopy = `[우리반 비밀 우체통]\n학급: ${state.currentRoom.classTitle}\n방 이름: ${state.currentRoom.name}\n초대 코드: ${state.currentRoom.id}`;
+            
+            // Clipboard Copy Fallback
+            const el = document.createElement('textarea');
+            el.value = textToCopy;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            showToast("📋 방 초대 정보가 복사되었습니다!");
+        };
+
+        // Send Letter Logic
+        document.getElementById('btnSendLetter').onclick = async () => {
+            if (!state.currentRoom) return;
+
+            const recipient = document.getElementById('writeRecipient').value.trim();
+            const sender = document.getElementById('writeSender').value.trim();
+            const title = document.getElementById('writeTitle').value.trim();
+            const theme = document.getElementById('writePaperTheme').value;
+            const stamp = document.getElementById('writeStamp').value;
+            const secretCode = document.getElementById('writeSecretCode').value.trim();
+            const content = document.getElementById('writeContent').value.trim();
+
+            if (!recipient || !sender || !title || !content) {
+                showToast("⚠️ 받는 사람, 보내는 사람, 제목, 내용을 모두 입력하세요.");
+                return;
+            }
+
+            // Save sender name locally for "To Me" auto filtering
+            localStorage.setItem('mb_user_name', sender);
+
+            const letterData = {
+                roomId: state.currentRoom.id,
+                recipient,
+                sender,
+                title,
+                paperTheme: theme,
+                stamp,
+                secretCode,
+                content,
+                createdAt: Date.now(),
+                reactions: { heart: 0, clap: 0, smile: 0 }
+            };
+
+            try {
+                if (db && currentUser) {
+                    // RULE 1: Public collection path for letter docs
+                    const lettersRef = collection(db, 'artifacts', appId, 'public', 'data', 'letters');
+                    await addDoc(lettersRef, letterData);
+                } else {
+                    state.letters.unshift({ id: 'local-' + Date.now(), ...letterData });
+                    renderLetters();
+                }
+
+                sound.playSend();
+                showToast("📬 편지가 우체통에 도착했습니다!");
+
+                // Reset form & Switch tab to letters
+                document.getElementById('writeRecipient').value = '';
+                document.getElementById('writeTitle').value = '';
+                document.getElementById('writeContent').value = '';
+                document.getElementById('writeSecretCode').value = '';
+
+                switchRoomTab('letters');
+            } catch (err) {
+                console.error("Letter send error:", err);
+                showToast("❌ 편지 전송 중 오류가 발생했습니다.");
+            }
+        };
+
+        // Open Letter Modal
+        function openLetterModal(letter) {
+            sound.playRustle();
+            if (letter.secretCode && letter.secretCode.trim().length > 0) {
+                state.pendingPasscodeLetter = letter;
+                document.getElementById('inputLetterPasscode').value = '';
+                document.getElementById('passcodeModal').classList.remove('hidden');
+                return;
+            }
+            displayLetterContent(letter);
+        }
+
+        document.getElementById('btnConfirmPasscode').onclick = () => {
+            sound.playClick();
+            const inputCode = document.getElementById('inputLetterPasscode').value.trim();
+            if (state.pendingPasscodeLetter && inputCode === state.pendingPasscodeLetter.secretCode) {
+                document.getElementById('passcodeModal').classList.add('hidden');
+                displayLetterContent(state.pendingPasscodeLetter);
+                state.pendingPasscodeLetter = null;
+            } else {
+                showToast("❌ 비밀번호가 올바르지 않습니다!");
+            }
+        };
+
+        document.getElementById('btnCancelPasscode').onclick = () => {
+            sound.playClick();
+            document.getElementById('passcodeModal').classList.add('hidden');
+            state.pendingPasscodeLetter = null;
+        };
+
+        function displayLetterContent(letter) {
+            state.selectedLetterForRead = letter;
+
+            const modalPaper = document.getElementById('modalPaper');
+            modalPaper.className = `rounded-2xl p-5 overflow-y-auto flex-1 flex flex-col shadow-inner relative border-2 border-amber-300/40 ${letter.paperTheme || 'paper-classic'}`;
+
+            document.getElementById('modalRecipient').innerText = `To. ${letter.recipient}`;
+            document.getElementById('modalTitle').innerText = letter.title;
+            document.getElementById('modalStamp').innerText = letter.stamp || '🌸';
+            document.getElementById('modalContent').innerText = letter.content;
+            document.getElementById('modalDate').innerText = formatDate(letter.createdAt);
+            document.getElementById('modalSender').innerText = `From. ${letter.sender}`;
+
+            // Reactions Count
+            const reacts = letter.reactions || { heart: 0, clap: 0, smile: 0 };
+            document.getElementById('reactCountHeart').innerText = reacts.heart || 0;
+            document.getElementById('reactCountClap').innerText = reacts.clap || 0;
+            document.getElementById('reactCountSmile').innerText = reacts.smile || 0;
+
+            const modal = document.getElementById('readModal');
+            const card = document.getElementById('readModalCard');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        document.getElementById('btnCloseReadModal').onclick = () => {
+            sound.playClick();
+            const card = document.getElementById('readModalCard');
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                document.getElementById('readModal').classList.add('hidden');
+            }, 200);
+        };
+
+        // Add Reaction Event
+        window.addReaction = async function(type) {
+            sound.playClick();
+            if (!state.selectedLetterForRead) return;
+            const letter = state.selectedLetterForRead;
+            letter.reactions = letter.reactions || { heart: 0, clap: 0, smile: 0 };
+
+            if (type === '❤️') letter.reactions.heart = (letter.reactions.heart || 0) + 1;
+            if (type === '👏') letter.reactions.clap = (letter.reactions.clap || 0) + 1;
+            if (type === '😊') letter.reactions.smile = (letter.reactions.smile || 0) + 1;
+
+            document.getElementById('reactCountHeart').innerText = letter.reactions.heart;
+            document.getElementById('reactCountClap').innerText = letter.reactions.clap;
+            document.getElementById('reactCountSmile').innerText = letter.reactions.smile;
+
+            showToast(`공감을 보냈습니다! ${type}`);
+
+            if (db && currentUser && letter.id && !letter.id.startsWith('local-')) {
+                try {
+                    const letterRef = doc(db, 'artifacts', appId, 'public', 'data', 'letters', letter.id);
+                    await updateDoc(letterRef, { reactions: letter.reactions });
+                } catch (e) {
+                    console.error("Reaction update err:", e);
+                }
+            }
+        };
+
+        // Praise Post Logic
+        document.getElementById('btnPostPraise').onclick = async () => {
+            sound.playClick();
+            const input = document.getElementById('boardInput');
+            const text = input.value.trim();
+            if (!text || !state.currentRoom) return;
+
+            const praiseData = {
+                roomId: state.currentRoom.id,
+                text,
+                createdAt: Date.now()
+            };
+
+            try {
+                if (db && currentUser) {
+                    const praisesRef = collection(db, 'artifacts', appId, 'public', 'data', 'praises');
+                    await addDoc(praisesRef, praiseData);
+                } else {
+                    state.praises.unshift({ id: 'p-' + Date.now(), ...praiseData });
+                    renderPraises();
+                }
+                input.value = '';
+                showToast("🌟 칭찬 한마디가 남겨졌습니다!");
+            } catch (e) {
+                console.error("Praise post err:", e);
+            }
+        };
+
+        // Tab Navigation inside Room
+        const tabLetters = document.getElementById('tabLetters');
+        const tabWrite = document.getElementById('tabWrite');
+        const tabBoard = document.getElementById('tabBoard');
+        const sectionLetters = document.getElementById('sectionLetters');
+        const sectionWrite = document.getElementById('sectionWrite');
+        const sectionBoard = document.getElementById('sectionBoard');
+
+        function switchRoomTab(tab) {
+            sound.playClick();
+            [tabLetters, tabWrite, tabBoard].forEach(b => {
+                b.className = "flex-1 py-2 rounded-xl text-amber-900 font-bold hover:text-amber-950 transition flex items-center justify-center gap-1";
+            });
+            [sectionLetters, sectionWrite, sectionBoard].forEach(s => s.classList.add('hidden'));
+
+            if (tab === 'letters') {
+                tabLetters.className = "flex-1 py-2 rounded-xl bg-amber-800 text-amber-50 font-extrabold shadow transition flex items-center justify-center gap-1";
+                sectionLetters.classList.remove('hidden');
+            } else if (tab === 'write') {
+                tabWrite.className = "flex-1 py-2 rounded-xl bg-amber-800 text-amber-50 font-extrabold shadow transition flex items-center justify-center gap-1";
+                sectionWrite.classList.remove('hidden');
+            } else if (tab === 'board') {
+                tabBoard.className = "flex-1 py-2 rounded-xl bg-amber-800 text-amber-50 font-extrabold shadow transition flex items-center justify-center gap-1";
+                sectionBoard.classList.remove('hidden');
+            }
+        }
+
+        tabLetters.onclick = () => switchRoomTab('letters');
+        tabWrite.onclick = () => switchRoomTab('write');
+        tabBoard.onclick = () => switchRoomTab('board');
+
+        // Filters Event Listeners
+        const filterAll = document.getElementById('filterAll');
+        const filterToMe = document.getElementById('filterToMe');
+        const filterSecret = document.getElementById('filterSecret');
+
+        function setFilter(f, btn) {
+            sound.playClick();
+            state.filter = f;
+            [filterAll, filterToMe, filterSecret].forEach(b => {
+                b.className = "px-2.5 py-1 rounded-lg bg-amber-200 text-amber-900 hover:bg-amber-300";
+            });
+            btn.className = "px-2.5 py-1 rounded-lg bg-amber-800 text-amber-100 font-bold";
+            renderLetters();
+        }
+
+        filterAll.onclick = () => setFilter('all', filterAll);
+        filterToMe.onclick = () => setFilter('toMe', filterToMe);
+        filterSecret.onclick = () => setFilter('secret', filterSecret);
+
+        // Sound Toggle
+        document.getElementById('soundToggleBtn').onclick = () => {
+            sound.enabled = !sound.enabled;
+            document.getElementById('soundIcon').className = sound.enabled ? "fa-solid fa-volume-high text-sm" : "fa-solid fa-volume-xmark text-sm text-amber-400";
+            showToast(sound.enabled ? "🔊 사운드 켜짐" : "🔇 사운드 꺼짐");
+        };
+
+        // Toast Notification System
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+
+        function showToast(msg) {
+            toastMsg.innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+            }, 2500);
+        }
+
+        // Helper utilities
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function formatDate(timestamp) {
+            if (!timestamp) return '방금 전';
+            const d = new Date(timestamp);
+            const month = d.getMonth() + 1;
+            const date = d.getDate();
+            const hours = String(d.getHours()).padStart(2, '0');
+            const mins = String(d.getMinutes()).padStart(2, '0');
+            return `${month}/${date} ${hours}:${mins}`;
+        }
+
+        // App Initialization
+        window.onload = async () => {
+            await initAuth();
+        };
+    </script>
+</body>
+</html>

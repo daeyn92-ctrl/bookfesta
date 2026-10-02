@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>탕후루의 대탈출 - 바삭한 설탕옷을 지켜라!</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@600;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Jua', 'Noto Sans KR', sans-serif;
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: #111827;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Pulse Animations & Glows */
+        @keyframes sugarGlow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(244, 63, 94, 0.8)); }
+            50% { filter: drop-shadow(0 0 22px rgba(251, 113, 133, 1)); }
+        }
+        .sugar-glow {
+            animation: sugarGlow 2s infinite ease-in-out;
+        }
+
+        @keyframes bounceSlow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-bounce-slow {
+            animation: bounceSlow 1.5s infinite ease-in-out;
+        }
+
+        canvas {
+            display: block;
+            background: #1e1b4b;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Virtual Joystick */
+        .joystick-base {
+            width: 110px;
+            height: 110px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            position: relative;
+            touch-action: none;
+        }
+        .joystick-stick {
+            width: 45px;
+            height: 45px;
+            background: radial-gradient(circle, #f43f5e, #be123c);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="relative bg-slate-950 text-white select-none">
+
+    <!-- GAME CONTAINER -->
+    <div id="game-container" class="relative w-full max-w-4xl h-full max-h-[90vh] aspect-[4/3] flex flex-col items-center justify-center p-2 sm:p-4">
+        
+        <!-- CANVAS DISPLAY -->
+        <canvas id="gameCanvas" class="w-full h-full border-4 border-rose-500/40 relative z-0"></canvas>
+
+        <!-- TOP GAME HUD OVERLAY -->
+        <div id="hud-overlay" class="absolute top-4 left-4 right-4 z-10 flex justify-between items-center pointer-events-none px-3">
+            <!-- Health / Sugar Shield Bar -->
+            <div class="flex items-center space-x-3 bg-slate-900/85 backdrop-blur-md border-2 border-rose-400/50 p-2.5 rounded-2xl shadow-xl pointer-events-auto">
+                <div class="text-3xl animate-bounce-slow">🍓</div>
+                <div class="flex flex-col">
+                    <div class="flex justify-between items-center text-xs text-rose-300 font-bold mb-1">
+                        <span>바삭 설탕 내구도</span>
+                        <span id="hp-text" class="text-white ml-2">100%</span>
+                    </div>
+                    <div class="w-32 sm:w-44 bg-slate-800 h-3.5 rounded-full overflow-hidden p-0.5 border border-rose-500/30">
+                        <div id="hp-bar" class="h-full bg-gradient-to-r from-rose-500 via-pink-400 to-amber-300 rounded-full transition-all duration-200 w-full"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Escape Distance & Stage Indicator -->
+            <div class="flex flex-col items-center bg-slate-900/85 backdrop-blur-md border-2 border-amber-400/50 px-4 py-2 rounded-2xl shadow-xl pointer-events-auto">
+                <span id="stage-title" class="text-xs text-amber-400 font-black tracking-wider">STAGE 1: 주방 탈출</span>
+                <div class="flex items-center space-x-1.5 mt-0.5">
+                    <span class="text-lg">🏃‍♂️</span>
+                    <span id="distance-text" class="text-lg font-black text-amber-300">0m / 300m</span>
+                </div>
+            </div>
+
+            <!-- Score & Fruit Count -->
+            <div class="flex items-center space-x-3 bg-slate-900/85 backdrop-blur-md border-2 border-emerald-400/50 p-2.5 rounded-2xl shadow-xl pointer-events-auto">
+                <div class="flex flex-col items-end">
+                    <div class="text-xs text-emerald-400 font-bold">탈출 점수</div>
+                    <span id="score-text" class="text-lg font-black text-white">0</span>
+                </div>
+                <div class="text-2xl bg-emerald-950/80 p-1.5 rounded-xl border border-emerald-500/30">
+                    🍇 <span id="fruit-count" class="text-xs font-bold text-emerald-300">x0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SPEECH BUBBLE OVERLAY -->
+        <div id="speech-box" class="absolute top-20 left-1/2 -translate-x-1/2 z-10 pointer-events-none transition-all duration-300 opacity-0 scale-90">
+            <div class="bg-amber-100 text-rose-950 font-black text-sm px-4 py-2 rounded-2xl border-2 border-rose-500 shadow-2xl flex items-center space-x-2">
+                <span id="speech-emoji">😱</span>
+                <span id="speech-text">"으악! 사장님이 큰 집수를 들고 쫓아온다냥!"</span>
+            </div>
+        </div>
+
+        <!-- MOBILE TOUCH CONTROLS OVERLAY -->
+        <div id="mobile-controls" class="absolute bottom-6 left-6 right-6 z-10 flex justify-between items-end pointer-events-none">
+            <!-- Virtual Joystick Left -->
+            <div class="pointer-events-auto">
+                <div id="joystick" class="joystick-base">
+                    <div id="joystick-handle" class="joystick-stick"></div>
+                </div>
+            </div>
+
+            <!-- Skill & Action Buttons Right -->
+            <div class="flex space-x-3 pointer-events-auto">
+                <!-- Syrup Trap Skill -->
+                <button id="btn-syrup" class="w-16 h-16 bg-gradient-to-tr from-amber-600 to-amber-400 hover:from-amber-500 hover:to-amber-300 border-2 border-amber-200 rounded-full shadow-lg active:scale-90 transition flex flex-col items-center justify-center text-white font-black">
+                    <span class="text-xl">🍯</span>
+                    <span class="text-[9px]">시럽 장판</span>
+                </button>
+
+                <!-- Dash Skill -->
+                <button id="btn-dash" class="w-20 h-20 bg-gradient-to-tr from-rose-600 to-pink-500 hover:from-rose-500 hover:to-pink-400 border-3 border-rose-200 rounded-full shadow-2xl active:scale-90 transition flex flex-col items-center justify-center text-white font-black glow-pink">
+                    <span class="text-2xl">⚡</span>
+                    <span class="text-xs">바삭 대시</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- START SCREEN MODAL -->
+        <div id="start-modal" class="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center p-6 text-center">
+            <div class="text-6xl mb-3 animate-bounce">🍓✨</div>
+            <h1 class="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-pink-300 to-amber-300 mb-2">
+                탕후루의 대탈출!
+            </h1>
+            <p class="text-pink-200 text-sm max-w-md mb-6 font-bold leading-relaxed">
+                "안돼! 난 맛있는 탕후루지만 사람들에게 먹히고 싶지 않아! 😱<br>
+                집게를 든 가게 사장님과 배고픈 사람들을 피해 안전한 딸기 농장으로 도망치게 도와줘!"
+            </p>
+
+            <div class="bg-slate-900/90 p-4 rounded-2xl border border-rose-500/30 max-w-sm w-full mb-6 text-left space-y-2 text-xs text-slate-300">
+                <div class="flex items-center space-x-2 text-rose-300 font-bold">
+                    <span>🎮 조작법:</span>
+                    <span>키보드 방향키 / WASD 또는 모바일 조이스틱</span>
+                </div>
+                <div class="flex items-center space-x-2 text-amber-300 font-bold">
+                    <span>⚡ 바삭 대시:</span>
+                    <span>스페이스바 / 대시 버튼</span>
+                </div>
+                <div class="flex items-center space-x-2 text-yellow-300 font-bold">
+                    <span>🍯 끈적 시럽:</span>
+                    <span>Shift 키 / 시럽 버튼 (적 속도 저하)</span>
+                </div>
+            </div>
+
+            <button id="start-btn" class="px-8 py-4 bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 hover:scale-105 active:scale-95 text-white font-black text-xl rounded-2xl shadow-2xl shadow-rose-500/50 transition transform">
+                🏃‍♂️ 바삭하게 도망치기 시작!
+            </button>
+        </div>
+
+        <!-- GAME OVER / VICTORY MODAL -->
+        <div id="end-modal" class="absolute inset-0 z-30 bg-slate-950/95 backdrop-blur-md rounded-3xl flex flex-col items-center justify-center p-6 text-center hidden">
+            <div id="end-icon" class="text-7xl mb-3">😭</div>
+            <h2 id="end-title" class="text-3xl font-black text-rose-400 mb-2">냠냠... 결국 먹혀버렸다냥!</h2>
+            <p id="end-desc" class="text-slate-300 text-sm max-w-md mb-6 font-bold">
+                탕후루 가게 사장님과 손님들의 입속으로 퐁당 들어가버렸어요...
+            </p>
+
+            <div class="bg-slate-900 p-4 rounded-2xl border border-slate-700 w-full max-w-xs mb-6 space-y-2">
+                <div class="flex justify-between text-xs text-slate-400 font-bold">
+                    <span>최종 진행 거리:</span>
+                    <span id="final-distance" class="text-amber-400 font-black text-sm">0m</span>
+                </div>
+                <div class="flex justify-between text-xs text-slate-400 font-bold">
+                    <span>획득한 과일:</span>
+                    <span id="final-fruits" class="text-emerald-400 font-black text-sm">0개</span>
+                </div>
+                <div class="flex justify-between text-xs text-slate-400 font-bold border-t border-slate-800 pt-2">
+                    <span>총 탈출 점수:</span>
+                    <span id="final-score" class="text-rose-400 font-black text-base">0점</span>
+                </div>
+            </div>
+
+            <button id="restart-btn" class="px-8 py-3.5 bg-gradient-to-r from-rose-500 to-purple-600 hover:scale-105 active:scale-95 text-white font-black text-lg rounded-2xl shadow-xl transition">
+                🔄 다시 도망치기!
+            </button>
+        </div>
+
+    </div>
+
+    <!-- AUDIO & GAME LOGIC ENGINE -->
+    <script>
+        // WEB AUDIO SYNTHESIZER FOR ASMR & BGM
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (type === 'crunch') {
+                // Crisp Sugar Crunching sound
+                for (let i = 0; i < 4; i++) {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(800 + Math.random() * 1200, now + i * 0.03);
+                    gain.gain.setValueAtTime(0.12, now + i * 0.03);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.03 + 0.05);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + i * 0.03);
+                    osc.stop(now + i * 0.03 + 0.06);
+                }
+            } else if (type === 'dash') {
+                // Fast Sugar Swoosh
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.22);
+            } else if (type === 'syrup') {
+                // Sticky Splat Sound
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(250, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.15);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.18);
+            } else if (type === 'hit') {
+                // Crunchy Hit / Damage
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(60, now + 0.25);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.28);
+            } else if (type === 'win') {
+                // Cheerful Victory Fanfare
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.12);
+                    osc.stop(now + idx * 0.12 + 0.35);
+                });
+            }
+        }
+
+        // CANVAS & GAME STATE INITS
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.width = 800;
+        let height = canvas.height = 600;
+
+        // GAME STAGES
+        const STAGES = [
+            { id: 1, name: 'STAGE 1: 탕후루 주방', distance: 200, bg: '#311b92', wall: '#4527a0', floor: '#283593' },
+            { id: 2, name: 'STAGE 2: 매장 카운터', distance: 450, bg: '#880e4f', wall: '#ad1457', floor: '#c2185b' },
+            { id: 3, name: 'STAGE 3: 야시장 거리', distance: 750, bg: '#004d40', wall: '#00695c', floor: '#00796b' },
+            { id: 4, name: 'STAGE 4: 딸기 농장 (탈출 성공!)', distance: 1000, bg: '#1b5e20', wall: '#2e7d32', floor: '#388e3c' }
+        ];
+
+        let currentStageIdx = 0;
+        let isGameRunning = false;
+        let animFrameId = null;
+
+        // PLAYER TANGHULU ENGINE
+        let player = {
+            x: 100,
+            y: height / 2,
+            radius: 22,
+            speed: 4.5,
+            vx: 0,
+            vy: 0,
+            hp: 100,
+            maxHp: 100,
+            score: 0,
+            distance: 0,
+            fruitsCollected: 0,
+            isDashing: false,
+            dashCooldown: 0,
+            syrupCooldown: 0,
+            fruitsOnSkewer: ['strawberry', 'strawberry', 'shine', 'strawberry'],
+            invulnerableTime: 0
+        };
+
+        // ENEMIES & HAZARDS
+        let enemies = [];
+        let items = [];
+        let syrupTraps = [];
+        let particles = [];
+
+        // INPUT STATE
+        let keys = {};
+        let joystickVector = { x: 0, y: 0 };
+
+        // RESIZE CANVAS DYNAMICALLY
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            const rect = container.getBoundingClientRect();
+            canvas.width = width = rect.width;
+            canvas.height = height = rect.height;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function drawTanghuluPlayer() {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+
+            // Angle skew based on velocity
+            const angle = Math.atan2(player.vy, player.vx || 1) * 0.2;
+            ctx.rotate(angle);
+
+            // 1. Draw Wooden Bamboo Skewer
+            ctx.fillStyle = '#d97706';
+            ctx.beginPath();
+            ctx.roundRect(-45, -4, 90, 8, 4);
+            ctx.fill();
+            ctx.strokeStyle = '#92400e';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // 2. Draw Skewered Fruits with Shiny Sugar Coating
+            const fruitSpacing = 18;
+            player.fruitsOnSkewer.forEach((fruitType, idx) => {
+                const fx = -25 + idx * fruitSpacing;
+                
+                // Draw Fruit Body
+                ctx.beginPath();
+                ctx.arc(fx, 0, 13, 0, Math.PI * 2);
+
+                if (fruitType === 'strawberry') {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fill();
+                    // Seeds
+                    ctx.fillStyle = '#fef08a';
+                    ctx.beginPath();
+                    ctx.arc(fx - 4, -4, 1.5, 0, Math.PI * 2);
+                    ctx.arc(fx + 3, 2, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (fruitType === 'shine') {
+                    ctx.fillStyle = '#84cc16';
+                    ctx.fill();
+                } else if (fruitType === 'orange') {
+                    ctx.fillStyle = '#f97316';
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = '#a855f7';
+                    ctx.fill();
+                }
+
+                // Glassy Sugar Layer Highlight
+                ctx.beginPath();
+                ctx.arc(fx, 0, 14, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Shiny Reflection Sparkle
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(fx - 4, -5, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 3. Cute Face on Front Fruit
+            const headX = -25 + (player.fruitsOnSkewer.length - 1) * fruitSpacing;
+            ctx.fillStyle = '#0f172a';
+            // Eyes
+            ctx.beginPath();
+            ctx.arc(headX + 4, -4, 2.5, 0, Math.PI * 2);
+            ctx.arc(headX + 4, 4, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            // Blushing Cheeks
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.6)';
+            ctx.beginPath();
+            ctx.arc(headX + 2, -7, 3, 0, Math.PI * 2);
+            ctx.arc(headX + 2, 7, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Invulnerable / Shield Glow Ring
+            if (player.invulnerableTime > 0) {
+                ctx.beginPath();
+                ctx.arc(0, 0, player.radius + 12, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(251, 191, 36, 0.9)';
+                ctx.lineWidth = 3.5;
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        function drawEnemies() {
+            enemies.forEach(e => {
+                ctx.save();
+                ctx.translate(e.x, e.y);
+
+                if (e.type === 'boss_owner') {
+                    // STORE OWNER WITH BIG TONGS
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Chef Hat
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(-12, -e.radius - 14, 24, 16);
+
+                    // Angry Face
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('👨‍🍳', 0, 0);
+
+                    // Giant Tongs Tool
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 5;
+                    ctx.beginPath();
+                    ctx.moveTo(15, -10);
+                    ctx.lineTo(35, -20);
+                    ctx.moveTo(15, 10);
+                    ctx.lineTo(35, 20);
+                    ctx.stroke();
+
+                } else if (e.type === 'hungry_kid') {
+                    // HUNGRY KID
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.font = 'bold 22px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🤤', 0, 0);
+
+                } else if (e.type === 'youtuber') {
+                    // MUKBANG YOUTUBER WITH CAMERA
+                    ctx.fillStyle = '#a855f7';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.font = 'bold 22px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('📹', 0, 0);
+                }
+
+                ctx.restore();
+            });
+        }
+
+        function drawEnvironmentAndItems() {
+            const currentStage = STAGES[currentStageIdx];
+
+            // Background Grid & Path
+            ctx.fillStyle = currentStage.bg;
+            ctx.fillRect(0, 0, width, height);
+
+            // Floor Tile Grid Pattern
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 2;
+            const tileSize = 60;
+            const offsetX = -(player.distance * 2) % tileSize;
+
+            for (let x = offsetX; x < width; x += tileSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += tileSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // Draw Sticky Syrup Traps
+            syrupTraps.forEach(s => {
+                ctx.beginPath();
+                ctx.ellipse(s.x, s.y, s.radius * 1.5, s.radius, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(217, 119, 6, 0.65)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(251, 191, 36, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // Draw Collectible Fruits & Power-ups
+            items.forEach(item => {
+                ctx.save();
+                ctx.translate(item.x, item.y);
+                const pulse = Math.sin(Date.now() * 0.008) * 3;
+
+                if (item.type === 'fruit_shine') {
+                    ctx.font = `${28 + pulse}px sans-serif`;
+                    ctx.fillText('🍇', -14, 10);
+                } else if (item.type === 'fruit_orange') {
+                    ctx.font = `${28 + pulse}px sans-serif`;
+                    ctx.fillText('🍊', -14, 10);
+                } else if (item.type === 'shield') {
+                    ctx.font = `${30 + pulse}px sans-serif`;
+                    ctx.fillText('🛡️', -15, 10);
+                }
+                ctx.restore();
+            });
+
+            // Particles
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.02;
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                if (p.alpha <= 0) particles.splice(idx, 1);
+            });
+        }
+
+        function spawnParticles(x, y, color, count = 6) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 5,
+                    vy: (Math.random() - 0.5) * 5,
+                    size: 3 + Math.random() * 4,
+                    color: color,
+                    alpha: 1
+                });
+            }
+        }
+
+        function updateGameState() {
+            if (!isGameRunning) return;
+
+            // 1. Calculate Movement Vector
+            let dx = 0;
+            let dy = 0;
+
+            if (keys['ArrowUp'] || keys['KeyW']) dy -= 1;
+            if (keys['ArrowDown'] || keys['KeyS']) dy += 1;
+            if (keys['ArrowLeft'] || keys['KeyA']) dx -= 1;
+            if (keys['ArrowRight'] || keys['KeyD']) dx += 1;
+
+            if (joystickVector.x !== 0 || joystickVector.y !== 0) {
+                dx = joystickVector.x;
+                dy = joystickVector.y;
+            }
+
+            // Normalization
+            const len = Math.hypot(dx, dy);
+            if (len > 0) {
+                dx /= len;
+                dy /= len;
+            }
+
+            // Apply Speed & Dash
+            let currentSpeed = player.speed;
+            if (player.isDashing) {
+                currentSpeed *= 2.2;
+            }
+
+            player.vx = dx * currentSpeed;
+            player.vy = dy * currentSpeed;
+
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Boundary Clamping
+            player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
+
+            // Forward Progress Distance Accumulation
+            if (player.vx > 0 || (dx === 0 && dy === 0)) {
+                player.distance += 0.25;
+                player.score += 1;
+            }
+
+            // Cooldown Timers
+            if (player.dashCooldown > 0) player.dashCooldown--;
+            if (player.syrupCooldown > 0) player.syrupCooldown--;
+            if (player.invulnerableTime > 0) player.invulnerableTime--;
+
+            if (player.isDashing && player.dashCooldown < 40) {
+                player.isDashing = false;
+            }
+
+            // Spawn Sugar Particles on Move
+            if (Math.hypot(player.vx, player.vy) > 0.5) {
+                spawnParticles(player.x - 10, player.y, '#fef08a', 1);
+            }
+
+            // 2. Stage Progression Check
+            const currentStage = STAGES[currentStageIdx];
+            if (player.distance >= currentStage.distance && currentStageIdx < STAGES.length - 1) {
+                currentStageIdx++;
+                playSound('crunch');
+                showSpeech('🎉 Stage Cleared!', `"다음 구역으로 탈출이다냥!"`);
+            } else if (player.distance >= STAGES[STAGES.length - 1].distance) {
+                // VICTORY!
+                triggerGameEnd(true);
+                return;
+            }
+
+            // 3. Spawning Enemies & Items
+            if (Math.random() < 0.025) {
+                // Spawn Enemy from Right
+                const enemyTypes = ['hungry_kid', 'youtuber'];
+                const selectedType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+                enemies.push({
+                    x: width + 40,
+                    y: Math.random() * (height - 80) + 40,
+                    radius: selectedType === 'youtuber' ? 24 : 20,
+                    speed: 2 + Math.random() * 2,
+                    type: selectedType
+                });
+            }
+
+            // Boss Owner Chase Mechanics
+            if (enemies.filter(e => e.type === 'boss_owner').length === 0) {
+                enemies.push({
+                    x: -60,
+                    y: height / 2,
+                    radius: 32,
+                    speed: 2.2,
+                    type: 'boss_owner'
+                });
+            }
+
+            // Spawn Collectible Items
+            if (Math.random() < 0.015 && items.length < 4) {
+                items.push({
+                    x: width + 20,
+                    y: Math.random() * (height - 80) + 40,
+                    type: Math.random() > 0.4 ? 'fruit_shine' : 'shield'
+                });
+            }
+
+            // 4. Update Enemies AI
+            enemies.forEach((e, idx) => {
+                if (e.type === 'boss_owner') {
+                    // Boss follows player position
+                    const angle = Math.atan2(player.y - e.y, player.x - e.x);
+                    e.x += Math.cos(angle) * e.speed;
+                    e.y += Math.sin(angle) * e.speed;
+                } else {
+                    // Move Left
+                    let speedMod = 1.0;
+                    // Check if trapped in syrup
+                    syrupTraps.forEach(s => {
+                        if (Math.hypot(e.x - s.x, e.y - s.y) < s.radius) {
+                            speedMod = 0.3; // Slowed down by sticky syrup!
+                        }
+                    });
+
+                    e.x -= e.speed * speedMod;
+                }
+
+                // Collision with Player
+                const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
+                if (distToPlayer < player.radius + e.radius) {
+                    if (player.invulnerableTime <= 0) {
+                        player.hp -= e.type === 'boss_owner' ? 35 : 20;
+                        player.invulnerableTime = 60; // 1 sec invulnerability frame
+                        playSound('hit');
+                        spawnParticles(player.x, player.y, '#ef4444', 12);
+                        showSpeech('😱 꺄아악!', `"잡힐 뻔했다냥! 대시로 도망쳐!"`);
+
+                        if (player.hp <= 0) {
+                            triggerGameEnd(false);
+                        }
+                    }
+                }
+
+                // Clean out-of-bounds enemies
+                if (e.x < -100) enemies.splice(idx, 1);
+            });
+
+            // 5. Update Items Collision
+            items.forEach((item, idx) => {
+                item.x -= 2; // Scroll left with background
+                const dist = Math.hypot(player.x - item.x, player.y - item.y);
+                if (dist < player.radius + 20) {
+                    playSound('crunch');
+                    if (item.type === 'fruit_shine') {
+                        player.fruitsCollected++;
+                        player.score += 250;
+                        if (player.fruitsOnSkewer.length < 6) {
+                            player.fruitsOnSkewer.push('shine');
+                        }
+                        spawnParticles(item.x, item.y, '#84cc16', 10);
+                    } else if (item.type === 'shield') {
+                        player.invulnerableTime = 180; // 3 sec shield
+                        spawnParticles(item.x, item.y, '#f59e0b', 12);
+                    }
+                    items.splice(idx, 1);
+                }
+            });
+
+            // Clean Syrup Traps
+            syrupTraps.forEach((s, idx) => {
+                s.x -= 1.5;
+                s.life--;
+                if (s.life <= 0 || s.x < -50) syrupTraps.splice(idx, 1);
+            });
+
+            // Update HUD Displays
+            updateHUD();
+        }
+
+        function updateHUD() {
+            document.getElementById('hp-text').innerText = `${Math.max(0, Math.ceil(player.hp))}%`;
+            document.getElementById('hp-bar').style.width = `${Math.max(0, player.hp)}%`;
+
+            const currentStage = STAGES[currentStageIdx];
+            document.getElementById('stage-title').innerText = currentStage.name;
+            document.getElementById('distance-text').innerText = `${Math.floor(player.distance)}m / ${currentStage.distance}m`;
+
+            document.getElementById('score-text').innerText = player.score;
+            document.getElementById('fruit-count').innerText = `x${player.fruitsCollected}`;
+        }
+
+        function showSpeech(emoji, text) {
+            const box = document.getElementById('speech-box');
+            document.getElementById('speech-emoji').innerText = emoji;
+            document.getElementById('speech-text').innerText = text;
+
+            box.classList.remove('opacity-0', 'scale-90');
+            box.classList.add('opacity-100', 'scale-100');
+
+            setTimeout(() => {
+                box.classList.remove('opacity-100', 'scale-100');
+                box.classList.add('opacity-0', 'scale-90');
+            }, 2200);
+        }
+
+        // SKILL TRIGGER HANDLERS
+        function triggerDash() {
+            if (player.dashCooldown <= 0) {
+                player.isDashing = true;
+                player.dashCooldown = 90; // Cooldown
+                playSound('dash');
+                spawnParticles(player.x, player.y, '#f43f5e', 15);
+            }
+        }
+
+        function triggerSyrup() {
+            if (player.syrupCooldown <= 0) {
+                syrupTraps.push({
+                    x: player.x - 30,
+                    y: player.y,
+                    radius: 35,
+                    life: 300
+                });
+                player.syrupCooldown = 120;
+                playSound('syrup');
+                showSpeech('🍯 쫀득 연사!', `"뒤따라오는 사장님을 끈적하게 만들어라냥!"`);
+            }
+        }
+
+        // GAME LOOP RUNNER
+        function gameLoop() {
+            updateGameState();
+            drawEnvironmentAndItems();
+            drawEnemies();
+            drawTanghuluPlayer();
+
+            if (isGameRunning) {
+                animFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // GAME END ROUTINE
+        function triggerGameEnd(isVictory) {
+            isGameRunning = false;
+            cancelAnimationFrame(animFrameId);
+
+            const modal = document.getElementById('end-modal');
+            const icon = document.getElementById('end-icon');
+            const title = document.getElementById('end-title');
+            const desc = document.getElementById('end-desc');
+
+            if (isVictory) {
+                playSound('win');
+                icon.innerText = '🎉🍓';
+                title.innerText = '탈출 성공! 딸기 농장 도착!';
+                title.className = 'text-3xl font-black text-emerald-400 mb-2';
+                desc.innerText = '축하해요! 사장님과 손님들을 무사히 떼어내고 평화로운 딸기 농장에 도달했어요!';
+            } else {
+                playSound('hit');
+                icon.innerText = '😭';
+                title.innerText = '냠냠... 결국 먹혀버렸다냥!';
+                title.className = 'text-3xl font-black text-rose-400 mb-2';
+                desc.innerText = '탕후루 가게 사장님의 큰 집게와 손님들의 입속으로 들어갔어요...';
+            }
+
+            document.getElementById('final-distance').innerText = `${Math.floor(player.distance)}m`;
+            document.getElementById('final-fruits').innerText = `${player.fruitsCollected}개`;
+            document.getElementById('final-score').innerText = `${player.score}점`;
+
+            modal.classList.remove('hidden');
+        }
+
+        function resetGame() {
+            player = {
+                x: 100,
+                y: height / 2,
+                radius: 22,
+                speed: 4.5,
+                vx: 0,
+                vy: 0,
+                hp: 100,
+                maxHp: 100,
+                score: 0,
+                distance: 0,
+                fruitsCollected: 0,
+                isDashing: false,
+                dashCooldown: 0,
+                syrupCooldown: 0,
+                fruitsOnSkewer: ['strawberry', 'strawberry', 'shine', 'strawberry'],
+                invulnerableTime: 0
+            };
+            enemies = [];
+            items = [];
+            syrupTraps = [];
+            particles = [];
+            currentStageIdx = 0;
+
+            document.getElementById('end-modal').classList.add('hidden');
+            document.getElementById('start-modal').classList.add('hidden');
+
+            isGameRunning = true;
+            gameLoop();
+        }
+
+        // KEYBOARD EVENT LISTENERS
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                triggerDash();
+            }
+            if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                e.preventDefault();
+                triggerSyrup();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // VIRTUAL JOYSTICK LOGIC FOR MOBILE
+        const joystick = document.getElementById('joystick');
+        const handle = document.getElementById('joystick-handle');
+        let joystickActive = false;
+        let joystickCenter = { x: 0, y: 0 };
+
+        joystick.addEventListener('touchstart', (e) => {
+            joystickActive = true;
+            const rect = joystick.getBoundingClientRect();
+            joystickCenter = {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2
+            };
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!joystickActive) return;
+            const touch = e.touches[0];
+            const dx = touch.clientX - joystickCenter.x;
+            const dy = touch.clientY - joystickCenter.y;
+            const dist = Math.hypot(dx, dy);
+            const maxDist = 35;
+
+            const angle = Math.atan2(dy, dx);
+            const moveDist = Math.min(dist, maxDist);
+
+            const handleX = Math.cos(angle) * moveDist;
+            const handleY = Math.sin(angle) * moveDist;
+
+            handle.style.transform = `translate(calc(-50% + ${handleX}px), calc(-50% + ${handleY}px))`;
+
+            joystickVector.x = (Math.cos(angle) * moveDist) / maxDist;
+            joystickVector.y = (Math.sin(angle) * moveDist) / maxDist;
+        });
+
+        window.addEventListener('touchend', () => {
+            joystickActive = false;
+            handle.style.transform = 'translate(-50%, -50%)';
+            joystickVector = { x: 0, y: 0 };
+        });
+
+        // BUTTON CLICK LISTENERS
+        document.getElementById('btn-dash').addEventListener('click', triggerDash);
+        document.getElementById('btn-syrup').addEventListener('click', triggerSyrup);
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            initAudio();
+            resetGame();
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            resetGame();
+        });
+
+        // INITIAL ONLOAD SETUP
+        window.onload = function() {
+            resizeCanvas();
+        };
+    </script>
+</body>
+</html>

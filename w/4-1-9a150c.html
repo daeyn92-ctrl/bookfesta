@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>타격의 전설: 사이버 슈팅</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #090d16;
+            color: #f1f5f9;
+            overflow: hidden;
+        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-jua { font-family: 'Jua', sans-serif; }
+
+        /* Tactical Mobile/Tablet Device Frame Styling */
+        .tablet-frame {
+            border: 12px solid #1e293b;
+            border-radius: 36px;
+            box-shadow: 0 0 50px rgba(14, 165, 233, 0.25), inset 0 0 20px rgba(0, 0, 0, 0.8);
+            background: linear-gradient(135deg, #0f172a, #020617);
+        }
+
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .glass-panel-gold {
+            background: rgba(30, 27, 75, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        /* Custom Crosshair Cursor area */
+        .game-canvas-container {
+            cursor: crosshair;
+        }
+
+        /* Glow Effects */
+        .glow-cyan { filter: drop-shadow(0 0 8px #06b6d4); }
+        .glow-red { filter: drop-shadow(0 0 8px #ef4444); }
+        .glow-gold { filter: drop-shadow(0 0 8px #eab308); }
+
+        /* Muzzle Flash Anim */
+        @keyframes muzzle-flash {
+            0% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0; transform: scale(0.8); }
+        }
+        .flash-active {
+            animation: muzzle-flash 0.08s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex items-center justify-center p-2 sm:p-4 bg-slate-950">
+
+    <!-- TABLET DEVICE CONTAINER -->
+    <div id="deviceShell" class="tablet-frame relative w-full max-w-5xl h-[95vh] max-h-[750px] flex flex-col justify-between overflow-hidden shadow-2xl">
+        
+        <!-- TABLET TOP STATUS BAR -->
+        <div class="w-full bg-slate-900/90 border-b border-slate-800 px-4 py-2 flex justify-between items-center z-30 text-xs font-mono text-slate-400">
+            <div class="flex items-center gap-3">
+                <span class="flex items-center gap-1 text-sky-400 font-bold">
+                    <i class="fa-solid fa-crosshairs"></i> CYBER-SHOOTER OS v3.5
+                </span>
+                <span id="playerRankBadge" class="bg-indigo-900/80 text-indigo-300 px-2 py-0.5 rounded-full text-[10px] border border-indigo-500/30">
+                    LV.1 루키 사수
+                </span>
+            </div>
+
+            <!-- Global Currency & Sound Control -->
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-1.5 text-amber-400 font-bold">
+                    <i class="fa-solid fa-coins"></i>
+                    <span id="globalGold">0</span> G
+                </div>
+                <div class="flex items-center gap-1 text-cyan-400 font-bold">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span id="globalXP">0</span> XP
+                </div>
+                <button id="btnToggleSound" onclick="toggleMute()" class="text-slate-400 hover:text-white transition">
+                    <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN SCREEN CONTAINER (SWITCHES BETWEEN LOBBY, GAME & SHOP) -->
+        <main class="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center bg-slate-950">
+            
+            <!-- CANVAS GAME VIEWPORT -->
+            <div class="game-canvas-container relative w-full h-full">
+                <canvas id="shootingCanvas" class="w-full h-full block bg-slate-900"></canvas>
+                
+                <!-- HUD In-Game Overlay -->
+                <div id="inGameHUD" class="hidden absolute inset-0 pointer-events-none p-4 flex flex-col justify-between z-20">
+                    <!-- Top Combat Stats Bar -->
+                    <div class="flex justify-between items-start">
+                        <!-- Mode Badge & Level -->
+                        <div class="glass-panel rounded-2xl px-4 py-2 flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400 flex items-center justify-center text-sky-400 text-lg">
+                                <i id="hudModeIcon" class="fa-solid fa-bullseye"></i>
+                            </div>
+                            <div>
+                                <div id="hudModeTitle" class="text-xs text-sky-400 font-bold uppercase">연습 모드</div>
+                                <div id="hudStageText" class="text-sm font-jua text-white">무제한 과녁 연습</div>
+                            </div>
+                        </div>
+
+                        <!-- Target / Score / Time Stats -->
+                        <div class="glass-panel rounded-2xl px-5 py-2 flex gap-5 text-center">
+                            <div>
+                                <div class="text-[10px] text-slate-400 font-bold">점수</div>
+                                <div id="hudScore" class="text-xl font-orbitron font-bold text-amber-400">0</div>
+                            </div>
+                            <div class="w-px bg-slate-700"></div>
+                            <div>
+                                <div class="text-[10px] text-slate-400 font-bold">명중률</div>
+                                <div id="hudAccuracy" class="text-xl font-orbitron font-bold text-emerald-400">100%</div>
+                            </div>
+                            <div id="hudTimerBox" class="w-px bg-slate-700 hidden"></div>
+                            <div id="hudTimerContainer" class="hidden">
+                                <div class="text-[10px] text-slate-400 font-bold">남은 시간</div>
+                                <div id="hudTimer" class="text-xl font-orbitron font-bold text-rose-400">30s</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Weapon Ammo HUD & Mobile Fire Controls -->
+                    <div class="flex justify-between items-end pointer-events-auto">
+                        <!-- Weapon Status & Ammo -->
+                        <div class="glass-panel rounded-2xl p-3 flex items-center gap-4 border-l-4 border-l-sky-500">
+                            <div id="hudGunIcon" class="text-3xl text-sky-400 w-12 text-center">
+                                <i class="fa-solid fa-gun"></i>
+                            </div>
+                            <div>
+                                <div id="hudGunName" class="font-jua text-base text-white">택티컬 피스톨</div>
+                                <div class="flex items-center gap-2">
+                                    <div class="font-orbitron font-bold text-2xl text-cyan-300">
+                                        <span id="hudCurrentAmmo">12</span> / <span id="hudMaxAmmo" class="text-slate-400 text-sm">12</span>
+                                    </div>
+                                    <button id="btnReload" onclick="triggerReload()" class="bg-slate-800 hover:bg-slate-700 text-sky-300 text-xs px-2.5 py-1 rounded-lg border border-sky-500/30 transition">
+                                        <i class="fa-solid fa-rotate-right"></i> 재장전
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Touch Fire Button (Mobile/Tablet Friendly) -->
+                        <div class="flex gap-2">
+                            <button id="btnReturnLobby" onclick="exitToLobby()" class="glass-panel hover:bg-slate-800 text-slate-300 px-4 py-3 rounded-2xl font-jua text-sm flex items-center gap-2 transition active:scale-95">
+                                <i class="fa-solid fa-house"></i> 로비로
+                            </button>
+                            <button id="btnMobileShoot" onmousedown="handleFireInput(event)" ontouchstart="handleFireInput(event)" class="w-20 h-20 bg-gradient-to-tr from-rose-600 to-amber-500 border-2 border-rose-300 rounded-full flex flex-col items-center justify-center text-white font-bold shadow-lg shadow-rose-600/40 active:scale-90 transition">
+                                <i class="fa-solid fa-crosshairs text-2xl mb-1"></i>
+                                <span class="text-[10px] tracking-wider">발사</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOBBY SCREEN OVERLAY -->
+            <div id="lobbyScreen" class="absolute inset-0 z-30 glass-panel bg-slate-950/90 flex flex-col justify-between p-6 transition-all duration-300">
+                <!-- Top Title Banner -->
+                <div class="text-center mt-2">
+                    <div class="inline-block bg-sky-500/10 border border-sky-400/30 px-4 py-1 rounded-full text-sky-400 font-mono text-xs mb-2">
+                        🎯 MOBILE & TABLET TACTICAL SIMULATOR
+                    </div>
+                    <h1 class="font-jua text-4xl sm:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-300 to-amber-400">
+                        타격의 전설: 사이버 슈팅
+                    </h1>
+                    <p class="text-slate-400 text-xs sm:text-sm mt-1">
+                        총을 쏴서 레벨을 올리고, 최강의 사이버 사수로 거듭나세요!
+                    </p>
+                </div>
+
+                <!-- Center Mode Selection Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl w-full mx-auto my-auto">
+                    
+                    <!-- Practice Mode Card -->
+                    <div onclick="startPracticeMode()" class="group relative bg-gradient-to-b from-slate-900 to-slate-950 border border-sky-500/40 hover:border-sky-400 rounded-3xl p-5 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-sky-500/20 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="w-14 h-14 bg-sky-500/20 border border-sky-400 rounded-2xl flex items-center justify-center text-sky-400 text-2xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-bullseye"></i>
+                            </div>
+                            <span class="bg-sky-900/60 text-sky-300 text-[10px] px-2.5 py-1 rounded-full border border-sky-400/30 font-bold">
+                                무제한 모드
+                            </span>
+                        </div>
+                        <div>
+                            <h3 class="font-jua text-2xl text-white mb-1 group-hover:text-sky-300 transition">사격 연습장</h3>
+                            <p class="text-slate-400 text-xs leading-relaxed">
+                                탄약 제한 없이 조준 및 반동을 연습하세요! 표적을 맞추며 사격 반응 속도를 끌어올립니다.
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-sky-400">
+                            <span>연습 시작하기</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition"></i>
+                        </div>
+                    </div>
+
+                    <!-- Level Campaign / NPC Battle Mode Card -->
+                    <div onclick="startCampaignMode()" class="group relative bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/40 hover:border-amber-400 rounded-3xl p-5 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-amber-500/20 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="w-14 h-14 bg-amber-500/20 border border-amber-400 rounded-2xl flex items-center justify-center text-amber-400 text-2xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-crosshairs"></i>
+                            </div>
+                            <span id="currentStageBadge" class="bg-amber-900/60 text-amber-300 text-[10px] px-2.5 py-1 rounded-full border border-amber-400/30 font-bold">
+                                STAGE 1
+                            </span>
+                        </div>
+                        <div>
+                            <h3 class="font-jua text-2xl text-white mb-1 group-hover:text-amber-300 transition">STAGE NPC 대결</h3>
+                            <p class="text-slate-400 text-xs leading-relaxed">
+                                제한 시간 내에 나타나는 타겟 NPC와 반격 드론을 저지하세요! 완수 시 머니와 경험치를 획득합니다.
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-bold text-amber-400">
+                            <span>스테이지 도전자</span>
+                            <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition"></i>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Bottom Navigation Buttons (Armory, Player Stats) -->
+                <div class="flex justify-center gap-3 max-w-xl mx-auto w-full">
+                    <button onclick="openArmoryModal()" class="flex-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-400 text-white font-jua py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 shadow-lg">
+                        <i class="fa-solid fa-gun text-cyan-400"></i> 무기고 & 강화
+                    </button>
+                    <button onclick="openStatsModal()" class="flex-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-400 text-white font-jua py-3 px-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 shadow-lg">
+                        <i class="fa-solid fa-user-ninja text-amber-400"></i> 사수 기록
+                    </button>
+                </div>
+            </div>
+
+            <!-- ARMORY / SHOP MODAL -->
+            <div id="armoryModal" class="hidden absolute inset-0 z-40 glass-panel bg-slate-950/95 flex flex-col p-6 overflow-hidden">
+                <!-- Modal Header -->
+                <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-cyan-500/20 border border-cyan-400 rounded-xl flex items-center justify-center text-cyan-400">
+                            <i class="fa-solid fa-gun text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-jua text-2xl text-white">사이버 무기고 및 성능 강화</h2>
+                            <p class="text-xs text-slate-400">총기를 해금하고 사격 능력을 끌어올리세요.</p>
+                        </div>
+                    </div>
+                    <button onclick="closeArmoryModal()" class="text-slate-400 hover:text-white text-2xl px-2">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Guns Grid list -->
+                <div class="flex-1 overflow-y-auto pr-1 space-y-3" id="weaponsListContainer">
+                    <!-- Dynamic weapons rendered via JS -->
+                </div>
+            </div>
+
+            <!-- STATS MODAL -->
+            <div id="statsModal" class="hidden absolute inset-0 z-40 glass-panel bg-slate-950/95 flex flex-col p-6 overflow-hidden">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-amber-500/20 border border-amber-400 rounded-xl flex items-center justify-center text-amber-400">
+                            <i class="fa-solid fa-trophy text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-jua text-2xl text-white">전투 기록 & 레벨 통계</h2>
+                            <p class="text-xs text-slate-400">당신의 사격 전적 및 랭크 정보를 확인하세요.</p>
+                        </div>
+                    </div>
+                    <button onclick="closeStatsModal()" class="text-slate-400 hover:text-white text-2xl px-2">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 my-auto max-w-lg mx-auto w-full">
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                        <div class="text-xs text-slate-400 font-bold mb-1">사수 레벨</div>
+                        <div id="statsLevel" class="font-orbitron font-bold text-3xl text-sky-400">LV.1</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                        <div class="text-xs text-slate-400 font-bold mb-1">최고 스테이지</div>
+                        <div id="statsStage" class="font-orbitron font-bold text-3xl text-amber-400">STAGE 1</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                        <div class="text-xs text-slate-400 font-bold mb-1">누적 타격 명중 수</div>
+                        <div id="statsTotalHits" class="font-orbitron font-bold text-3xl text-emerald-400">0</div>
+                    </div>
+                    <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-center">
+                        <div class="text-xs text-slate-400 font-bold mb-1">헤드샷 명중 수</div>
+                        <div id="statsHeadshots" class="font-orbitron font-bold text-3xl text-rose-400">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VICTORY / RESULT OVERLAY -->
+            <div id="resultModal" class="hidden absolute inset-0 z-50 glass-panel bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center">
+                <div class="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 max-w-md w-full shadow-2xl relative overflow-hidden">
+                    <div id="resultIcon" class="w-20 h-20 mx-auto mb-3 bg-gradient-to-tr from-amber-500 to-yellow-300 rounded-3xl flex items-center justify-center text-4xl shadow-lg shadow-amber-500/30">
+                        🏆
+                    </div>
+
+                    <h2 id="resultTitle" class="font-jua text-3xl text-white mb-1">스테이지 클리어!</h2>
+                    <p id="resultSub" class="text-slate-300 text-xs mb-6">모든 목표 표적을 물리쳤습니다!</p>
+
+                    <!-- Reward Summary -->
+                    <div class="bg-slate-950/60 rounded-2xl p-4 mb-6 space-y-2 text-xs">
+                        <div class="flex justify-between text-slate-300">
+                            <span>획득 골드:</span>
+                            <span id="resultGold" class="font-orbitron font-bold text-amber-400">+500 G</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span>획득 경험치:</span>
+                            <span id="resultXP" class="font-orbitron font-bold text-cyan-400">+120 XP</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300 border-t border-slate-800 pt-2">
+                            <span>사격 명중률:</span>
+                            <span id="resultAccuracy" class="font-orbitron font-bold text-emerald-400">92%</span>
+                        </div>
+                    </div>
+
+                    <button onclick="closeResultModal()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-jua text-lg py-3 rounded-2xl shadow-xl transition active:scale-95">
+                        확인 및 로비 이동
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        /* ===================================================================
+         * SOUND SYNTHESIZER (WEB AUDIO API)
+         * =================================================================== */
+        let audioCtx = null;
+        let soundMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleMute() {
+            soundMuted = !soundMuted;
+            document.getElementById('soundIcon').className = soundMuted ? 
+                'fa-solid fa-volume-xmark text-rose-400' : 'fa-solid fa-volume-high text-slate-400';
+        }
+
+        function playSound(type) {
+            if (soundMuted) return;
+            try {
+                initAudio();
+                if (!audioCtx) return;
+
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'shoot_pistol') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'shoot_heavy') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(350, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'hit') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.setValueAtTime(800, now + 0.05);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'headshot') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now);
+                    osc.frequency.setValueAtTime(1320, now + 0.08);
+                    gain.gain.setValueAtTime(0.35, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'reload') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.setValueAtTime(400, now + 0.1);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'victory') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    osc.frequency.setValueAtTime(1046.50, now + 0.3);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                }
+            } catch(e){}
+        }
+
+        /* ===================================================================
+         * GAME STATE & WEAPON DATA
+         * =================================================================== */
+        const WEAPONS = [
+            {
+                id: 'pistol',
+                name: '택티컬 피스톨',
+                icon: 'fa-solid fa-gun',
+                damage: 25,
+                maxAmmo: 12,
+                fireRate: 250, // ms between shots
+                reloadTime: 1200,
+                price: 0,
+                unlocked: true,
+                upgradeLevel: 1
+            },
+            {
+                id: 'smg',
+                name: '사이버 SMG',
+                icon: 'fa-solid fa-burst',
+                damage: 18,
+                maxAmmo: 30,
+                fireRate: 110,
+                reloadTime: 1500,
+                price: 800,
+                unlocked: false,
+                upgradeLevel: 1
+            },
+            {
+                id: 'rifle',
+                name: '플라즈마 라이플',
+                icon: 'fa-solid fa-rifle',
+                damage: 45,
+                maxAmmo: 20,
+                fireRate: 200,
+                reloadTime: 1800,
+                price: 2500,
+                unlocked: false,
+                upgradeLevel: 1
+            },
+            {
+                id: 'sniper',
+                name: '레일건 스나이퍼',
+                icon: 'fa-solid fa-crosshairs',
+                damage: 120,
+                maxAmmo: 5,
+                fireRate: 800,
+                reloadTime: 2200,
+                price: 6000,
+                unlocked: false,
+                upgradeLevel: 1
+            }
+        ];
+
+        // Player Data & Progress
+        let player = {
+            gold: parseInt(localStorage.getItem('cs_gold') || '500'),
+            xp: parseInt(localStorage.getItem('cs_xp') || '0'),
+            level: parseInt(localStorage.getItem('cs_level') || '1'),
+            stage: parseInt(localStorage.getItem('cs_stage') || '1'),
+            selectedGunId: 'pistol',
+            totalHits: parseInt(localStorage.getItem('cs_hits') || '0'),
+            headshots: parseInt(localStorage.getItem('cs_headshots') || '0')
+        };
+
+        // Game Loop Variables
+        const canvas = document.getElementById('shootingCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let isPlaying = false;
+        let gameMode = 'PRACTICE'; // 'PRACTICE' | 'CAMPAIGN'
+        let lastShotTime = 0;
+        let isReloading = false;
+
+        // Active Gun State
+        let currentGun = null;
+        let currentAmmo = 0;
+
+        // Combat Stats
+        let score = 0;
+        let shotsFired = 0;
+        let hitsCount = 0;
+        let headshotsCount = 0;
+        let stageTimer = 30; // 30 sec per stage
+        let timerInterval = null;
+
+        // Target Entities & Effects
+        let targets = []; // { x, y, radius, type, hp, maxHp, vx, vy, isHeadshotZone }
+        let particles = [];
+        let floatingTexts = [];
+
+        // Pointer/Crosshair tracking
+        let crosshair = { x: 300, y: 300 };
+
+        /* ===================================================================
+         * CANVAS & VIEWPORT INITIALIZATION
+         * =================================================================== */
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            crosshair.x = canvas.width / 2;
+            crosshair.y = canvas.height / 2;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Pointer Movement Tracking
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            crosshair.x = e.clientX - rect.left;
+            crosshair.y = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                const rect = canvas.getBoundingClientRect();
+                crosshair.x = e.touches[0].clientX - rect.left;
+                crosshair.y = e.touches[0].clientY - rect.top;
+            }
+        });
+
+        canvas.addEventListener('mousedown', (e) => handleFireInput(e));
+
+        /* ===================================================================
+         * SHOOTING & HIT DETECTION ENGINE
+         * =================================================================== */
+        function equipCurrentGun() {
+            currentGun = WEAPONS.find(w => w.id === player.selectedGunId) || WEAPONS[0];
+            currentAmmo = currentGun.maxAmmo;
+            updateHUDWeapon();
+        }
+
+        function handleFireInput(e) {
+            if (e) e.preventDefault();
+            if (!isPlaying || isReloading) return;
+
+            const now = Date.now();
+            if (now - lastShotTime < currentGun.fireRate) return;
+
+            if (currentAmmo <= 0) {
+                triggerReload();
+                return;
+            }
+
+            // Consume Ammo
+            currentAmmo--;
+            lastShotTime = now;
+            shotsFired++;
+
+            // Play Sound
+            playSound(currentGun.id === 'sniper' || currentGun.id === 'rifle' ? 'shoot_heavy' : 'shoot_pistol');
+
+            // Muzzle Flash & Recoil effect
+            createMuzzleParticles(crosshair.x, crosshair.y);
+
+            // Hit Detection Check
+            let hitAny = false;
+
+            for (let i = targets.length - 1; i >= 0; i--) {
+                const t = targets[i];
+                const dist = Math.hypot(crosshair.x - t.x, crosshair.y - t.y);
+
+                if (dist <= t.radius) {
+                    hitAny = true;
+                    hitsCount++;
+                    player.totalHits++;
+
+                    // Check for Headshot / Bullseye Center Hit
+                    const isHeadshot = dist <= t.radius * 0.35;
+                    const dmgMultiplier = isHeadshot ? 2.5 : 1.0;
+                    const damageDealt = Math.round(currentGun.damage * (1 + (currentGun.upgradeLevel - 1) * 0.2) * dmgMultiplier);
+
+                    t.hp -= damageDealt;
+
+                    if (isHeadshot) {
+                        headshotsCount++;
+                        player.headshots++;
+                        playSound('headshot');
+                        addFloatingText(t.x, t.y - 15, `CRITICAL ${damageDealt}!`, '#f43f5e');
+                    } else {
+                        playSound('hit');
+                        addFloatingText(t.x, t.y - 10, `-${damageDealt}`, '#38bdf8');
+                    }
+
+                    // Destroyed Target
+                    if (t.hp <= 0) {
+                        score += isHeadshot ? 250 : 100;
+                        createTargetExplosion(t.x, t.y, t.color);
+                        targets.splice(i, 1);
+
+                        // Respawn Target in Practice or Spawner in Campaign
+                        if (gameMode === 'PRACTICE') {
+                            setTimeout(spawnRandomTarget, 300);
+                        }
+                    }
+                    break; // Single bullet hits first top target
+                }
+            }
+
+            updateHUDStats();
+            updateHUDWeapon();
+
+            if (currentAmmo === 0) {
+                triggerReload();
+            }
+        }
+
+        function triggerReload() {
+            if (isReloading || currentAmmo === currentGun.maxAmmo) return;
+            isReloading = true;
+            playSound('reload');
+
+            const btnReload = document.getElementById('btnReload');
+            btnReload.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> 장전 중...`;
+
+            setTimeout(() => {
+                currentAmmo = currentGun.maxAmmo;
+                isReloading = false;
+                btnReload.innerHTML = `<i class="fa-solid fa-rotate-right"></i> 재장전`;
+                updateHUDWeapon();
+            }, currentGun.reloadTime);
+        }
+
+        /* ===================================================================
+         * TARGET PROCEDURAL GENERATION & AI
+         * =================================================================== */
+        function spawnRandomTarget() {
+            const radius = Math.floor(Math.random() * 20) + 25;
+            const margin = 100;
+
+            targets.push({
+                x: Math.random() * (canvas.width - margin * 2) + margin,
+                y: Math.random() * (canvas.height - margin * 2) + margin,
+                radius: radius,
+                maxHp: 50 + (player.stage * 15),
+                hp: 50 + (player.stage * 15),
+                color: Math.random() > 0.5 ? '#06b6d4' : '#eab308',
+                vx: (Math.random() - 0.5) * (1 + player.stage * 0.3),
+                vy: (Math.random() - 0.5) * (1 + player.stage * 0.3)
+            });
+        }
+
+        function initStageTargets() {
+            targets = [];
+            const count = 4 + Math.min(player.stage, 6);
+            for (let i = 0; i < count; i++) {
+                spawnRandomTarget();
+            }
+        }
+
+        function createMuzzleParticles(x, y) {
+            for (let i = 0; i < 6; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    size: Math.random() * 4 + 2,
+                    color: '#fef08a',
+                    alpha: 1.0
+                });
+            }
+        }
+
+        function createTargetExplosion(x, y, color) {
+            for (let i = 0; i < 16; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.5) * 12,
+                    size: Math.random() * 6 + 3,
+                    color: color,
+                    alpha: 1.0
+                });
+            }
+        }
+
+        function addFloatingText(x, y, text, color) {
+            floatingTexts.push({
+                x: x,
+                y: y,
+                text: text,
+                color: color,
+                alpha: 1.0,
+                vy: -1.2
+            });
+        }
+
+        /* ===================================================================
+         * GAME MODES & FLOW CONTROL
+         * =================================================================== */
+        function startPracticeMode() {
+            gameMode = 'PRACTICE';
+            setupGameUI();
+            
+            document.getElementById('hudModeTitle').innerText = '사격 연습장';
+            document.getElementById('hudStageText').innerText = '무제한 연습 모드';
+            document.getElementById('hudModeIcon').className = 'fa-solid fa-bullseye';
+            document.getElementById('hudTimerContainer').classList.add('hidden');
+            document.getElementById('hudTimerBox').classList.add('hidden');
+
+            initStageTargets();
+            isPlaying = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startCampaignMode() {
+            gameMode = 'CAMPAIGN';
+            setupGameUI();
+
+            document.getElementById('hudModeTitle').innerText = `STAGE ${player.stage} NPC 대결`;
+            document.getElementById('hudStageText').innerText = '제한 시간 내 타겟 섬멸';
+            document.getElementById('hudModeIcon').className = 'fa-solid fa-crosshairs';
+            document.getElementById('hudTimerContainer').classList.remove('hidden');
+            document.getElementById('hudTimerBox').classList.remove('hidden');
+
+            stageTimer = 30;
+            document.getElementById('hudTimer').innerText = `${stageTimer}s`;
+
+            initStageTargets();
+            isPlaying = true;
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!isPlaying) return;
+                stageTimer--;
+                document.getElementById('hudTimer').innerText = `${stageTimer}s`;
+
+                // Spawn reinforcement target if low
+                if (targets.length < 3) spawnRandomTarget();
+
+                if (stageTimer <= 0) {
+                    endCampaignStage();
+                }
+            }, 1000);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function setupGameUI() {
+            initAudio();
+            resizeCanvas();
+            equipCurrentGun();
+
+            score = 0;
+            shotsFired = 0;
+            hitsCount = 0;
+            headshotsCount = 0;
+
+            updateHUDStats();
+
+            document.getElementById('lobbyScreen').classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                document.getElementById('lobbyScreen').classList.add('hidden');
+            }, 300);
+
+            document.getElementById('inGameHUD').classList.remove('hidden');
+        }
+
+        function exitToLobby() {
+            isPlaying = false;
+            if (timerInterval) clearInterval(timerInterval);
+
+            document.getElementById('inGameHUD').classList.add('hidden');
+            const lobby = document.getElementById('lobbyScreen');
+            lobby.classList.remove('hidden');
+            setTimeout(() => {
+                lobby.classList.remove('opacity-0', 'pointer-events-none');
+            }, 50);
+
+            saveProgress();
+            updateGlobalHeaderUI();
+        }
+
+        function endCampaignStage() {
+            isPlaying = false;
+            if (timerInterval) clearInterval(timerInterval);
+            playSound('victory');
+
+            const goldEarned = Math.round(score * 1.2) + 200;
+            const xpEarned = Math.round(score * 0.5) + 80;
+
+            player.gold += goldEarned;
+            player.xp += xpEarned;
+
+            // Check Level Up
+            if (player.xp >= player.level * 250) {
+                player.level++;
+            }
+
+            // Advance Stage if score threshold reached
+            if (score >= 500) {
+                player.stage++;
+            }
+
+            saveProgress();
+
+            const accuracy = shotsFired > 0 ? Math.round((hitsCount / shotsFired) * 100) : 0;
+
+            document.getElementById('resultGold').innerText = `+${goldEarned} G`;
+            document.getElementById('resultXP').innerText = `+${xpEarned} XP`;
+            document.getElementById('resultAccuracy').innerText = `${accuracy}%`;
+
+            document.getElementById('resultModal').classList.remove('hidden');
+        }
+
+        function closeResultModal() {
+            document.getElementById('resultModal').classList.add('hidden');
+            exitToLobby();
+        }
+
+        /* ===================================================================
+         * RENDERING ENGINE
+         * =================================================================== */
+        function update() {
+            if (!isPlaying) return;
+
+            // Move Targets
+            for (let t of targets) {
+                t.x += t.vx;
+                t.y += t.vy;
+
+                // Bounce off canvas edges
+                if (t.x - t.radius < 40 || t.x + t.radius > canvas.width - 40) t.vx *= -1;
+                if (t.y - t.radius < 40 || t.y + t.radius > canvas.height - 40) t.vy *= -1;
+            }
+
+            // Update Particles
+            for (let p of particles) {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.04;
+            }
+            particles = particles.filter(p => p.alpha > 0);
+
+            // Update Floating Damage Text
+            for (let ft of floatingTexts) {
+                ft.y += ft.vy;
+                ft.alpha -= 0.02;
+            }
+            floatingTexts = floatingTexts.filter(ft => ft.alpha > 0);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Sci-Fi Cyber Grid Background
+            ctx.strokeStyle = 'rgba(30, 41, 59, 0.4)';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Render Target NPCs & Boards
+            for (let t of targets) {
+                ctx.save();
+                ctx.translate(t.x, t.y);
+
+                // Outer Ring
+                ctx.fillStyle = t.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, t.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Inner Target Rings
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(0, 0, t.radius * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Bullseye / Headshot Red Center
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(0, 0, t.radius * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+
+                // HP Bar
+                const barW = t.radius * 2;
+                const hpRatio = Math.max(0, t.hp / t.maxHp);
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(-barW / 2, -t.radius - 12, barW, 6);
+                ctx.fillStyle = hpRatio > 0.4 ? '#10b981' : '#f43f5e';
+                ctx.fillRect(-barW / 2, -t.radius - 12, barW * hpRatio, 6);
+
+                ctx.restore();
+            }
+
+            // Render Particles
+            for (let p of particles) {
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Render Floating Text Damage
+            ctx.font = 'bold 16px "Orbitron", sans-serif';
+            ctx.textAlign = 'center';
+            for (let ft of floatingTexts) {
+                ctx.globalAlpha = ft.alpha;
+                ctx.fillStyle = ft.color;
+                ctx.fillText(ft.text, ft.x, ft.y);
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Render Tactical Dynamic Crosshair at Pointer
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(crosshair.x, crosshair.y, 14, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Crosshair Reticle Lines
+            ctx.beginPath();
+            ctx.moveTo(crosshair.x - 20, crosshair.y);
+            ctx.lineTo(crosshair.x - 8, crosshair.y);
+            ctx.moveTo(crosshair.x + 8, crosshair.y);
+            ctx.lineTo(crosshair.x + 20, crosshair.y);
+            ctx.moveTo(crosshair.x, crosshair.y - 20);
+            ctx.lineTo(crosshair.x, crosshair.y - 8);
+            ctx.moveTo(crosshair.x, crosshair.y + 8);
+            ctx.lineTo(crosshair.x, crosshair.y + 20);
+            ctx.stroke();
+
+            // Center Red Dot
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(crosshair.x, crosshair.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function gameLoop() {
+            update();
+            render();
+            if (isPlaying) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        /* ===================================================================
+         * UI UPDATES & SAVING
+         * =================================================================== */
+        function updateHUDStats() {
+            document.getElementById('hudScore').innerText = score;
+            const accuracy = shotsFired > 0 ? Math.round((hitsCount / shotsFired) * 100) : 100;
+            document.getElementById('hudAccuracy').innerText = `${accuracy}%`;
+        }
+
+        function updateHUDWeapon() {
+            document.getElementById('hudGunName').innerText = currentGun.name;
+            document.getElementById('hudCurrentAmmo').innerText = currentAmmo;
+            document.getElementById('hudMaxAmmo').innerText = currentGun.maxAmmo;
+            document.getElementById('hudGunIcon').innerHTML = `<i class="${currentGun.icon}"></i>`;
+        }
+
+        function updateGlobalHeaderUI() {
+            document.getElementById('globalGold').innerText = player.gold;
+            document.getElementById('globalXP').innerText = player.xp;
+            document.getElementById('playerRankBadge').innerText = `LV.${player.level} 사수`;
+            document.getElementById('currentStageBadge').innerText = `STAGE ${player.stage}`;
+        }
+
+        function openArmoryModal() {
+            renderWeaponsList();
+            document.getElementById('armoryModal').classList.remove('hidden');
+        }
+
+        function closeArmoryModal() {
+            document.getElementById('armoryModal').classList.add('hidden');
+            updateGlobalHeaderUI();
+        }
+
+        function renderWeaponsList() {
+            const container = document.getElementById('weaponsListContainer');
+            container.innerHTML = '';
+
+            WEAPONS.forEach(w => {
+                const isSelected = player.selectedGunId === w.id;
+
+                const card = document.createElement('div');
+                card.className = `glass-panel p-4 rounded-2xl flex items-center justify-between border ${isSelected ? 'border-sky-400 bg-sky-950/40' : 'border-slate-800'}`;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-slate-900 rounded-xl flex items-center justify-center text-2xl text-sky-400 border border-slate-700">
+                            <i class="${w.icon}"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-jua text-lg text-white">${w.name}</h4>
+                                <span class="text-[10px] bg-slate-800 text-sky-300 px-2 py-0.5 rounded-full border border-sky-500/20">LV.${w.upgradeLevel}</span>
+                            </div>
+                            <div class="text-xs text-slate-400 space-x-3 mt-1">
+                                <span>공격력: <b class="text-amber-400">${Math.round(w.damage * (1 + (w.upgradeLevel-1)*0.2))}</b></span>
+                                <span>탄창: <b class="text-cyan-400">${w.maxAmmo}발</b></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        ${w.unlocked ? `
+                            <button onclick="upgradeWeapon('${w.id}')" class="bg-amber-600/80 hover:bg-amber-500 text-white font-jua text-xs px-3 py-2 rounded-xl transition">
+                                강화 (${w.upgradeLevel * 500}G)
+                            </button>
+                            <button onclick="selectWeapon('${w.id}')" class="${isSelected ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'} font-jua text-xs px-3.5 py-2 rounded-xl transition">
+                                ${isSelected ? '장착 중' : '장착하기'}
+                            </button>
+                        ` : `
+                            <button onclick="unlockWeapon('${w.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-jua text-xs px-4 py-2 rounded-xl transition">
+                                해금 (${w.price}G)
+                            </button>
+                        `}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function selectWeapon(id) {
+            player.selectedGunId = id;
+            saveProgress();
+            renderWeaponsList();
+        }
+
+        function unlockWeapon(id) {
+            const w = WEAPONS.find(item => item.id === id);
+            if (w && player.gold >= w.price) {
+                player.gold -= w.price;
+                w.unlocked = true;
+                player.selectedGunId = id;
+                saveProgress();
+                renderWeaponsList();
+                updateGlobalHeaderUI();
+            }
+        }
+
+        function upgradeWeapon(id) {
+            const w = WEAPONS.find(item => item.id === id);
+            const cost = w.upgradeLevel * 500;
+            if (w && player.gold >= cost) {
+                player.gold -= cost;
+                w.upgradeLevel++;
+                saveProgress();
+                renderWeaponsList();
+                updateGlobalHeaderUI();
+            }
+        }
+
+        function openStatsModal() {
+            document.getElementById('statsLevel').innerText = `LV.${player.level}`;
+            document.getElementById('statsStage').innerText = `STAGE ${player.stage}`;
+            document.getElementById('statsTotalHits').innerText = player.totalHits;
+            document.getElementById('statsHeadshots').innerText = player.headshots;
+            document.getElementById('statsModal').classList.remove('hidden');
+        }
+
+        function closeStatsModal() {
+            document.getElementById('statsModal').classList.add('hidden');
+        }
+
+        function saveProgress() {
+            localStorage.setItem('cs_gold', player.gold.toString());
+            localStorage.setItem('cs_xp', player.xp.toString());
+            localStorage.setItem('cs_level', player.level.toString());
+            localStorage.setItem('cs_stage', player.stage.toString());
+            localStorage.setItem('cs_hits', player.totalHits.toString());
+            localStorage.setItem('cs_headshots', player.headshots.toString());
+        }
+
+        // Window Initializer
+        window.onload = function() {
+            resizeCanvas();
+            updateGlobalHeaderUI();
+        };
+    </script>
+</body>
+</html>

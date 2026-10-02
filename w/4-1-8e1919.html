@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>다 부셔 3D - SMASH & DESTROY</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Three.js (r128) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@700;900&display=swap" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            blackHan: ['"Black Han Sans"', 'sans-serif'],
+            sans: ['"Noto Sans KR"', 'sans-serif']
+          },
+          colors: {
+            danger: '#ff1744',
+            cyber: '#00e5ff',
+            destroy: '#ff9100'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      background-color: #08080c;
+      color: #ffffff;
+      font-family: 'Black Han Sans', 'Noto Sans KR', sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Crosshair Styling */
+    .crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* Red Screen Flash when shooting or hit */
+    @keyframes screenMuzzle {
+      0% { opacity: 0.8; }
+      100% { opacity: 0; }
+    }
+    .muzzle-flash-overlay {
+      animation: screenMuzzle 0.08s ease-out forwards;
+    }
+
+    /* HUD Glassmorphism */
+    .hud-card {
+      background: rgba(15, 15, 25, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Recoil animation for weapon viewport */
+    .recoil-anim {
+      transform: translate(-50%, -45%) rotate(-5deg) scale(0.95);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #ff1744;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="relative w-full h-full overflow-hidden select-none">
+
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container" class="absolute inset-0 w-full h-full z-0 cursor-crosshair"></div>
+
+  <!-- Screen Muzzle Flash Effect -->
+  <div id="flash-effect" class="absolute inset-0 bg-yellow-300/30 pointer-events-none z-10 opacity-0"></div>
+
+  <!-- CROSSHAIR OVERLAY -->
+  <div class="crosshair flex items-center justify-center">
+    <div class="w-8 h-8 border-2 border-red-500/80 rounded-full flex items-center justify-center">
+      <div class="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div>
+    </div>
+  </div>
+
+  <!-- TOP HUD: Title, Score & Destruction Rate -->
+  <header class="absolute top-3 left-3 right-3 z-30 flex justify-between items-start pointer-events-none">
+    
+    <!-- Title & Status -->
+    <div class="hud-card rounded-2xl p-3 flex items-center space-x-3 pointer-events-auto border-red-600/40 shadow-lg shadow-red-950/50">
+      <div class="w-11 h-11 bg-gradient-to-tr from-red-600 to-orange-500 rounded-xl flex items-center justify-center text-2xl shadow-inner animate-pulse">
+        💥
+      </div>
+      <div>
+        <h1 class="text-2xl text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 font-black tracking-wider drop-shadow">
+          다 부셔 <span class="text-xs text-cyan-400 font-sans tracking-normal bg-cyan-950/80 border border-cyan-500/40 px-2 py-0.5 rounded-full">3D HARD</span>
+        </h1>
+        <p id="game-status-text" class="text-xs text-gray-300 font-sans font-medium">
+          무기를 선택하고 세상을 전부 부셔버리세요!
+        </p>
+      </div>
+    </div>
+
+    <!-- Destruction Stats & Sound Toggle -->
+    <div class="flex items-center space-x-2 pointer-events-auto">
+      <div class="hud-card rounded-2xl px-4 py-2 text-right border-orange-500/30">
+        <div class="text-[10px] text-gray-400 font-sans">파괴 점수</div>
+        <div id="score-text" class="text-xl font-black text-yellow-400 tracking-wider">0</div>
+      </div>
+
+      <div class="hud-card rounded-2xl px-4 py-2 text-right border-red-500/30">
+        <div class="text-[10px] text-gray-400 font-sans">파괴율</div>
+        <div id="destroy-rate-text" class="text-xl font-black text-red-500 tracking-wider">0%</div>
+      </div>
+
+      <button id="btn-sound" onclick="toggleSound()" class="hud-card w-11 h-11 rounded-2xl flex items-center justify-center text-yellow-400 hover:text-white active:scale-95 transition-all border-amber-500/40">
+        <i id="sound-icon" class="fa-solid fa-volume-high text-lg"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- SPECIAL EVENT BUTTON: SUMMON SCARY PERSON -->
+  <div class="absolute top-20 left-3 z-30 pointer-events-auto flex flex-col space-y-2">
+    <button 
+      onclick="summonScaryPerson()" 
+      class="bg-gradient-to-r from-red-700 via-rose-600 to-red-900 text-white font-black text-sm px-4 py-3 rounded-2xl shadow-xl shadow-red-900/60 border-2 border-red-400 hover:brightness-125 active:scale-95 transition-all flex items-center space-x-2 animate-bounce"
+    >
+      <span class="text-xl">👹</span>
+      <div class="text-left">
+        <div class="text-xs text-red-200 leading-none">피의 마왕 소환</div>
+        <div class="text-sm tracking-wider">무서운 사람 등장!</div>
+      </div>
+    </button>
+
+    <button 
+      onclick="resetScene()" 
+      class="hud-card text-gray-300 hover:text-white font-sans text-xs px-3 py-2 rounded-xl flex items-center space-x-1.5 active:scale-95 transition-all"
+    >
+      <i class="fa-solid fa-rotate-right text-orange-400"></i>
+      <span>구역 재건축 (리셋)</span>
+    </button>
+  </div>
+
+  <!-- BOTTOM HUD: WEAPON SELECTOR & AMMO DISPLAY -->
+  <footer class="absolute bottom-4 left-3 right-3 z-30 flex flex-col sm:flex-row items-center justify-between gap-3 pointer-events-none">
+    
+    <!-- Weapon Selector Toolbar -->
+    <div class="hud-card rounded-2xl p-2 flex items-center space-x-2 pointer-events-auto border-cyan-500/30 overflow-x-auto max-w-full">
+      <!-- AK47 -->
+      <button 
+        id="btn-ak47"
+        onclick="switchWeapon('AK47')" 
+        class="weapon-btn active bg-gradient-to-tr from-amber-800 to-yellow-600 text-white px-3.5 py-2.5 rounded-xl flex items-center space-x-2 border border-yellow-300 shadow-lg active:scale-95 transition-all"
+      >
+        <span class="text-lg">⚔️</span>
+        <div class="text-left">
+          <div class="text-[10px] text-yellow-200 leading-none">소총</div>
+          <div class="text-xs font-black">AK-47</div>
+        </div>
+      </button>
+
+      <!-- M416 -->
+      <button 
+        id="btn-m416"
+        onclick="switchWeapon('M416')" 
+        class="weapon-btn bg-stone-900/80 hover:bg-stone-800 text-gray-300 px-3.5 py-2.5 rounded-xl flex items-center space-x-2 border border-gray-700 active:scale-95 transition-all"
+      >
+        <span class="text-lg">🔫</span>
+        <div class="text-left">
+          <div class="text-[10px] text-gray-400 leading-none">돌격소총</div>
+          <div class="text-xs font-black">M416</div>
+        </div>
+      </button>
+
+      <!-- AWM -->
+      <button 
+        id="btn-awm"
+        onclick="switchWeapon('AWM')" 
+        class="weapon-btn bg-stone-900/80 hover:bg-stone-800 text-gray-300 px-3.5 py-2.5 rounded-xl flex items-center space-x-2 border border-gray-700 active:scale-95 transition-all"
+      >
+        <span class="text-lg">🎯</span>
+        <div class="text-left">
+          <div class="text-[10px] text-gray-400 leading-none">저격총</div>
+          <div class="text-xs font-black">AWM</div>
+        </div>
+      </button>
+
+      <!-- SHOTGUN -->
+      <button 
+        id="btn-shotgun"
+        onclick="switchWeapon('SHOTGUN')" 
+        class="weapon-btn bg-stone-900/80 hover:bg-stone-800 text-gray-300 px-3.5 py-2.5 rounded-xl flex items-center space-x-2 border border-gray-700 active:scale-95 transition-all"
+      >
+        <span class="text-lg">💥</span>
+        <div class="text-left">
+          <div class="text-[10px] text-gray-400 leading-none">중소총</div>
+          <div class="text-xs font-black">SHOTGUN</div>
+        </div>
+      </button>
+    </div>
+
+    <!-- Shoot Control Button (Mobile Support) & Ammo Counter -->
+    <div class="flex items-center space-x-3 pointer-events-auto">
+      <div class="hud-card rounded-2xl px-4 py-2.5 text-center min-w-[100px] border-red-500/40">
+        <div class="text-[10px] text-gray-400 font-sans">총알 상태</div>
+        <div id="ammo-text" class="text-xl font-black text-red-400 tracking-wider">30 / ∞</div>
+      </div>
+
+      <!-- TOUCH SHOOT BUTTON FOR MOBILE -->
+      <button 
+        id="btn-shoot-touch" 
+        onmousedown="triggerShoot(event)" 
+        ontouchstart="triggerShoot(event)" 
+        class="bg-gradient-to-tr from-red-600 to-orange-500 hover:brightness-110 active:scale-90 text-white font-black px-6 py-3.5 rounded-2xl shadow-xl shadow-red-900/80 border border-yellow-300 flex items-center space-x-2 text-base transition-all"
+      >
+        <i class="fa-solid fa-crosshairs text-lg animate-spin" style="animation-duration: 6s;"></i>
+        <span>발사 (FIRE)</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- SCARY PERSON BANNER OVERLAY -->
+  <div id="scary-banner" class="fixed inset-0 pointer-events-none z-40 flex items-center justify-center opacity-0 transition-opacity duration-300">
+    <div class="bg-red-950/90 border-y-4 border-red-500 text-red-100 py-6 px-12 text-center shadow-2xl backdrop-blur-md transform scale-95 transition-transform duration-300 flex flex-col items-center space-y-2">
+      <div class="text-6xl animate-bounce">👹💀</div>
+      <h2 class="text-4xl text-red-500 font-black tracking-widest animate-pulse">무서운 파괴 마왕 등장!</h2>
+      <p id="scary-dialogue" class="text-yellow-300 text-lg font-sans font-bold">"으하하하! 총을 모두 총동원해서 세상을 작살내버려라!"</p>
+    </div>
+  </div>
+
+  <script>
+    /* ===================================================================
+       1. WEB AUDIO SYNTHESIZER (Gunshots, Shatters, Explosions)
+       =================================================================== */
+    let soundEnabled = true;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+
+        if (type === 'AK47') {
+          // Sharp heavy rifle shot
+          const bufferSize = audioCtx.sampleRate * 0.18;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1200, now);
+          filter.frequency.exponentialRampToValueAtTime(80, now + 0.18);
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.8, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioCtx.destination);
+          noise.start(now);
+        } else if (type === 'M416') {
+          // Rapid clean tactical shot
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+
+          gain.gain.setValueAtTime(0.6, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'AWM') {
+          // Deep booming sniper shot with reverb echo
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+
+          gain.gain.setValueAtTime(1.0, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        } else if (type === 'SHOTGUN') {
+          // Explosive multi-pellet blast
+          const bufferSize = audioCtx.sampleRate * 0.3;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.1));
+          }
+
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.9, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+
+          noise.connect(gain);
+          gain.connect(audioCtx.destination);
+          noise.start(now);
+        } else if (type === 'explode') {
+          // Boom explosion sound
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(120, now);
+          osc.frequency.exponentialRampToValueAtTime(10, now + 0.6);
+
+          gain.gain.setValueAtTime(1.0, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        } else if (type === 'shatter') {
+          // Glass/wood break sound
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1200 + Math.random() * 600, now);
+          osc.frequency.linearRampToValueAtTime(300, now + 0.15);
+
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        } else if (type === 'scary_roar') {
+          // Deep scary boss entrance sound
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(90, now);
+          osc.frequency.linearRampToValueAtTime(180, now + 0.4);
+          osc.frequency.linearRampToValueAtTime(40, now + 1.0);
+
+          gain.gain.setValueAtTime(0.8, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 1.0);
+        }
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-icon').className = soundEnabled 
+        ? 'fa-solid fa-volume-high text-lg' 
+        : 'fa-solid fa-volume-xmark text-lg text-red-500';
+    }
+
+    /* ===================================================================
+       2. THREE.JS ENGINE SETUP & GAME STATE
+       =================================================================== */
+    let scene, camera, renderer, raycaster, mouse;
+    let weaponGroup, currentWeaponMesh;
+    let scaryPersonGroup = null;
+    let isScaryPersonActive = false;
+
+    // Destructible Objects Arrays
+    let destructibleObjects = [];
+    let debrisParticles = [];
+
+    let gameState = {
+      score: 0,
+      totalObjectsCount: 0,
+      destroyedCount: 0,
+      currentWeapon: 'AK47',
+      ammo: {
+        AK47: 30,
+        M416: 40,
+        AWM: 5,
+        SHOTGUN: 8
+      }
+    };
+
+    const WEAPON_CONFIGS = {
+      AK47: { name: 'AK-47', damage: 45, pellets: 1, recoil: 0.15, color: 0xc87d32 },
+      M416: { name: 'M416', damage: 32, pellets: 1, recoil: 0.08, color: 0x222222 },
+      AWM: { name: 'AWM', damage: 200, pellets: 1, recoil: 0.35, color: 0x3d5a45 },
+      SHOTGUN: { name: 'SHOTGUN', damage: 25, pellets: 8, recoil: 0.3, color: 0x7b1fa2 }
+    };
+
+    function init3D() {
+      const container = document.getElementById('canvas-container');
+
+      // 1. Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0c0d14);
+      scene.fog = new THREE.FogExp2(0x0c0d14, 0.025);
+
+      // 2. Camera
+      camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 1.6, 5);
+
+      // 3. Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // 4. Raycaster & Mouse
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2(0, 0); // Center screen raycasting
+
+      // 5. Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+      scene.add(ambientLight);
+
+      const mainSpotLight = new THREE.SpotLight(0xffaa55, 1.5);
+      mainSpotLight.position.set(5, 12, 8);
+      mainSpotLight.castShadow = true;
+      mainSpotLight.angle = Math.PI / 4;
+      scene.add(mainSpotLight);
+
+      const redNeonLight = new THREE.PointLight(0xff0055, 2, 20);
+      redNeonLight.position.set(-6, 3, -2);
+      scene.add(redNeonLight);
+
+      const cyanNeonLight = new THREE.PointLight(0x00e5ff, 2, 20);
+      cyanNeonLight.position.set(6, 3, -2);
+      scene.add(cyanNeonLight);
+
+      // 6. Build Environment Floor & Arena Walls
+      buildArenaEnvironment();
+
+      // 7. Build First Person Weapon Mesh Holder attached to Camera
+      weaponGroup = new THREE.Group();
+      camera.add(weaponGroup);
+      scene.add(camera);
+
+      // Build Initial Weapon
+      createWeapon3DModel(gameState.currentWeapon);
+
+      // Event Listeners
+      window.addEventListener('resize', onWindowResize);
+      window.addEventListener('mousedown', onMouseDown);
+
+      // Start Mouse Aim Control Tracking
+      window.addEventListener('mousemove', (e) => {
+        const moveX = (e.clientX / window.innerWidth) * 2 - 1;
+        const moveY = -(e.clientY / window.innerHeight) * 2 + 1;
+        
+        // Gentle weapon sway & rotation aiming effect
+        if (weaponGroup) {
+          weaponGroup.rotation.y = moveX * 0.15;
+          weaponGroup.rotation.x = moveY * 0.15;
+        }
+      });
+    }
+
+    /* ===================================================================
+       3. ARENA & DESTRUCTIBLE OBJECTS BUILDER
+       =================================================================== */
+    function buildArenaEnvironment() {
+      // Metallic Grid Floor
+      const floorGeo = new THREE.PlaneGeometry(50, 50);
+      const floorMat = new THREE.MeshStandardMaterial({ 
+        color: 0x15161e, 
+        roughness: 0.4, 
+        metalness: 0.8 
+      });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      // Floor Grid helper
+      const grid = new THREE.GridHelper(50, 25, 0xff0055, 0x333344);
+      grid.position.y = 0.01;
+      scene.add(grid);
+
+      // Back Destroyable Neon Wall
+      buildDestructibleSceneObjects();
+    }
+
+    function buildDestructibleSceneObjects() {
+      // Clear existing
+      destructibleObjects.forEach(obj => scene.remove(obj));
+      destructibleObjects = [];
+
+      // Stack 1: Wooden Crates Pyramid
+      for (let x = -3; x <= 3; x += 1.2) {
+        for (let y = 0.6; y <= 3; y += 1.1) {
+          createCrate(x, y, -5);
+        }
+      }
+
+      // Stack 2: Explosive Oil Barrels
+      createBarrels(-5, 0.7, -4);
+      createBarrels(5, 0.7, -4);
+
+      // Stack 3: High Score Glass Target Sculptures
+      for (let i = 0; i < 5; i++) {
+        createGlassTarget((i - 2) * 2, 4.5, -6);
+      }
+
+      gameState.totalObjectsCount = destructibleObjects.length;
+      gameState.destroyedCount = 0;
+      updateUI();
+    }
+
+    function createCrate(x, y, z) {
+      const geo = new THREE.BoxGeometry(1, 1, 1);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xc28544,
+        roughness: 0.7,
+        metalness: 0.1
+      });
+      const crate = new THREE.Mesh(geo, mat);
+      crate.position.set(x, y, z);
+      crate.castShadow = true;
+      crate.receiveShadow = true;
+
+      crate.userData = {
+        type: 'crate',
+        hp: 60,
+        maxHp: 60,
+        scoreValue: 100
+      };
+
+      scene.add(crate);
+      destructibleObjects.push(crate);
+    }
+
+    function createBarrels(x, y, z) {
+      for (let b = 0; b < 3; b++) {
+        const geo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 16);
+        const mat = new THREE.MeshStandardMaterial({
+          color: 0xdd2c00,
+          roughness: 0.3,
+          metalness: 0.6
+        });
+        const barrel = new THREE.Mesh(geo, mat);
+        barrel.position.set(x + (b * 0.9), y, z);
+        barrel.castShadow = true;
+
+        barrel.userData = {
+          type: 'barrel',
+          hp: 40,
+          maxHp: 40,
+          scoreValue: 250,
+          isExplosive: true
+        };
+
+        scene.add(barrel);
+        destructibleObjects.push(barrel);
+      }
+    }
+
+    function createGlassTarget(x, y, z) {
+      const geo = new THREE.OctahedronGeometry(0.6);
+      const mat = new THREE.MeshPhysicalMaterial({
+        color: 0x00e5ff,
+        transmission: 0.8,
+        opacity: 1,
+        transparent: true,
+        roughness: 0.1,
+        ior: 1.5
+      });
+      const target = new THREE.Mesh(geo, mat);
+      target.position.set(x, y, z);
+
+      target.userData = {
+        type: 'glass',
+        hp: 20,
+        maxHp: 20,
+        scoreValue: 300,
+        rotSpeed: Math.random() * 0.02 + 0.01
+      };
+
+      scene.add(target);
+      destructibleObjects.push(target);
+    }
+
+    /* ===================================================================
+       4. PROCEDURAL 3D WEAPON MODELS
+       =================================================================== */
+    function createWeapon3DModel(type) {
+      if (currentWeaponMesh) {
+        weaponGroup.remove(currentWeaponMesh);
+      }
+
+      currentWeaponMesh = new THREE.Group();
+      const cfg = WEAPON_CONFIGS[type];
+
+      if (type === 'AK47') {
+        // AK-47 Wooden Body + Black Metal Barrel
+        const bodyGeo = new THREE.BoxGeometry(0.12, 0.18, 0.8);
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.5 });
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.2 });
+
+        const body = new THREE.Mesh(bodyGeo, woodMat);
+        
+        const barrelGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.9);
+        const barrel = new THREE.Mesh(barrelGeo, metalMat);
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(0, 0.05, -0.6);
+
+        const magGeo = new THREE.BoxGeometry(0.08, 0.35, 0.15);
+        const mag = new THREE.Mesh(magGeo, metalMat);
+        mag.position.set(0, -0.2, -0.1);
+        mag.rotation.x = 0.3;
+
+        currentWeaponMesh.add(body, barrel, mag);
+      } else if (type === 'M416') {
+        // Tactical M416
+        const mat = new THREE.MeshStandardMaterial({ color: 0x1e1e24, metalness: 0.8, roughness: 0.3 });
+        const bodyGeo = new THREE.BoxGeometry(0.1, 0.16, 0.75);
+        const body = new THREE.Mesh(bodyGeo, mat);
+
+        const barrelGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.8);
+        const barrel = new THREE.Mesh(barrelGeo, mat);
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(0, 0.04, -0.6);
+
+        const scopeGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.25);
+        const scope = new THREE.Mesh(scopeGeo, mat);
+        scope.rotation.x = Math.PI / 2;
+        scope.position.set(0, 0.14, -0.1);
+
+        currentWeaponMesh.add(body, barrel, scope);
+      } else if (type === 'AWM') {
+        // Sniper Rifle AWM (Green olive tactical finish)
+        const greenMat = new THREE.MeshStandardMaterial({ color: 0x3b4d3c, roughness: 0.4 });
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, metalness: 0.9, roughness: 0.1 });
+
+        const bodyGeo = new THREE.BoxGeometry(0.12, 0.18, 1.2);
+        const body = new THREE.Mesh(bodyGeo, greenMat);
+
+        const barrelGeo = new THREE.CylinderGeometry(0.035, 0.03, 1.1);
+        const barrel = new THREE.Mesh(barrelGeo, metalMat);
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(0, 0.05, -0.9);
+
+        // Huge Scope
+        const scopeGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.45);
+        const scope = new THREE.Mesh(scopeGeo, metalMat);
+        scope.rotation.x = Math.PI / 2;
+        scope.position.set(0, 0.18, -0.2);
+
+        currentWeaponMesh.add(body, barrel, scope);
+      } else if (type === 'SHOTGUN') {
+        // Double Barrel Shotgun
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a2c11, roughness: 0.6 });
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0x22222a, metalness: 0.8, roughness: 0.2 });
+
+        const stockGeo = new THREE.BoxGeometry(0.1, 0.2, 0.5);
+        const stock = new THREE.Mesh(stockGeo, woodMat);
+
+        const b1Geo = new THREE.CylinderGeometry(0.035, 0.035, 0.8);
+        const b1 = new THREE.Mesh(b1Geo, metalMat);
+        b1.rotation.x = Math.PI / 2;
+        b1.position.set(-0.03, 0.04, -0.5);
+
+        const b2 = new THREE.Mesh(b1Geo, metalMat);
+        b2.rotation.x = Math.PI / 2;
+        b2.position.set(0.03, 0.04, -0.5);
+
+        currentWeaponMesh.add(stock, b1, b2);
+      }
+
+      // First Person Position offset
+      currentWeaponMesh.position.set(0.35, -0.3, -0.7);
+      currentWeaponMesh.rotation.y = -0.1;
+      weaponGroup.add(currentWeaponMesh);
+    }
+
+    /* ===================================================================
+       5. SCARY PERSON 3D BOSS CHAR ENGINE
+       =================================================================== */
+    function summonScaryPerson() {
+      if (isScaryPersonActive) return;
+      isScaryPersonActive = true;
+
+      playSound('scary_roar');
+
+      // Show Animated Banner
+      const banner = document.getElementById('scary-banner');
+      banner.classList.remove('opacity-0');
+      banner.children[0].classList.remove('scale-95');
+      banner.children[0].classList.add('scale-100');
+
+      setTimeout(() => {
+        banner.classList.add('opacity-0');
+      }, 2500);
+
+      // Create 3D Menacing Character Mesh
+      if (scaryPersonGroup) scene.remove(scaryPersonGroup);
+
+      scaryPersonGroup = new THREE.Group();
+
+      // Scary Glowing Red Skull Mask / Body
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x220000, metalness: 0.8, roughness: 0.2 });
+      const redGlowMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+      // Torso
+      const torsoGeo = new THREE.BoxGeometry(1.6, 2.2, 0.8);
+      const torso = new THREE.Mesh(torsoGeo, bodyMat);
+      torso.position.y = 1.1;
+
+      // Head / Skull
+      const headGeo = new THREE.SphereGeometry(0.7, 16, 16);
+      const head = new THREE.Mesh(headGeo, new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1 }));
+      head.position.y = 2.7;
+
+      // Glowing Scary Red Eyes
+      const eye1 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), redGlowMat);
+      eye1.position.set(-0.25, 2.8, 0.65);
+
+      const eye2 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), redGlowMat);
+      eye2.position.set(0.25, 2.8, 0.65);
+
+      // Spikes on Shoulder
+      for (let s = -1; s <= 1; s += 2) {
+        const spikeGeo = new THREE.ConeGeometry(0.2, 0.8, 8);
+        const spike = new THREE.Mesh(spikeGeo, redGlowMat);
+        spike.position.set(s * 1.0, 2.2, 0);
+        spike.rotation.z = -s * 0.5;
+        scaryPersonGroup.add(spike);
+      }
+
+      scaryPersonGroup.add(torso, head, eye1, eye2);
+      scaryPersonGroup.position.set(0, 0, -8);
+      scaryPersonGroup.scale.set(1.4, 1.4, 1.4);
+
+      scaryPersonGroup.userData = {
+        type: 'scary_boss',
+        hp: 1200,
+        maxHp: 1200,
+        scoreValue: 5000
+      };
+
+      scene.add(scaryPersonGroup);
+      destructibleObjects.push(scaryPersonGroup);
+
+      document.getElementById('game-status-text').innerText = "😈 무서운 파괴 마왕이 등장했습니다! 집중 공격하세요!";
+    }
+
+    /* ===================================================================
+       6. SHOOTING & DESTRUCTION LOGIC
+       =================================================================== */
+    function triggerShoot(e) {
+      if (e) e.preventDefault();
+
+      const cfg = WEAPON_CONFIGS[gameState.currentWeapon];
+      playSound(gameState.currentWeapon);
+
+      // Visual Weapon Recoil Effect
+      if (currentWeaponMesh) {
+        currentWeaponMesh.position.z += cfg.recoil;
+        currentWeaponMesh.rotation.x += cfg.recoil;
+        setTimeout(() => {
+          currentWeaponMesh.position.set(0.35, -0.3, -0.7);
+          currentWeaponMesh.rotation.set(0, -0.1, 0);
+        }, 120);
+      }
+
+      // Flash Effect Screen Overlay
+      const flash = document.getElementById('flash-effect');
+      flash.classList.remove('opacity-0');
+      flash.classList.add('muzzle-flash-overlay');
+      setTimeout(() => {
+        flash.classList.remove('muzzle-flash-overlay');
+        flash.classList.add('opacity-0');
+      }, 80);
+
+      // Raycasting hit test from center of screen (0, 0)
+      raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+
+      for (let p = 0; p < cfg.pellets; p++) {
+        // Add random spread if shotgun or recoil
+        const spreadX = (Math.random() - 0.5) * (p > 0 ? 0.15 : 0.02);
+        const spreadY = (Math.random() - 0.5) * (p > 0 ? 0.15 : 0.02);
+        
+        const ray = new THREE.Raycaster();
+        ray.setFromCamera(new THREE.Vector2(spreadX, spreadY), camera);
+
+        const intersects = ray.intersectObjects(destructibleObjects, true);
+
+        if (intersects.length > 0) {
+          const hit = intersects[0];
+          let targetObj = hit.object;
+
+          // If child of scary boss group
+          if (targetObj.parent && targetObj.parent.userData && targetObj.parent.userData.type === 'scary_boss') {
+            targetObj = targetObj.parent;
+          }
+
+          if (targetObj.userData && targetObj.userData.hp !== undefined) {
+            targetObj.userData.hp -= cfg.damage;
+
+            // Spawn Impact Particles
+            createImpactDebris(hit.point, targetObj.userData.type);
+
+            // Scale hit response wobble
+            targetObj.scale.multiplyScalar(0.96);
+
+            // Destroy object when HP reaches 0
+            if (targetObj.userData.hp <= 0) {
+              destroyObject(targetObj);
+            }
+          }
+        }
+      }
+    }
+
+    function destroyObject(obj) {
+      playSound(obj.userData.isExplosive ? 'explode' : 'shatter');
+
+      // Create Destruction Explosion Debris
+      createExplosionDebris(obj.position, obj.userData.type);
+
+      // If explosive barrel, damage adjacent objects
+      if (obj.userData.isExplosive) {
+        destructibleObjects.forEach(other => {
+          if (other !== obj && other.position.distanceTo(obj.position) < 3.5) {
+            other.userData.hp -= 200;
+            if (other.userData.hp <= 0) {
+              setTimeout(() => destroyObject(other), 100);
+            }
+          }
+        });
+      }
+
+      // Add Score
+      gameState.score += obj.userData.scoreValue;
+      gameState.destroyedCount++;
+
+      // Remove from Scene
+      scene.remove(obj);
+      destructibleObjects = destructibleObjects.filter(item => item !== obj);
+
+      if (obj === scaryPersonGroup) {
+        isScaryPersonActive = false;
+        scaryPersonGroup = null;
+        document.getElementById('game-status-text').innerText = "🎉 무서운 마왕을 물리쳤습니다! +5000점!";
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      }
+
+      updateUI();
+    }
+
+    function createImpactDebris(point, type) {
+      for (let i = 0; i < 8; i++) {
+        const pGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
+        const pMat = new THREE.MeshBasicMaterial({
+          color: type === 'glass' ? 0x00e5ff : (type === 'barrel' ? 0xff3d00 : 0xd7ccc8)
+        });
+        const p = new THREE.Mesh(pGeo, pMat);
+        p.position.copy(point);
+
+        p.userData = {
+          vx: (Math.random() - 0.5) * 0.2,
+          vy: Math.random() * 0.2,
+          vz: (Math.random() - 0.5) * 0.2,
+          life: 30
+        };
+
+        scene.add(p);
+        debrisParticles.push(p);
+      }
+    }
+
+    function createExplosionDebris(pos, type) {
+      const count = type === 'scary_boss' ? 40 : 15;
+      for (let i = 0; i < count; i++) {
+        const pGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const pMat = new THREE.MeshStandardMaterial({
+          color: type === 'scary_boss' ? 0xff0055 : (type === 'barrel' ? 0xff9100 : 0x8d6e63)
+        });
+        const p = new THREE.Mesh(pGeo, pMat);
+        p.position.copy(pos);
+
+        p.userData = {
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: Math.random() * 0.4 + 0.1,
+          vz: (Math.random() - 0.5) * 0.4,
+          life: 50
+        };
+
+        scene.add(p);
+        debrisParticles.push(p);
+      }
+    }
+
+    function onMouseDown(e) {
+      // Prevent UI button clicks triggering world shoot
+      if (e.target.closest('button') || e.target.closest('header') || e.target.closest('footer')) return;
+      triggerShoot(e);
+    }
+
+    /* ===================================================================
+       7. WEAPON SWITCH & UI UPDATE
+       =================================================================== */
+    function switchWeapon(type) {
+      gameState.currentWeapon = type;
+      createWeapon3DModel(type);
+
+      // UI Button active states
+      document.querySelectorAll('.weapon-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-gradient-to-tr', 'from-amber-800', 'to-yellow-600', 'border-yellow-300');
+        btn.classList.add('bg-stone-900/80', 'border-gray-700');
+      });
+
+      const activeBtn = document.getElementById(`btn-${type.toLowerCase()}`);
+      if (activeBtn) {
+        activeBtn.classList.add('active', 'bg-gradient-to-tr', 'from-amber-800', 'to-yellow-600', 'border-yellow-300');
+      }
+
+      document.getElementById('game-status-text').innerText = `무기 변경 완료: ${WEAPON_CONFIGS[type].name}`;
+      updateUI();
+    }
+
+    function resetScene() {
+      buildDestructibleSceneObjects();
+      document.getElementById('game-status-text').innerText = "구역이 새로 건축되었습니다. 다 부숴버리세요!";
+    }
+
+    function updateUI() {
+      document.getElementById('score-text').innerText = gameState.score;
+
+      const rate = gameState.totalObjectsCount > 0 
+        ? Math.min(Math.round((gameState.destroyedCount / gameState.totalObjectsCount) * 100), 100)
+        : 0;
+      document.getElementById('destroy-rate-text').innerText = `${rate}%`;
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /* ===================================================================
+       8. MAIN ANIMATION RENDER LOOP
+       =================================================================== */
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Rotate glass targets smoothly
+      destructibleObjects.forEach(obj => {
+        if (obj.userData && obj.userData.type === 'glass') {
+          obj.rotation.y += obj.userData.rotSpeed;
+          obj.rotation.x += obj.userData.rotSpeed * 0.5;
+        }
+      });
+
+      // Update Debris Particles physics
+      for (let i = debrisParticles.length - 1; i >= 0; i--) {
+        const p = debrisParticles[i];
+        p.position.x += p.userData.vx;
+        p.position.y += p.userData.vy;
+        p.position.z += p.userData.vz;
+
+        p.userData.vy -= 0.01; // Gravity
+        p.userData.life--;
+
+        if (p.userData.life <= 0) {
+          scene.remove(p);
+          debrisParticles.splice(i, 1);
+        }
+      }
+
+      // Render 3D Scene
+      renderer.render(scene, camera);
+    }
+
+    // Window Onload Game Initialization
+    window.onload = function() {
+      init3D();
+      animate();
+    };
+  </script>
+</body>
+</html>
